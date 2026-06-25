@@ -7,8 +7,14 @@
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-    <!-- PWA Manifest -->
+    
+    <!-- ===== FAVICON ===== -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+    
+    <!-- ===== PWA MANIFEST (com ícones personalizados) ===== -->
     <link rel="manifest" href="data:application/json,{
       &quot;name&quot;: &quot;Minhas Tarefas&quot;,
       &quot;short_name&quot;: &quot;Tarefas&quot;,
@@ -19,9 +25,15 @@
       &quot;theme_color&quot;: &quot;#667eea&quot;,
       &quot;icons&quot;: [
         {
-          &quot;src&quot;: &quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23667eea'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='280' font-family='Arial'%3E📋%3C/text%3E%3C/svg%3E&quot;,
+          &quot;src&quot;: &quot;android-chrome-192x192.png&quot;,
+          &quot;sizes&quot;: &quot;192x192&quot;,
+          &quot;type&quot;: &quot;image/png&quot;,
+          &quot;purpose&quot;: &quot;any maskable&quot;
+        },
+        {
+          &quot;src&quot;: &quot;android-chrome-512x512.png&quot;,
           &quot;sizes&quot;: &quot;512x512&quot;,
-          &quot;type&quot;: &quot;image/svg+xml&quot;,
+          &quot;type&quot;: &quot;image/png&quot;,
           &quot;purpose&quot;: &quot;any maskable&quot;
         }
       ]
