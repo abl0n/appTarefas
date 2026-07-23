@@ -1,0 +1,3037 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>📋 Minhas Tarefas</title>
+    <style>
+        /* ==================== RESET E BASE ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a6fd6;
+            --primary-light: #e8ebfd;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+            --light-gray: #f8f9fa;
+            --border: #e0e0e0;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --spacing: 16px;
+            --sidebar-width: 280px;
+            --fab-size: 60px;
+            --offline-color: #ff6b6b;
+            --online-color: #51cf66;
+            --google-color: #ea4335;
+            --waze-color: #33ccff;
+            --whatsapp-color: #25D366;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* ==================== STATUS OFFLINE ==================== */
+        .connection-status {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 3000;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .connection-status.offline {
+            transform: translateY(0);
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .connection-status.online {
+            transform: translateY(0);
+            background: #51cf66;
+            color: white;
+        }
+
+        .connection-status .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        .connection-status.offline .status-dot {
+            background: white;
+        }
+
+        .connection-status.online .status-dot {
+            background: white;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.6;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: var(--sidebar-width);
+            height: 100%;
+            height: 100dvh;
+            background: white;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 999;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar-profile {
+            padding: 24px 20px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: white;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .sidebar-avatar:active {
+            transform: scale(0.95);
+        }
+
+        .sidebar-profile h2 {
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-profile p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+        }
+
+        .sidebar-menu {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sidebar-menu::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar-menu::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s;
+            cursor: pointer;
+            touch-action: manipulation;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .menu-item:active {
+            background: var(--primary-light);
+        }
+
+        .menu-item.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-right: 3px solid var(--primary);
+        }
+
+        .menu-item .menu-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .menu-item .menu-badge {
+            margin-left: auto;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 8px 20px;
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
+        .main-content {
+            flex: 1;
+            padding: var(--spacing);
+            max-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        .container {
+            background: white;
+            border-radius: var(--radius);
+            padding: var(--spacing);
+            max-width: 600px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            height: 94vh;
+            height: 94dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ==================== HEADER ==================== */
+        header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            touch-action: manipulation;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            transition: transform 0.2s;
+            border-radius: 8px;
+        }
+
+        .menu-toggle:active {
+            transform: scale(0.9);
+            background: var(--light-gray);
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            color: #333;
+            font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title .subtitle {
+            color: #999;
+            font-size: 0.75rem;
+            font-weight: 400;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            color: #999;
+        }
+
+        .header-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .header-status .dot.online {
+            background: var(--online-color);
+        }
+
+        .header-status .dot.offline {
+            background: var(--offline-color);
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        /* ==================== FILTROS ==================== */
+        .filter-section {
+            flex-shrink: 0;
+            display: flex;
+            gap: 6px;
+            margin: 12px 0 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: clamp(0.7rem, 1.8vw, 0.85rem);
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            text-align: center;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .filter-btn:active {
+            transform: scale(0.95);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ==================== CONTADOR ==================== */
+        .task-counter {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 4px 8px;
+            font-size: 0.75rem;
+            color: #999;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .task-counter .count {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* ==================== LISTA DE TAREFAS ==================== */
+        #taskList {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 8px 2px 80px;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            overscroll-behavior: contain;
+        }
+
+        #taskList::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #taskList::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .task-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px 14px;
+            background: var(--light-gray);
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease;
+            border-left: 3px solid transparent;
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+            touch-action: pan-y;
+            will-change: transform;
+        }
+
+        .task-item.dragging-mode {
+            cursor: grab;
+            touch-action: none;
+        }
+
+        .task-item.dragging-mode:active {
+            cursor: grabbing;
+        }
+
+        .task-item.dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+            transition: none;
+        }
+
+        .task-item.drag-over {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transition: all 0.15s ease;
+        }
+
+        .task-item .drag-handle {
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ccc;
+            font-size: 1.2rem;
+            padding: 4px;
+            opacity: 0.3;
+            transition: opacity 0.2s;
+            display: none;
+        }
+
+        .task-item.dragging-mode .drag-handle {
+            display: block;
+        }
+
+        .task-item:hover .drag-handle {
+            opacity: 1;
+        }
+
+        .task-item.long-press {
+            animation: longPressPulse 0.6s ease-out;
+        }
+
+        @keyframes longPressPulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+                background: var(--primary-light);
+                border-color: var(--primary);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+            border-left-color: var(--success);
+        }
+
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        .task-item.pending {
+            border-left-color: var(--primary);
+        }
+
+        .task-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding-left: 0;
+        }
+
+        .task-item.dragging-mode .task-main {
+            padding-left: 24px;
+        }
+
+        .task-checkbox {
+            width: clamp(20px, 5vw, 24px);
+            height: clamp(20px, 5vw, 24px);
+            cursor: pointer;
+            flex-shrink: 0;
+            touch-action: manipulation;
+            -webkit-appearance: none;
+            appearance: none;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task-checkbox:checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .task-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .task-checkbox:active {
+            transform: scale(0.9);
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            color: #333;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .task-meta {
+            font-size: clamp(0.65rem, 1.6vw, 0.75rem);
+            color: #888;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 4px;
+            padding-left: 0;
+        }
+
+        .task-item.dragging-mode .task-meta {
+            padding-left: 24px;
+        }
+
+        .task-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-meta .meta-item .meta-label {
+            color: #aaa;
+            font-weight: 400;
+        }
+
+        .task-meta .meta-item .meta-value {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .task-address {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: clamp(0.7rem, 1.8vw, 0.8rem);
+            color: #666;
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: #f0f2f5;
+            border-radius: 6px;
+            flex-wrap: wrap;
+            margin-left: 0;
+        }
+
+        .task-item.dragging-mode .task-address {
+            margin-left: 32px;
+        }
+
+        .task-address .address-icon {
+            font-size: 14px;
+        }
+
+        .task-address .address-text {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .task-address .address-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .task-address .address-link {
+            text-decoration: none;
+            font-size: 0.7rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            font-weight: 500;
+            border: 1.5px solid transparent;
+        }
+
+        .task-address .address-link:active {
+            transform: scale(0.95);
+        }
+
+        /* Google Maps Button */
+        .task-address .address-link.google {
+            color: #ffffff;
+            background: var(--google-color);
+            border-color: var(--google-color);
+            box-shadow: 0 2px 8px rgba(234, 67, 53, 0.25);
+        }
+
+        .task-address .address-link.google:active {
+            background: #d33426;
+            transform: scale(0.95);
+        }
+
+        .task-address .address-link.google .google-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .task-address .address-link.google .google-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: white;
+        }
+
+        /* Waze Button */
+        .task-address .address-link.waze {
+            color: #ffffff;
+            background: var(--waze-color);
+            border-color: var(--waze-color);
+            box-shadow: 0 2px 8px rgba(51, 204, 255, 0.25);
+        }
+
+        .task-address .address-link.waze:active {
+            background: #1ab8e6;
+            transform: scale(0.95);
+        }
+
+        .task-address .address-link.waze .waze-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .task-address .address-link.waze .waze-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: white;
+        }
+
+        .task-date {
+            font-size: clamp(0.6rem, 1.5vw, 0.7rem);
+            color: #999;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+            touch-action: manipulation;
+            min-height: 36px;
+            min-width: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .delete-btn:active {
+            transform: scale(1.2);
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        /* ==================== DRAG CLONE ==================== */
+        .drag-clone {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            background: white;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(1.05) rotate(-2deg);
+            opacity: 0.92;
+            width: 280px;
+            max-width: 80vw;
+            touch-action: none;
+            border-left: 3px solid var(--primary);
+            will-change: transform, left, top;
+        }
+
+        .drag-clone .drag-text {
+            font-size: 1rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .drag-clone .drag-address {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        /* ==================== BOTÃO FLUTUANTE ==================== */
+        .fab {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: var(--fab-size);
+            height: var(--fab-size);
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .fab:active {
+            transform: scale(0.9);
+        }
+
+        .fab:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 28px rgba(102, 126, 234, 0.5);
+        }
+
+        .fab-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* ==================== BOTÃO COMPARTILHAR ==================== */
+        .fab-share {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: var(--fab-size);
+            height: var(--fab-size);
+            border-radius: 50%;
+            background: var(--whatsapp-color);
+            color: white;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .fab-share:active {
+            transform: scale(0.9);
+        }
+
+        .fab-share:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 28px rgba(37, 211, 102, 0.5);
+        }
+
+        .fab-share .whatsapp-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .fab-share .whatsapp-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: white;
+        }
+
+        /* ==================== RODAPÉ / ASSINATURA ==================== */
+        .footer {
+            flex-shrink: 0;
+            padding: 12px 4px 4px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            margin-top: 4px;
+        }
+
+        .footer .signature {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: #999;
+            flex-wrap: wrap;
+        }
+
+        .footer .signature .dev-name {
+            color: var(--primary);
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .footer .signature .dev-name:hover {
+            color: var(--primary-dark);
+        }
+
+        .footer .signature .separator {
+            color: #ddd;
+            font-weight: 300;
+        }
+
+        .footer .signature .heart {
+            color: #ff6b6b;
+            display: inline-block;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+
+        .footer .signature .email-link {
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 0.7rem;
+        }
+
+        .footer .signature .email-link:hover {
+            color: var(--primary);
+        }
+
+        .footer .signature .email-link:active {
+            color: var(--primary-dark);
+        }
+
+        @keyframes heartbeat {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        /* ==================== MENSAGEM VAZIA ==================== */
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 60px 10px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+        }
+
+        .empty-message .empty-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .empty-message .empty-sub {
+            font-size: 0.8rem;
+            color: #bbb;
+            margin-top: 4px;
+        }
+
+        /* ==================== TOAST ==================== */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(51, 51, 51, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2000;
+            max-width: 90%;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ==================== MODAL CADASTRO ==================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 2000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 24px 20px 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 92vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 4px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            color: #999;
+            touch-action: manipulation;
+            min-height: 44px;
+            min-width: 44px;
+            border-radius: 8px;
+        }
+
+        .modal-close:active {
+            background: var(--light-gray);
+            transform: scale(0.9);
+        }
+
+        .modal form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal form label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: -6px;
+        }
+
+        .modal form input,
+        .modal form textarea {
+            padding: 12px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--light-gray);
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        .modal form input:focus,
+        .modal form textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .modal form input::placeholder,
+        .modal form textarea::placeholder {
+            color: #bbb;
+        }
+
+        .modal form textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .modal-address-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--light-gray);
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+        }
+
+        .modal-address-section .search-header {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .modal-address-section .search-header input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            -webkit-appearance: none;
+            appearance: none;
+            background: white;
+        }
+
+        .modal-address-section .search-header input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .modal-address-section .search-header button {
+            padding: 10px 16px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            touch-action: manipulation;
+            min-height: 44px;
+        }
+
+        .modal-address-section .search-header button:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+        }
+
+        .modal-address-section .search-header button:active {
+            transform: scale(0.95);
+        }
+
+        .modal-suggestions {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            background: white;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            padding: 4px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-suggestions.active {
+            display: flex;
+        }
+
+        .modal-suggestion-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9rem;
+            touch-action: manipulation;
+        }
+
+        .modal-suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .modal-suggestion-item:active {
+            background: #e9ecef;
+        }
+
+        .modal-suggestion-item .suggestion-main {
+            font-weight: 600;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .modal-suggestion-item .suggestion-detail {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .modal-selected-address {
+            display: none;
+            padding: 10px 14px;
+            background: #e8f5e9;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--success);
+            font-size: 0.9rem;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .modal-selected-address.active {
+            display: block;
+        }
+
+        .modal-selected-address .address-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .modal-selected-address .address-actions button {
+            padding: 6px 14px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+            touch-action: manipulation;
+            min-height: 36px;
+        }
+
+        .modal-selected-address .address-actions button:active {
+            transform: scale(0.95);
+        }
+
+        .modal-selected-address .address-actions button:first-child {
+            background: var(--gray);
+        }
+
+        .modal form button[type="submit"] {
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            min-height: 52px;
+            margin-top: 4px;
+        }
+
+        .modal form button[type="submit"]:active {
+            transform: scale(0.95);
+        }
+
+        /* ==================== MODAL PERFIL ==================== */
+        .modal-profile .modal {
+            border-radius: var(--radius);
+            transform: scale(0.9);
+        }
+
+        .modal-profile.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-profile {
+            align-items: center;
+        }
+
+        .modal-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 3px dashed var(--border);
+        }
+
+        .modal-avatar:active {
+            transform: scale(0.95);
+        }
+
+        .modal-avatar.has-image {
+            border: 3px solid var(--primary);
+        }
+
+        /* ==================== ANIMAÇÕES ==================== */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ==================== RESPONSIVO ==================== */
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+
+            .main-content {
+                padding: 6px;
+                align-items: stretch;
+            }
+
+            .container {
+                padding: 12px;
+                border-radius: 12px;
+                height: 100vh;
+                height: 100dvh;
+                border-radius: 0;
+            }
+
+            .filter-btn {
+                font-size: 0.65rem;
+                padding: 6px 8px;
+                min-height: 34px;
+            }
+
+            .task-item {
+                padding: 10px 12px;
+            }
+
+            .task-main {
+                padding-left: 0;
+            }
+
+            .task-item.dragging-mode .task-main {
+                padding-left: 0;
+            }
+
+            .task-item .drag-handle {
+                display: none !important;
+            }
+
+            .task-address {
+                flex-direction: column;
+                align-items: stretch;
+                margin-left: 0;
+                gap: 6px;
+            }
+
+            .task-item.dragging-mode .task-address {
+                margin-left: 0;
+            }
+
+            .task-address .address-actions {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .task-address .address-link {
+                font-size: 0.65rem;
+                padding: 4px 10px;
+                flex: 1;
+                justify-content: center;
+            }
+
+            .task-date {
+                display: none;
+            }
+
+            .sidebar {
+                width: 85%;
+                max-width: 300px;
+            }
+
+            .sidebar-profile {
+                padding: 20px 16px 12px;
+            }
+
+            .sidebar-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+
+            .modal {
+                padding: 20px 16px 24px;
+                max-height: 94vh;
+            }
+
+            .modal-address-section .search-header {
+                flex-direction: column;
+            }
+
+            .modal-address-section .search-header button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-selected-address .address-actions {
+                flex-direction: column;
+            }
+
+            .modal-selected-address .address-actions button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .fab {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+                bottom: 72px;
+                right: 12px;
+            }
+
+            .fab-share {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+                bottom: 16px;
+                right: 12px;
+            }
+
+            .fab-share .whatsapp-icon {
+                width: 26px;
+                height: 26px;
+            }
+
+            #taskList {
+                padding-bottom: 70px;
+            }
+
+            .task-counter {
+                font-size: 0.65rem;
+            }
+
+            .header-status {
+                font-size: 0.6rem;
+            }
+
+            .header-status .dot {
+                width: 6px;
+                height: 6px;
+            }
+
+            .drag-clone {
+                width: 200px;
+                padding: 10px 12px;
+            }
+
+            .drag-clone .drag-text {
+                font-size: 0.9rem;
+            }
+
+            .footer .signature {
+                font-size: 0.6rem;
+                gap: 4px;
+            }
+
+            .footer .signature .email-link {
+                font-size: 0.6rem;
+            }
+
+            .task-meta {
+                flex-direction: column;
+                gap: 4px;
+                padding-left: 0;
+            }
+
+            .task-item.dragging-mode .task-meta {
+                padding-left: 0;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .container {
+                padding: 8px;
+            }
+
+            .filter-btn {
+                font-size: 0.6rem;
+                padding: 4px 6px;
+                min-height: 30px;
+            }
+
+            .task-item {
+                padding: 8px 10px;
+            }
+
+            .task-text {
+                font-size: 0.85rem;
+            }
+
+            .fab {
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
+                bottom: 66px;
+                right: 10px;
+            }
+
+            .fab-share {
+                width: 42px;
+                height: 42px;
+                bottom: 14px;
+                right: 10px;
+            }
+
+            .fab-share .whatsapp-icon {
+                width: 22px;
+                height: 22px;
+            }
+
+            .footer .signature {
+                font-size: 0.55rem;
+                gap: 3px;
+            }
+
+            .footer .signature .email-link {
+                font-size: 0.55rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding: 28px;
+                height: 90vh;
+                height: 90dvh;
+            }
+
+            .filter-btn:hover {
+                background: #e0e0e0;
+            }
+
+            .menu-item:hover {
+                background: var(--primary-light);
+            }
+
+            .delete-btn:hover {
+                background: rgba(220, 53, 69, 0.1);
+            }
+
+            .fab:hover {
+                transform: scale(1.08);
+            }
+
+            .fab-share:hover {
+                transform: scale(1.08);
+            }
+
+            .modal form button[type="submit"]:hover {
+                background: var(--primary-dark);
+            }
+
+            .task-item:hover .drag-handle {
+                opacity: 1;
+            }
+
+            .footer .signature .dev-name:hover {
+                color: var(--primary-dark);
+            }
+
+            .task-address .address-link:hover {
+                transform: scale(1.03);
+            }
+        }
+
+        @media (hover: none) {
+            .task-item:hover {
+                transform: none;
+            }
+            .filter-btn:hover {
+                background: #f0f0f0;
+            }
+            .menu-item:hover {
+                background: none;
+            }
+            .fab:hover {
+                transform: none;
+            }
+            .fab-share:hover {
+                transform: none;
+            }
+            .task-item .drag-handle {
+                opacity: 0.3;
+            }
+            .footer .signature .dev-name:hover {
+                color: var(--primary);
+            }
+            .task-address .address-link:hover {
+                transform: none;
+            }
+        }
+
+        /* ==================== SAFE AREA ==================== */
+        @supports (padding: max(0px)) {
+            .container {
+                padding-left: max(var(--spacing), env(safe-area-inset-left));
+                padding-right: max(var(--spacing), env(safe-area-inset-right));
+                padding-bottom: max(var(--spacing), env(safe-area-inset-bottom));
+            }
+
+            .sidebar {
+                padding-top: max(0px, env(safe-area-inset-top));
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
+
+            .modal {
+                padding-bottom: max(24px, env(safe-area-inset-bottom));
+            }
+
+            .fab {
+                bottom: max(80px, env(safe-area-inset-bottom) + 70px);
+                right: max(20px, env(safe-area-inset-right) + 10px);
+            }
+
+            .fab-share {
+                bottom: max(20px, env(safe-area-inset-bottom) + 10px);
+                right: max(20px, env(safe-area-inset-right) + 10px);
+            }
+
+            .connection-status {
+                padding-top: max(8px, env(safe-area-inset-top));
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== STATUS DE CONEXÃO ==================== -->
+    <div id="connectionStatus" class="connection-status">
+        <span class="status-dot"></span>
+        <span id="connectionText">Conectado</span>
+    </div>
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar" id="profileAvatar" title="Clique para editar">👤</div>
+            <h2 id="profileName">Usuário</h2>
+            <p id="profileEmail">usuario@email.com</p>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <button class="menu-item active" data-page="tasks">
+                <span class="menu-icon">📋</span>
+                Minhas Tarefas
+                <span class="menu-badge" id="taskCount">0</span>
+            </button>
+            <button class="menu-item" data-page="profile">
+                <span class="menu-icon">👤</span>
+                Meu Perfil
+            </button>
+            <button class="menu-item" data-page="stats">
+                <span class="menu-icon">📊</span>
+                Estatísticas
+            </button>
+            <button class="menu-item" data-page="settings">
+                <span class="menu-icon">⚙️</span>
+                Configurações
+            </button>
+            
+            <div class="menu-divider"></div>
+            
+            <button class="menu-item" id="clearAllData">
+                <span class="menu-icon">🗑️</span>
+                Limpar Dados
+            </button>
+            <button class="menu-item" id="logoutBtn">
+                <span class="menu-icon">🚪</span>
+                Sair
+            </button>
+        </nav>
+    </aside>
+
+    <!-- ==================== MAIN ==================== -->
+    <main class="main-content" id="mainContent">
+        <div class="container">
+            <header>
+                <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+                <div class="header-title">
+                    <h1>
+                        📋 Tarefas
+                        <span class="subtitle">• organizadas</span>
+                    </h1>
+                </div>
+                <div class="header-status">
+                    <span class="dot online" id="statusDot"></span>
+                    <span id="statusText">Online</span>
+                </div>
+            </header>
+
+            <div class="filter-section">
+                <button class="filter-btn active" data-filter="all">📋 Todas</button>
+                <button class="filter-btn" data-filter="pending">⏳ Pendentes</button>
+                <button class="filter-btn" data-filter="completed">✅ Concluídas</button>
+            </div>
+
+            <div class="task-counter">
+                <span>Mostrando <span class="count" id="showingCount">0</span> tarefas</span>
+                <span><span class="count" id="pendingCount">0</span> pendentes</span>
+            </div>
+
+            <ul id="taskList"></ul>
+
+            <!-- Botão Adicionar -->
+            <button class="fab fab-pulse" id="fabAddTask" aria-label="Adicionar tarefa" title="Adicionar tarefa">
+                ✚
+            </button>
+
+            <!-- Botão Compartilhar WhatsApp -->
+            <button class="fab-share" id="fabShareWhatsApp" aria-label="Compartilhar no WhatsApp" title="Compartilhar lista no WhatsApp">
+                <span class="whatsapp-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                </span>
+            </button>
+
+            <!-- ==================== RODAPÉ / ASSINATURA ==================== -->
+            <div class="footer">
+                <div class="signature">
+                    <span>🚀 Desenvolvido por</span>
+                    <span class="dev-name">Adriano Monteiro</span>
+                    <span class="separator">|</span>
+                    <span class="heart">❤️</span>
+                    <span class="separator">|</span>
+                    <a href="mailto:adri0mt@uni9.edu.br" class="email-link" title="Enviar e-mail">📧 adri0mt@uni9.edu.br</a>
+                    <span class="separator">|</span>
+                    <span>v2.0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== MODAL CADASTRO ==================== -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <div class="modal-header">
+                <h2>✚ Nova Tarefa</h2>
+                <button class="modal-close" id="modalTaskClose">✕</button>
+            </div>
+            <form id="taskForm">
+                <label for="taskInput">📝 O que precisa fazer?</label>
+                <input type="text" id="taskInput" placeholder="Ex: Estudar JavaScript" required autofocus>
+
+                <label for="taskOrder">🔢 Nº Ordem</label>
+                <input type="text" id="taskOrder" placeholder="Ex: 001, 002, ou A-01">
+
+                <label for="taskObs">📝 Obs.</label>
+                <textarea id="taskObs" placeholder="Observações sobre a tarefa..."></textarea>
+
+                <label>📍 Endereço <span style="color:#999;font-weight:400;">(opcional)</span></label>
+                <div class="modal-address-section">
+                    <div class="search-header">
+                        <input type="text" id="modalAddressSearch" placeholder="Buscar endereço...">
+                        <button id="modalSearchBtn">🔍 Buscar</button>
+                    </div>
+                    <div id="modalSuggestions" class="modal-suggestions"></div>
+                    <div id="modalSelectedAddress" class="modal-selected-address">
+                        <div id="modalSelectedText"></div>
+                        <div class="address-actions">
+                            <button id="modalClearAddress">✖ Limpar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit">✅ Adicionar Tarefa</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL PERFIL ==================== -->
+    <div class="modal-overlay modal-profile" id="profileModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>👤 Meu Perfil</h2>
+                <button class="modal-close" id="modalProfileClose">✕</button>
+            </div>
+            <form id="profileForm">
+                <div style="text-align: center;">
+                    <div class="modal-avatar" id="modalAvatar">👤</div>
+                </div>
+                <label for="modalName">Nome</label>
+                <input type="text" id="modalName" placeholder="Seu nome" required>
+                
+                <label for="modalEmail">Email</label>
+                <input type="email" id="modalEmail" placeholder="seu@email.com" required>
+                
+                <button type="submit">💾 Salvar Perfil</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST ==================== -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+        // ============================================
+        // CLASSE PRINCIPAL
+        // ============================================
+        class TaskManager {
+            constructor() {
+                this.tasks = [];
+                this.currentFilter = 'all';
+                this.selectedAddress = null;
+                this.isSearching = false;
+                this.isOnline = navigator.onLine;
+                this.searchTimeout = null;
+                
+                // Drag & Drop
+                this.draggingItem = null;
+                this.dragOverItem = null;
+                this.isDragging = false;
+                this.longPressTimer = null;
+                this.isLongPress = false;
+                this.dragClone = null;
+                this.startY = 0;
+                this.currentY = 0;
+                this.scrollInterval = null;
+                this.dragOffsetY = 0;
+                this.isDraggingActive = false;
+                this.boundOnDragMove = null;
+                this.boundOnDragEnd = null;
+                
+                this.profile = {
+                    name: 'Usuário',
+                    email: 'usuario@email.com',
+                    avatar: '👤'
+                };
+                
+                this.loadTasks();
+                this.loadProfile();
+                this.initializeDOM();
+                this.bindEvents();
+                this.render();
+                this.updateSidebarStats();
+                this.checkConnection();
+                this.setupConnectionListeners();
+                
+                setTimeout(() => {
+                    if (this.isOnline) {
+                        this.showToast('📋 Tarefas carregadas!');
+                    }
+                }, 500);
+            }
+
+            // ========== DOM REFERÊNCIAS ==========
+            initializeDOM() {
+                // Principais
+                this.taskList = document.getElementById('taskList');
+                this.filterBtns = document.querySelectorAll('.filter-btn');
+                this.showingCount = document.getElementById('showingCount');
+                this.pendingCount = document.getElementById('pendingCount');
+                this.toast = document.getElementById('toast');
+
+                // Status
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.connectionText = document.getElementById('connectionText');
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+
+                // Sidebar
+                this.sidebar = document.getElementById('sidebar');
+                this.sidebarOverlay = document.getElementById('sidebarOverlay');
+                this.menuToggle = document.getElementById('menuToggle');
+                this.menuItems = document.querySelectorAll('.menu-item');
+                this.profileName = document.getElementById('profileName');
+                this.profileEmail = document.getElementById('profileEmail');
+                this.profileAvatar = document.getElementById('profileAvatar');
+                this.taskCount = document.getElementById('taskCount');
+
+                // Modal Tarefa
+                this.taskModal = document.getElementById('taskModal');
+                this.taskForm = document.getElementById('taskForm');
+                this.taskInput = document.getElementById('taskInput');
+                this.taskOrder = document.getElementById('taskOrder');
+                this.taskObs = document.getElementById('taskObs');
+                this.modalTaskClose = document.getElementById('modalTaskClose');
+                this.fabAddTask = document.getElementById('fabAddTask');
+
+                // Modal Endereço
+                this.modalAddressSearch = document.getElementById('modalAddressSearch');
+                this.modalSearchBtn = document.getElementById('modalSearchBtn');
+                this.modalSuggestions = document.getElementById('modalSuggestions');
+                this.modalSelectedAddress = document.getElementById('modalSelectedAddress');
+                this.modalSelectedText = document.getElementById('modalSelectedText');
+                this.modalClearAddress = document.getElementById('modalClearAddress');
+
+                // Modal Perfil
+                this.profileModal = document.getElementById('profileModal');
+                this.modalProfileClose = document.getElementById('modalProfileClose');
+                this.profileForm = document.getElementById('profileForm');
+                this.modalName = document.getElementById('modalName');
+                this.modalEmail = document.getElementById('modalEmail');
+                this.modalAvatar = document.getElementById('modalAvatar');
+
+                // Ações
+                this.clearAllData = document.getElementById('clearAllData');
+                this.logoutBtn = document.getElementById('logoutBtn');
+
+                // Compartilhamento
+                this.fabShareWhatsApp = document.getElementById('fabShareWhatsApp');
+            }
+
+            // ========== CONEXÃO ==========
+            checkConnection() {
+                this.isOnline = navigator.onLine;
+                this.updateConnectionUI();
+            }
+
+            setupConnectionListeners() {
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                    this.updateConnectionUI();
+                    this.showToast('🌐 Conexão restaurada!');
+                });
+
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                    this.updateConnectionUI();
+                    this.showToast('📶 Modo offline ativado');
+                });
+
+                setInterval(() => {
+                    const wasOnline = this.isOnline;
+                    this.isOnline = navigator.onLine;
+                    if (wasOnline !== this.isOnline) {
+                        this.updateConnectionUI();
+                        if (this.isOnline) {
+                            this.showToast('🌐 Conexão restaurada!');
+                        } else {
+                            this.showToast('📶 Modo offline ativado');
+                        }
+                    }
+                }, 5000);
+            }
+
+            updateConnectionUI() {
+                const status = this.connectionStatus;
+                const text = this.connectionText;
+                const dot = this.statusDot;
+                const statusText = this.statusText;
+
+                if (this.isOnline) {
+                    status.className = 'connection-status online';
+                    text.textContent = '🟢 Conectado';
+                    dot.className = 'dot online';
+                    statusText.textContent = 'Online';
+                } else {
+                    status.className = 'connection-status offline';
+                    text.textContent = '🔴 Modo Offline';
+                    dot.className = 'dot offline';
+                    statusText.textContent = 'Offline';
+                }
+
+                status.style.transform = 'translateY(0)';
+                clearTimeout(this.statusTimeout);
+                this.statusTimeout = setTimeout(() => {
+                    status.style.transform = 'translateY(-100%)';
+                }, 3000);
+            }
+
+            // ========== PERFIL ==========
+            loadProfile() {
+                try {
+                    const saved = localStorage.getItem('profile');
+                    if (saved) {
+                        this.profile = JSON.parse(saved);
+                        this.updateProfileUI();
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar perfil:', e);
+                }
+            }
+
+            saveProfile() {
+                try {
+                    localStorage.setItem('profile', JSON.stringify(this.profile));
+                    this.updateProfileUI();
+                } catch (e) {
+                    console.error('Erro ao salvar perfil:', e);
+                }
+            }
+
+            updateProfileUI() {
+                this.profileName.textContent = this.profile.name;
+                this.profileEmail.textContent = this.profile.email;
+                this.profileAvatar.textContent = this.profile.avatar || '👤';
+            }
+
+            // ========== PERSISTÊNCIA ==========
+            loadTasks() {
+                try {
+                    const saved = localStorage.getItem('tasks');
+                    if (saved) {
+                        this.tasks = JSON.parse(saved);
+                    } else {
+                        this.tasks = [];
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar tarefas:', e);
+                    this.tasks = [];
+                }
+            }
+
+            saveTasks() {
+                try {
+                    localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                    this.updateStats();
+                    this.updateSidebarStats();
+                } catch (e) {
+                    console.error('Erro ao salvar tarefas:', e);
+                }
+            }
+
+            // ========== ESTATÍSTICAS ==========
+            updateStats() {
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(task => task.completed).length;
+                const pending = total - completed;
+                
+                if (this.pendingCount) {
+                    this.pendingCount.textContent = pending;
+                }
+            }
+
+            updateSidebarStats() {
+                const pending = this.tasks.filter(t => !t.completed).length;
+                if (this.taskCount) {
+                    this.taskCount.textContent = pending;
+                }
+            }
+
+            // ========== SIDEBAR ==========
+            toggleSidebar() {
+                this.sidebar.classList.toggle('open');
+                this.sidebarOverlay.classList.toggle('active');
+            }
+
+            closeSidebar() {
+                this.sidebar.classList.remove('open');
+                this.sidebarOverlay.classList.remove('active');
+            }
+
+            // ========== MODAL TAREFA ==========
+            openTaskModal() {
+                this.taskModal.classList.add('active');
+                this.taskInput.value = '';
+                this.taskOrder.value = '';
+                this.taskObs.value = '';
+                this.clearModalAddress();
+                setTimeout(() => this.taskInput.focus(), 400);
+                this.closeSidebar();
+            }
+
+            closeTaskModal() {
+                this.taskModal.classList.remove('active');
+                this.clearModalAddress();
+                this.modalSuggestions.classList.remove('active');
+            }
+
+            // ========== MODAL PERFIL ==========
+            openProfileModal() {
+                this.modalName.value = this.profile.name;
+                this.modalEmail.value = this.profile.email;
+                this.modalAvatar.textContent = this.profile.avatar || '👤';
+                this.profileModal.classList.add('active');
+                this.closeSidebar();
+            }
+
+            closeProfileModal() {
+                this.profileModal.classList.remove('active');
+            }
+
+            // ========== BUSCA ENDEREÇO COM DELAY ==========
+            async buscarEnderecoModal(query) {
+                if (!query || query.trim().length < 3) {
+                    this.modalSuggestions.classList.remove('active');
+                    return;
+                }
+
+                if (!this.isOnline) {
+                    this.showToast('📶 Modo offline - Busca indisponível');
+                    return;
+                }
+
+                this.isSearching = true;
+                this.modalSearchBtn.disabled = true;
+                this.modalSearchBtn.textContent = '⏳ Buscando...';
+                this.modalSuggestions.classList.remove('active');
+
+                try {
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
+                    
+                    const response = await fetch(url, {
+                        headers: { 'User-Agent': 'TaskApp/1.0' }
+                    });
+                    
+                    const data = await response.json();
+
+                    if (data.length === 0) {
+                        this.showToast('📍 Nenhum endereço encontrado');
+                        this.modalSuggestions.innerHTML = `
+                            <div class="modal-suggestion-item" style="color: #999; cursor: default;">
+                                Nenhum endereço encontrado
+                            </div>
+                        `;
+                        this.modalSuggestions.classList.add('active');
+                        return;
+                    }
+
+                    this.renderSuggestionsModal(data);
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (!this.isOnline) {
+                        this.showToast('📶 Sem conexão para buscar endereços');
+                    } else {
+                        this.showToast('⚠️ Erro ao buscar endereço');
+                    }
+                } finally {
+                    this.isSearching = false;
+                    this.modalSearchBtn.disabled = false;
+                    this.modalSearchBtn.textContent = '🔍 Buscar';
+                }
+            }
+
+            renderSuggestionsModal(data) {
+                this.modalSuggestions.innerHTML = data.map(item => {
+                    const displayName = item.display_name;
+                    const type = item.type;
+                    const icon = this.getAddressIcon(type);
+                    const detail = this.formatAddressDetail(item);
+
+                    return `
+                        <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
+                            <div class="suggestion-main">${icon} ${displayName}</div>
+                            <div class="suggestion-detail">${detail}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                this.modalSuggestions.classList.add('active');
+
+                this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const addressData = JSON.parse(el.dataset.address);
+                        this.selectAddressModal(addressData);
+                    });
+                });
+            }
+
+            getAddressIcon(type) {
+                const icons = {
+                    'administrative': '🏛️',
+                    'village': '🏘️',
+                    'town': '🏙️',
+                    'city': '🏙️',
+                    'state': '🗺️',
+                    'road': '🛤️',
+                    'building': '🏢',
+                    'house': '🏠',
+                    'amenity': '📍',
+                    'shop': '🛍️'
+                };
+                return icons[type] || '📍';
+            }
+
+            formatAddressDetail(item) {
+                const parts = [];
+                if (item.address?.road) parts.push(item.address.road);
+                if (item.address?.suburb) parts.push(item.address.suburb);
+                if (item.address?.city) parts.push(item.address.city);
+                if (item.address?.state) parts.push(item.address.state);
+                if (item.address?.postcode) parts.push(`CEP: ${item.address.postcode}`);
+                return parts.join(' • ') || item.class;
+            }
+
+            selectAddressModal(addressData) {
+                const address = {
+                    display_name: addressData.display_name,
+                    lat: addressData.lat,
+                    lon: addressData.lon,
+                    cep: addressData.address?.postcode || '',
+                    logradouro: addressData.address?.road || '',
+                    bairro: addressData.address?.suburb || addressData.address?.neighbourhood || '',
+                    cidade: addressData.address?.city || addressData.address?.town || addressData.address?.village || '',
+                    uf: addressData.address?.state || '',
+                    pais: addressData.address?.country || 'Brasil'
+                };
+
+                this.selectedAddress = address;
+                this.modalSelectedText.innerHTML = `
+                    <strong>📍 Endereço:</strong><br>
+                    ${this.formatAddressDisplay(address)}
+                `;
+                this.modalSelectedAddress.classList.add('active');
+                this.modalSuggestions.classList.remove('active');
+                this.modalAddressSearch.value = address.display_name;
+                this.showToast('✅ Endereço selecionado!');
+            }
+
+            formatAddressDisplay(address) {
+                let parts = [];
+                if (address.logradouro) parts.push(address.logradouro);
+                if (address.bairro) parts.push(address.bairro);
+                if (address.cidade) parts.push(address.cidade);
+                if (address.uf) parts.push(address.uf);
+                if (address.cep) parts.push(`CEP: ${address.cep}`);
+                return parts.join(' - ');
+            }
+
+            clearModalAddress() {
+                this.selectedAddress = null;
+                this.modalSelectedAddress.classList.remove('active');
+                this.modalAddressSearch.value = '';
+                this.modalSuggestions.classList.remove('active');
+            }
+
+            // ========== CRUD ==========
+            addTask(text, endereco, ordem, obs) {
+                if (!text || !text.trim()) {
+                    this.showToast('⚠️ Digite uma tarefa!');
+                    return false;
+                }
+
+                const exists = this.tasks.some(task => 
+                    task.text.toLowerCase() === text.trim().toLowerCase()
+                );
+                if (exists) {
+                    this.showToast('⚠️ Esta tarefa já existe!');
+                    return false;
+                }
+
+                const task = {
+                    id: Date.now(),
+                    text: text.trim(),
+                    completed: false,
+                    createdAt: new Date().toLocaleString('pt-BR'),
+                    endereco: endereco || null,
+                    ordem: ordem || '',
+                    obs: obs || '',
+                    order: this.tasks.length
+                };
+
+                this.tasks.push(task);
+                this.saveTasks();
+                this.render();
+                this.closeTaskModal();
+                
+                const msg = endereco ? `✅ "${task.text}" com endereço!` : `✅ "${task.text}" adicionada!`;
+                this.showToast(msg);
+                return true;
+            }
+
+            deleteTask(id) {
+                const task = this.tasks.find(t => t.id === id);
+                if (task) {
+                    this.tasks = this.tasks.filter(t => t.id !== id);
+                    this.saveTasks();
+                    this.render();
+                    this.showToast(`🗑️ "${task.text}" removida`);
+                }
+            }
+
+            toggleTask(id) {
+                const task = this.tasks.find(t => t.id === id);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.saveTasks();
+                    this.render();
+                    const status = task.completed ? '✅' : '⏳';
+                    this.showToast(`${status} "${task.text}" ${task.completed ? 'concluída' : 'reaberta'}`);
+                }
+            }
+
+            clearAll() {
+                if (this.tasks.length === 0) {
+                    this.showToast('📭 Nenhuma tarefa para limpar');
+                    return;
+                }
+
+                if (confirm('⚠️ Excluir TODAS as tarefas?')) {
+                    const count = this.tasks.length;
+                    this.tasks = [];
+                    this.saveTasks();
+                    this.render();
+                    this.showToast(`🗑️ ${count} tarefa(s) removida(s)`);
+                }
+            }
+
+            clearAllData() {
+                const totalTasks = this.tasks.length;
+                const hasProfile = localStorage.getItem('profile') !== null;
+                
+                let message = '⚠️ Isso excluirá TODOS os dados!\n\n';
+                if (totalTasks > 0) message += `📋 ${totalTasks} tarefa(s)\n`;
+                if (hasProfile) message += '👤 Perfil do usuário\n';
+                message += '\nTem certeza?';
+                
+                if (confirm(message)) {
+                    this.tasks = [];
+                    this.saveTasks();
+                    
+                    localStorage.removeItem('profile');
+                    this.profile = {
+                        name: 'Usuário',
+                        email: 'usuario@email.com',
+                        avatar: '👤'
+                    };
+                    this.updateProfileUI();
+                    
+                    this.render();
+                    this.updateSidebarStats();
+                    this.showToast('🗑️ Todos os dados foram removidos');
+                    this.closeSidebar();
+                }
+            }
+
+            // ========== COMPARTILHAR WHATSAPP ==========
+            shareWhatsApp() {
+                if (this.tasks.length === 0) {
+                    this.showToast('📭 Nenhuma tarefa para compartilhar');
+                    return;
+                }
+
+                // Monta a mensagem
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(t => t.completed).length;
+                const pending = total - completed;
+                
+                let message = '📋 *Minhas Tarefas*\n';
+                message += `📊 Total: ${total} | ✅ Concluídas: ${completed} | ⏳ Pendentes: ${pending}\n\n`;
+                message += '━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━\n\n';
+                
+                // Lista as tarefas
+                this.tasks.forEach((task, index) => {
+                    const status = task.completed ? '✅' : '⏳';
+                    const numero = (index + 1).toString().padStart(2, '0');
+                    
+                    // Título da tarefa: Nº Ordem + descrição
+                    let titulo = `${numero}. ${status} ${task.text}`;
+                    if (task.ordem) {
+                        titulo = `${numero}. ${status} [#${task.ordem}] ${task.text}`;
+                    }
+                    message += `${titulo}\n`;
+                    
+                    // Obs (se houver)
+                    if (task.obs) {
+                        message += `   📝 ${task.obs}\n`;
+                    }
+                    
+                    // Endereço (apenas nome da rua e número, simplificado)
+                    if (task.endereco) {
+                        let enderecoStr = '';
+                        // Tenta extrair apenas o nome da rua e número do display_name ou do logradouro
+                        const displayName = task.endereco.display_name || this.formatAddressDisplay(task.endereco);
+                        const logradouro = task.endereco.logradouro || '';
+                        
+                        if (logradouro) {
+                            // Pega apenas o nome da rua (remove o número se existir separadamente)
+                            const parts = logradouro.split(',');
+                            enderecoStr = parts[0].trim();
+                        } else if (displayName) {
+                            // Pega a primeira parte do display_name (geralmente é a rua)
+                            const parts = displayName.split(',');
+                            enderecoStr = parts[0].trim();
+                        }
+                        
+                        if (enderecoStr) {
+                            message += `   📍 ${enderecoStr}\n`;
+                        }
+                    }
+                    
+                    message += '\n'; // Espaço entre cada tarefa
+                });
+                
+                message += '━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━\n';
+                message += `📱 Compartilhado via TaskApp\n`;
+                message += `🚀 Desenvolvido por Adriano Monteiro\n`;
+                message += `📧 adri0mt@uni9.edu.br`;
+
+                // Codifica para URL
+                const encodedMessage = encodeURIComponent(message);
+                const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+                
+                // Abre o WhatsApp
+                window.open(whatsappUrl, '_blank');
+                
+                this.showToast('📤 Abrindo WhatsApp para compartilhar');
+            }
+
+            // ========== REORDENAÇÃO ==========
+            reorderTasks(fromIndex, toIndex) {
+                if (fromIndex === toIndex) return;
+                
+                const task = this.tasks.splice(fromIndex, 1)[0];
+                this.tasks.splice(toIndex, 0, task);
+                
+                this.tasks.forEach((t, i) => t.order = i);
+                this.saveTasks();
+                
+                this.render();
+                
+                setTimeout(() => {
+                    if (this.taskList) {
+                        this.taskList.style.overflow = '';
+                        this.taskList.style.touchAction = '';
+                    }
+                }, 50);
+            }
+
+            // ========== DRAG & DROP ==========
+            startDrag(item, e) {
+                if (this.isDraggingActive) return;
+                this.isDraggingActive = true;
+                
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+                
+                this.draggingItem = item;
+                this.isDragging = true;
+                
+                this.taskList.querySelectorAll('.task-item').forEach(el => {
+                    el.classList.remove('dragging-mode');
+                });
+                item.classList.add('dragging-mode');
+                item.classList.add('dragging');
+                
+                const rect = item.getBoundingClientRect();
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                this.dragOffsetY = clientY - rect.top;
+                
+                this.createDragClone(item, rect);
+                
+                this.boundOnDragMove = this.onDragMove.bind(this);
+                this.boundOnDragEnd = this.onDragEnd.bind(this);
+                
+                document.addEventListener('mousemove', this.boundOnDragMove);
+                document.addEventListener('mouseup', this.boundOnDragEnd);
+                document.addEventListener('touchmove', this.boundOnDragMove, { passive: false });
+                document.addEventListener('touchend', this.boundOnDragEnd, { passive: false });
+                document.addEventListener('touchcancel', this.boundOnDragEnd, { passive: false });
+                
+                this.taskList.style.overflow = 'hidden';
+                this.taskList.style.touchAction = 'none';
+            }
+
+            createDragClone(item, rect) {
+                if (this.dragClone) {
+                    this.dragClone.remove();
+                    this.dragClone = null;
+                }
+                
+                const text = item.querySelector('.task-text')?.textContent || 'Tarefa';
+                const address = item.querySelector('.task-address .address-text')?.textContent || '';
+                
+                this.dragClone = document.createElement('div');
+                this.dragClone.className = 'drag-clone';
+                this.dragClone.innerHTML = `
+                    <div class="drag-text">${this.escapeHtml(text)}</div>
+                    ${address ? `<div class="drag-address">📍 ${this.escapeHtml(address)}</div>` : ''}
+                `;
+                this.dragClone.style.width = Math.min(rect.width, 320) + 'px';
+                this.dragClone.style.left = '50%';
+                this.dragClone.style.top = '50%';
+                this.dragClone.style.transform = 'translate(-50%, -50%) scale(1.05) rotate(-2deg)';
+                document.body.appendChild(this.dragClone);
+            }
+
+            onDragMove(e) {
+                e.preventDefault();
+                
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                
+                if (this.dragClone) {
+                    this.dragClone.style.left = clientX + 'px';
+                    this.dragClone.style.top = (clientY - this.dragOffsetY) + 'px';
+                    this.dragClone.style.transform = 'translate(-50%, 0) scale(1.05) rotate(-2deg)';
+                }
+                
+                const elements = document.elementsFromPoint(clientX, clientY);
+                const targetItem = elements.find(el => 
+                    el.classList && el.classList.contains('task-item') && el !== this.draggingItem
+                );
+                
+                this.taskList.querySelectorAll('.task-item').forEach(el => {
+                    el.classList.remove('drag-over');
+                });
+                
+                if (targetItem) {
+                    targetItem.classList.add('drag-over');
+                    this.dragOverItem = targetItem;
+                    
+                    const listRect = this.taskList.getBoundingClientRect();
+                    const scrollThreshold = 50;
+                    
+                    if (clientY < listRect.top + scrollThreshold) {
+                        this.scrollList(-10);
+                    } else if (clientY > listRect.bottom - scrollThreshold) {
+                        this.scrollList(10);
+                    } else {
+                        this.stopScroll();
+                    }
+                } else {
+                    this.dragOverItem = null;
+                    this.stopScroll();
+                }
+            }
+
+            onDragEnd(e) {
+                if (e) {
+                    e.preventDefault();
+                }
+                
+                this.isDragging = false;
+                this.isDraggingActive = false;
+                this.stopScroll();
+                
+                this.taskList.querySelectorAll('.task-item').forEach(el => {
+                    el.classList.remove('dragging', 'drag-over', 'dragging-mode');
+                });
+                
+                if (this.dragClone) {
+                    this.dragClone.remove();
+                    this.dragClone = null;
+                }
+                
+                document.removeEventListener('mousemove', this.boundOnDragMove);
+                document.removeEventListener('mouseup', this.boundOnDragEnd);
+                document.removeEventListener('touchmove', this.boundOnDragMove);
+                document.removeEventListener('touchend', this.boundOnDragEnd);
+                document.removeEventListener('touchcancel', this.boundOnDragEnd);
+                
+                this.taskList.style.overflow = '';
+                this.taskList.style.touchAction = '';
+                
+                if (this.draggingItem && this.dragOverItem) {
+                    const fromIndex = parseInt(this.draggingItem.dataset.index);
+                    const toIndex = parseInt(this.dragOverItem.dataset.index);
+                    
+                    if (!isNaN(fromIndex) && !isNaN(toIndex) && fromIndex !== toIndex) {
+                        this.reorderTasks(fromIndex, toIndex);
+                        this.showToast('🔄 Tarefa movida');
+                    }
+                }
+                
+                this.draggingItem = null;
+                this.dragOverItem = null;
+                this.boundOnDragMove = null;
+                this.boundOnDragEnd = null;
+            }
+
+            scrollList(direction) {
+                if (this.scrollInterval) return;
+                this.scrollInterval = setInterval(() => {
+                    if (this.taskList) {
+                        this.taskList.scrollBy(0, direction);
+                    }
+                }, 16);
+            }
+
+            stopScroll() {
+                if (this.scrollInterval) {
+                    clearInterval(this.scrollInterval);
+                    this.scrollInterval = null;
+                }
+            }
+
+            // ========== FILTROS ==========
+            getFilteredTasks() {
+                let filtered = this.tasks;
+                
+                switch (this.currentFilter) {
+                    case 'pending': 
+                        filtered = filtered.filter(t => !t.completed);
+                        break;
+                    case 'completed': 
+                        filtered = filtered.filter(t => t.completed);
+                        break;
+                    default: 
+                        break;
+                }
+                
+                return filtered;
+            }
+
+            // ========== RENDERIZAÇÃO ==========
+            render() {
+                const filteredTasks = this.getFilteredTasks();
+                const total = this.tasks.length;
+                const pending = this.tasks.filter(t => !t.completed).length;
+                
+                if (this.showingCount) {
+                    this.showingCount.textContent = filteredTasks.length;
+                }
+                if (this.pendingCount) {
+                    this.pendingCount.textContent = pending;
+                }
+                
+                if (filteredTasks.length === 0) {
+                    const messages = {
+                        'all': {
+                            icon: '📝',
+                            text: 'Nenhuma tarefa cadastrada',
+                            sub: 'Toque no botão ✚ para adicionar'
+                        },
+                        'pending': {
+                            icon: '🎉',
+                            text: 'Todas as tarefas foram concluídas!',
+                            sub: 'Parabéns! Você está em dia'
+                        },
+                        'completed': {
+                            icon: '📌',
+                            text: 'Nenhuma tarefa concluída',
+                            sub: 'Marque as tarefas como concluídas'
+                        }
+                    };
+                    const msg = messages[this.currentFilter] || messages.all;
+                    this.taskList.innerHTML = `
+                        <div class="empty-message">
+                            <span class="empty-icon">${msg.icon}</span>
+                            ${msg.text}
+                            <div class="empty-sub">${msg.sub}</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.taskList.innerHTML = filteredTasks.map((task, index) => {
+                    let metaParts = [];
+                    if (task.ordem) {
+                        metaParts.push(`<span class="meta-item"><span class="meta-label">#</span><span class="meta-value">${this.escapeHtml(task.ordem)}</span></span>`);
+                    }
+                    if (task.obs) {
+                        metaParts.push(`<span class="meta-item"><span class="meta-label">📝</span><span class="meta-value">${this.escapeHtml(task.obs)}</span></span>`);
+                    }
+                    const metaHtml = metaParts.length > 0 ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
+                    
+                    return `
+                        <li class="task-item ${task.completed ? 'completed' : 'pending'}" 
+                            data-id="${task.id}" 
+                            data-index="${index}">
+                            <div class="task-main">
+                                <span class="drag-handle">⠿</span>
+                                <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+                                <span class="task-text">${this.escapeHtml(task.text)}</span>
+                                <span class="task-date">${task.createdAt || ''}</span>
+                                <button class="delete-btn" title="Excluir">×</button>
+                            </div>
+                            ${metaHtml}
+                            ${task.endereco ? this.renderEndereco(task.endereco) : ''}
+                        </li>
+                    `;
+                }).join('');
+
+                this.setupDragAndDrop();
+                
+                setTimeout(() => {
+                    if (this.taskList) {
+                        this.taskList.style.overflow = '';
+                        this.taskList.style.touchAction = '';
+                    }
+                }, 100);
+            }
+
+            renderEndereco(endereco) {
+                const enderecoStr = endereco.display_name || this.formatAddressDisplay(endereco);
+                const lat = endereco.lat || '';
+                const lon = endereco.lon || '';
+                const query = encodeURIComponent(enderecoStr);
+                
+                const googleMapsUrl = lat && lon 
+                    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+                    : `https://www.google.com/maps/search/?api=1&query=${query}`;
+                
+                const wazeUrl = lat && lon
+                    ? `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`
+                    : `https://waze.com/ul?q=${query}&navigate=yes`;
+
+                const googleIcon = `
+                    <span class="google-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                    </span>
+                `;
+
+                const wazeIcon = `
+                    <span class="waze-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                        </svg>
+                    </span>
+                `;
+
+                return `
+                    <div class="task-address">
+                        <span class="address-icon">📍</span>
+                        <span class="address-text">${this.escapeHtml(enderecoStr)}</span>
+                        <div class="address-actions">
+                            <a href="${googleMapsUrl}" target="_blank" class="address-link google" title="Abrir no Google Maps">
+                                ${googleIcon} Google
+                            </a>
+                            <a href="${wazeUrl}" target="_blank" class="address-link waze" title="Abrir no Waze">
+                                ${wazeIcon} Waze
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            setupDragAndDrop() {
+                const items = this.taskList.querySelectorAll('.task-item');
+                
+                items.forEach(item => {
+                    let longPressTimer = null;
+                    let isLongPress = false;
+                    let touchStartY = 0;
+                    let touchStartX = 0;
+                    let isSwiping = false;
+                    
+                    item.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('.task-checkbox') || e.target.closest('.delete-btn')) {
+                            return;
+                        }
+                        this.startDrag(item, e);
+                    });
+
+                    item.addEventListener('touchstart', (e) => {
+                        if (e.target.closest('.task-checkbox') || e.target.closest('.delete-btn')) {
+                            return;
+                        }
+                        
+                        const touch = e.touches[0];
+                        touchStartY = touch.clientY;
+                        touchStartX = touch.clientX;
+                        isSwiping = false;
+                        isLongPress = false;
+                        
+                        longPressTimer = setTimeout(() => {
+                            isLongPress = true;
+                            if (navigator.vibrate) {
+                                navigator.vibrate(30);
+                            }
+                            
+                            this.startDrag(item, e);
+                            
+                            item.classList.add('long-press');
+                            setTimeout(() => {
+                                item.classList.remove('long-press');
+                            }, 600);
+                            
+                            this.showToast('↕️ Arraste para reordenar');
+                        }, 500);
+                    }, { passive: true });
+
+                    item.addEventListener('touchmove', (e) => {
+                        const touch = e.touches[0];
+                        const deltaY = Math.abs(touch.clientY - touchStartY);
+                        const deltaX = Math.abs(touch.clientX - touchStartX);
+                        
+                        if (deltaY > 10 || deltaX > 10) {
+                            isSwiping = true;
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                        }
+                    }, { passive: true });
+
+                    item.addEventListener('touchend', (e) => {
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                    }, { passive: true });
+
+                    item.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                    });
+                });
+            }
+
+            // ========== UTILITÁRIOS ==========
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showToast(message) {
+                this.toast.textContent = message;
+                this.toast.classList.add('show');
+                
+                clearTimeout(this.toast._timeout);
+                this.toast._timeout = setTimeout(() => {
+                    this.toast.classList.remove('show');
+                }, 3000);
+            }
+
+            // ========== EVENTOS ==========
+            bindEvents() {
+                // Sidebar
+                this.menuToggle.addEventListener('click', () => this.toggleSidebar());
+                this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
+
+                // Menu items
+                this.menuItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        const page = item.dataset.page;
+                        if (page === 'profile') {
+                            this.openProfileModal();
+                        } else if (page === 'stats') {
+                            this.showStats();
+                        } else if (page === 'settings') {
+                            this.showSettings();
+                        } else {
+                            this.menuItems.forEach(i => i.classList.remove('active'));
+                            item.classList.add('active');
+                            this.closeSidebar();
+                        }
+                    });
+                });
+
+                // Perfil
+                this.profileAvatar.addEventListener('click', () => this.openProfileModal());
+                
+                this.profileForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = this.modalName.value.trim();
+                    const email = this.modalEmail.value.trim();
+                    
+                    if (!name || !email) {
+                        this.showToast('⚠️ Preencha todos os campos');
+                        return;
+                    }
+
+                    this.profile.name = name;
+                    this.profile.email = email;
+                    this.saveProfile();
+                    this.closeProfileModal();
+                    this.showToast('✅ Perfil atualizado!');
+                });
+
+                this.modalProfileClose.addEventListener('click', () => this.closeProfileModal());
+                this.profileModal.addEventListener('click', (e) => {
+                    if (e.target === this.profileModal) this.closeProfileModal();
+                });
+
+                // Ações
+                this.clearAllData.addEventListener('click', () => this.clearAllData());
+                this.logoutBtn.addEventListener('click', () => {
+                    if (confirm('Deseja realmente sair?')) {
+                        this.showToast('👋 Até logo!');
+                        this.closeSidebar();
+                    }
+                });
+
+                // FAB - Adicionar
+                this.fabAddTask.addEventListener('click', () => this.openTaskModal());
+
+                // FAB - Compartilhar WhatsApp
+                this.fabShareWhatsApp.addEventListener('click', () => this.shareWhatsApp());
+
+                // Modal Tarefa
+                this.modalTaskClose.addEventListener('click', () => this.closeTaskModal());
+                this.taskModal.addEventListener('click', (e) => {
+                    if (e.target === this.taskModal) this.closeTaskModal();
+                });
+
+                // Buscar endereço com DELAY CORRIGIDO (800ms)
+                this.modalSearchBtn.addEventListener('click', () => {
+                    if (this.searchTimeout) {
+                        clearTimeout(this.searchTimeout);
+                    }
+                    this.buscarEnderecoModal(this.modalAddressSearch.value);
+                });
+
+                this.modalAddressSearch.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (this.searchTimeout) {
+                            clearTimeout(this.searchTimeout);
+                        }
+                        this.buscarEnderecoModal(this.modalAddressSearch.value);
+                    }
+                });
+
+                // DELAY AUMENTADO PARA 800ms (antes era 500ms)
+                this.modalAddressSearch.addEventListener('input', () => {
+                    clearTimeout(this.searchTimeout);
+                    const query = this.modalAddressSearch.value;
+                    if (query.length >= 3) {
+                        this.searchTimeout = setTimeout(() => {
+                            this.buscarEnderecoModal(query);
+                        }, 800);
+                    } else {
+                        this.modalSuggestions.classList.remove('active');
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.modal-address-section')) {
+                        this.modalSuggestions.classList.remove('active');
+                    }
+                });
+
+                this.modalClearAddress.addEventListener('click', () => {
+                    this.clearModalAddress();
+                });
+
+                // Submeter tarefa
+                this.taskForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const endereco = this.selectedAddress ? { ...this.selectedAddress } : null;
+                    const ordem = this.taskOrder.value.trim();
+                    const obs = this.taskObs.value.trim();
+                    this.addTask(this.taskInput.value, endereco, ordem, obs);
+                });
+
+                // Event delegation para tarefas (checkbox e delete)
+                this.taskList.addEventListener('click', (e) => {
+                    const taskItem = e.target.closest('.task-item');
+                    if (!taskItem) return;
+                    
+                    const taskId = parseInt(taskItem.dataset.id);
+
+                    if (e.target.classList.contains('task-checkbox')) {
+                        this.toggleTask(taskId);
+                    } else if (e.target.classList.contains('delete-btn')) {
+                        this.deleteTask(taskId);
+                    }
+                });
+
+                // Filtros
+                this.filterBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.filterBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentFilter = btn.dataset.filter;
+                        this.render();
+                    });
+                });
+
+                // Gestos para fechar sidebar
+                let touchStartX = 0;
+                let touchEndX = 0;
+                
+                document.addEventListener('touchstart', (e) => {
+                    touchStartX = e.changedTouches[0].screenX;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    if (touchStartX - touchEndX > 80 && this.sidebar.classList.contains('open')) {
+                        this.closeSidebar();
+                    }
+                }, { passive: true });
+            }
+
+            // ========== PÁGINAS ==========
+            showStats() {
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(t => t.completed).length;
+                const pending = total - completed;
+                const withAddress = this.tasks.filter(t => t.endereco).length;
+                
+                const status = this.isOnline ? '🟢 Online' : '🔴 Offline';
+                
+                this.showToast(
+                    `📊 Total: ${total} | ✅ Concluídas: ${completed} | ⏳ Pendentes: ${pending} | 📍 Com endereço: ${withAddress} | ${status}`
+                );
+                this.closeSidebar();
+            }
+
+            showSettings() {
+                this.showToast('⚙️ Configurações em breve!');
+                this.closeSidebar();
+            }
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new TaskManager();
+            console.log('✅ App com Nº Ordem, Obs., e WhatsApp simplificado!');
+            console.log(`📊 ${app.tasks.length} tarefas`);
+            console.log(`📶 Status: ${app.isOnline ? 'Online' : 'Offline'}`);
+            console.log('🚀 Desenvolvido por Adriano Monteiro');
+            console.log('📧 Contato: adri0mt@uni9.edu.br');
+            window.app = app;
+        });
+    </script>
+</body>
+</html>
