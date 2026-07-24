@@ -57,6 +57,7 @@
             --success: #28a745;
             --danger: #dc3545;
             --warning: #ffc107;
+            --info: #17a2b8;
             --gray: #6c757d;
             --light-gray: #f8f9fa;
             --border: #e0e0e0;
@@ -2279,6 +2280,37 @@
         body.dark-mode .dark-mode-toggle .toggle-switch::after {
             transform: translateX(22px);
         }
+
+        /* ==================== INPUT FILE PERSONALIZADO ==================== */
+        .hidden-input {
+            display: none !important;
+        }
+
+        .import-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            width: 100%;
+            border: none;
+            background: none;
+            font-family: inherit;
+        }
+
+        .import-label:active {
+            background: var(--hover-bg);
+        }
+
+        .import-label .menu-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 
@@ -2314,10 +2346,6 @@
                 <span class="menu-icon">📊</span>
                 Estatísticas
             </button>
-            <button class="menu-item" data-page="settings">
-                <span class="menu-icon">⚙️</span>
-                Configurações
-            </button>
 
             <div class="menu-divider"></div>
 
@@ -2328,15 +2356,42 @@
                 <span class="toggle-switch"></span>
             </button>
 
-            <button class="menu-item" id="installAppMenu">
-                <span class="menu-icon">📲</span>
-                Instalar App
+            <div class="menu-divider"></div>
+
+            <!-- ===== NOVOS RECURSOS ===== -->
+            <button class="menu-item" id="exportDataBtn">
+                <span class="menu-icon">📤</span>
+                Exportar Dados
+            </button>
+
+            <label class="import-label" id="importDataLabel">
+                <span class="menu-icon">📥</span>
+                Importar Dados
+                <input type="file" id="importFileInput" class="hidden-input" accept=".json">
+            </label>
+
+            <button class="menu-item" id="archiveTasksBtn">
+                <span class="menu-icon">📦</span>
+                Arquivar Concluídas
+            </button>
+
+            <button class="menu-item" id="resetAppBtn">
+                <span class="menu-icon">🔄</span>
+                Reset App
             </button>
 
             <button class="menu-item" id="clearAllData">
                 <span class="menu-icon">🗑️</span>
                 Limpar Dados
             </button>
+
+            <div class="menu-divider"></div>
+
+            <button class="menu-item" id="installAppMenu">
+                <span class="menu-icon">📲</span>
+                Instalar App
+            </button>
+
             <button class="menu-item" id="logoutBtn">
                 <span class="menu-icon">🚪</span>
                 Sair
@@ -2401,7 +2456,7 @@
                     <a href="mailto:adri0mt@uni9.edu.br" class="email-link" title="Enviar e-mail">📧
                         adri0mt@uni9.edu.br</a>
                     <span class="separator">|</span>
-                    <span>v2.0</span>
+                    <span>v3.0</span>
                 </div>
             </div>
         </div>
@@ -2503,6 +2558,7 @@
                 this.editingTaskId = null;
                 this.deferredPrompt = null;
                 this.isDarkMode = false;
+                this.archivedTasks = [];
 
                 // Drag & Drop
                 this.draggingItem = null;
@@ -2603,6 +2659,12 @@
                 this.darkModeToggle = document.getElementById('darkModeToggle');
                 this.darkModeIcon = document.getElementById('darkModeIcon');
                 this.darkModeLabel = document.getElementById('darkModeLabel');
+
+                // ===== NOVOS RECURSOS =====
+                this.exportDataBtn = document.getElementById('exportDataBtn');
+                this.importFileInput = document.getElementById('importFileInput');
+                this.archiveTasksBtn = document.getElementById('archiveTasksBtn');
+                this.resetAppBtn = document.getElementById('resetAppBtn');
 
                 // Compartilhamento
                 this.fabShareWhatsApp = document.getElementById('fabShareWhatsApp');
@@ -3133,6 +3195,134 @@
                 }
             }
 
+            // ========== EXPORTAR DADOS ==========
+            exportData() {
+                if (this.tasks.length === 0) {
+                    this.showToast('📭 Nenhuma tarefa para exportar');
+                    return;
+                }
+
+                const data = {
+                    tasks: this.tasks,
+                    profile: this.profile,
+                    exportedAt: new Date().toISOString(),
+                    version: '3.0'
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tarefas_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.showToast(`📤 ${this.tasks.length} tarefas exportadas!`);
+                this.closeSidebar();
+            }
+
+            // ========== IMPORTAR DADOS ==========
+            importData(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+
+                        if (!data.tasks || !Array.isArray(data.tasks)) {
+                            this.showToast('⚠️ Arquivo inválido!');
+                            return;
+                        }
+
+                        if (data.profile) {
+                            this.profile = data.profile;
+                            this.saveProfile();
+                        }
+
+                        // Substitui as tarefas atuais
+                        const count = data.tasks.length;
+                        this.tasks = data.tasks;
+                        this.saveTasks();
+                        this.render();
+                        this.updateSidebarStats();
+
+                        this.showToast(`📥 ${count} tarefas importadas com sucesso!`);
+                    } catch (error) {
+                        this.showToast('⚠️ Erro ao ler o arquivo!');
+                        console.error('Erro na importação:', error);
+                    }
+                };
+                reader.readAsText(file);
+                this.importFileInput.value = '';
+                this.closeSidebar();
+            }
+
+            // ========== ARQUIVAR TAREFAS CONCLUÍDAS ==========
+            archiveCompleted() {
+                const completedTasks = this.tasks.filter(t => t.completed);
+
+                if (completedTasks.length === 0) {
+                    this.showToast('📭 Nenhuma tarefa concluída para arquivar');
+                    return;
+                }
+
+                if (confirm(`📦 Arquivar ${completedTasks.length} tarefa(s) concluída(s)?\n\nElas serão removidas da lista principal, mas mantidas em um arquivo de backup.`)) {
+                    // Salvar no arquivo de arquivo
+                    const archiveData = {
+                        tasks: completedTasks,
+                        archivedAt: new Date().toISOString()
+                    };
+
+                    // Baixar arquivo de arquivo
+                    const blob = new Blob([JSON.stringify(archiveData, null, 2)], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `arquivo_tarefas_${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    // Remover as tarefas concluídas da lista
+                    this.tasks = this.tasks.filter(t => !t.completed);
+                    this.saveTasks();
+                    this.render();
+                    this.updateSidebarStats();
+
+                    this.showToast(`📦 ${completedTasks.length} tarefas arquivadas!`);
+                    this.closeSidebar();
+                }
+            }
+
+            // ========== RESET APP ==========
+            resetApp() {
+                if (this.tasks.length === 0) {
+                    this.showToast('📭 Nenhuma tarefa para resetar');
+                    return;
+                }
+
+                if (confirm('🔄 Deseja realmente resetar o app?\n\nTodas as tarefas serão removidas e o perfil será restaurado ao padrão.')) {
+                    this.tasks = [];
+                    this.saveTasks();
+
+                    // Resetar perfil
+                    this.profile = {
+                        name: 'Usuário',
+                        email: 'usuario@email.com',
+                        avatar: '👤'
+                    };
+                    this.saveProfile();
+
+                    this.render();
+                    this.updateSidebarStats();
+                    this.showToast('🔄 App resetado com sucesso!');
+                    this.closeSidebar();
+                }
+            }
+
+            // ========== LIMPAR DADOS ==========
             clearAll() {
                 if (this.tasks.length === 0) {
                     this.showToast('📭 Nenhuma tarefa para limpar');
@@ -3689,8 +3879,6 @@
                             this.openProfileModal();
                         } else if (page === 'stats') {
                             this.showStats();
-                        } else if (page === 'settings') {
-                            this.showSettings();
                         } else if (page === 'tasks') {
                             this.menuItems.forEach(i => i.classList.remove('active'));
                             item.classList.add('active');
@@ -3724,8 +3912,36 @@
                     if (e.target === this.profileModal) this.closeProfileModal();
                 });
 
+                // ===== NOVOS RECURSOS - EVENTOS =====
+
+                // Exportar Dados
+                this.exportDataBtn.addEventListener('click', () => {
+                    this.exportData();
+                });
+
+                // Importar Dados
+                this.importFileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.importData(e.target.files[0]);
+                    }
+                });
+
+                // Arquivar Concluídas
+                this.archiveTasksBtn.addEventListener('click', () => {
+                    this.archiveCompleted();
+                });
+
+                // Reset App
+                this.resetAppBtn.addEventListener('click', () => {
+                    this.resetApp();
+                });
+
+                // Limpar Dados (existente)
+                this.clearAllData.addEventListener('click', () => {
+                    this.clearAllData();
+                });
+
                 // Ações
-                this.clearAllData.addEventListener('click', () => this.clearAllData());
                 this.logoutBtn.addEventListener('click', () => {
                     if (confirm('Deseja realmente sair?')) {
                         this.showToast('👋 Até logo!');
@@ -3853,11 +4069,6 @@
                 );
                 this.closeSidebar();
             }
-
-            showSettings() {
-                this.showToast('⚙️ Configurações em breve!');
-                this.closeSidebar();
-            }
         }
 
         // ============================================
@@ -3865,7 +4076,7 @@
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             const app = new TaskManager();
-            console.log('✅ App com Modo Escuro, Edição e PWA!');
+            console.log('✅ App com Exportar, Importar, Arquivar e Reset!');
             console.log(`📊 ${app.tasks.length} tarefas`);
             console.log(`📶 Status: ${app.isOnline ? 'Online' : 'Offline'}`);
             console.log(`🌙 Modo escuro: ${app.isDarkMode ? 'Ativado' : 'Desativado'}`);
