@@ -1,9 +1,46 @@
 // =============================================
+// FUNÇÕES AUXILIARES (UTILS)
+// =============================================
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, duration = 3000) {
+    const toast = document.getElementById('toast');
+    if (!toast) {
+        console.warn('Toast element not found');
+        return;
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+function formatAddressDisplay(address) {
+    if (!address) return '';
+    const parts = [];
+    if (address.logradouro) parts.push(address.logradouro);
+    if (address.bairro) parts.push(address.bairro);
+    if (address.cidade) parts.push(address.cidade);
+    if (address.uf) parts.push(address.uf);
+    if (address.cep) parts.push(`CEP: ${address.cep}`);
+    return parts.join(' - ');
+}
+
+// =============================================
 // CLASSE PRINCIPAL - TaskManager
 // =============================================
 
 class TaskManager {
     constructor() {
+        console.log('🔧 Inicializando TaskManager...');
+
         // Estado
         this.tasks = [];
         this.currentFilter = 'all';
@@ -11,7 +48,7 @@ class TaskManager {
         this.editingTaskId = null;
         this.isDarkMode = false;
         this.deferredPrompt = null;
-        
+
         // Configurações
         this.profile = {
             name: 'Usuário',
@@ -23,14 +60,15 @@ class TaskManager {
         this.loadTasks();
         this.loadProfile();
         this.initializeDOM();
-        this.loadTheme();  // Carrega o tema antes de bindEvents
+        this.loadTheme();
         this.bindEvents();
         this.render();
         this.updateUI();
         this.setupPWA();
         this.setupConnectionListeners();
-        
-        console.log('✅ App inicializado com sucesso!');
+
+        console.log(`✅ App inicializado com ${this.tasks.length} tarefas!`);
+        console.log(`🌙 Modo escuro: ${this.isDarkMode ? 'Ativado' : 'Desativado'}`);
     }
 
     // =============================================
@@ -40,9 +78,15 @@ class TaskManager {
     loadTasks() {
         try {
             const saved = localStorage.getItem('tasks');
-            this.tasks = saved ? JSON.parse(saved) : [];
+            if (saved) {
+                this.tasks = JSON.parse(saved);
+                console.log(`📋 ${this.tasks.length} tarefas carregadas`);
+            } else {
+                this.tasks = [];
+                console.log('📭 Nenhuma tarefa salva');
+            }
         } catch (e) {
-            console.error('Erro ao carregar tarefas:', e);
+            console.error('❌ Erro ao carregar tarefas:', e);
             this.tasks = [];
         }
     }
@@ -52,16 +96,19 @@ class TaskManager {
             localStorage.setItem('tasks', JSON.stringify(this.tasks));
             this.updateUI();
         } catch (e) {
-            console.error('Erro ao salvar tarefas:', e);
+            console.error('❌ Erro ao salvar tarefas:', e);
         }
     }
 
     loadProfile() {
         try {
             const saved = localStorage.getItem('profile');
-            if (saved) this.profile = JSON.parse(saved);
+            if (saved) {
+                this.profile = JSON.parse(saved);
+                console.log('👤 Perfil carregado:', this.profile.name);
+            }
         } catch (e) {
-            console.error('Erro ao carregar perfil:', e);
+            console.error('❌ Erro ao carregar perfil:', e);
         }
     }
 
@@ -70,18 +117,19 @@ class TaskManager {
             localStorage.setItem('profile', JSON.stringify(this.profile));
             this.updateProfileUI();
         } catch (e) {
-            console.error('Erro ao salvar perfil:', e);
+            console.error('❌ Erro ao salvar perfil:', e);
         }
     }
 
     // =============================================
-    // MÉTODOS DE TEMA (CORRIGIDOS)
+    // MÉTODOS DE TEMA
     // =============================================
 
     loadTheme() {
         try {
-            // Verifica se há preferência salva
             const savedTheme = localStorage.getItem('theme');
+            console.log('📂 Tema salvo:', savedTheme);
+
             if (savedTheme === 'light') {
                 this.isDarkMode = false;
                 this.applyLightMode();
@@ -89,8 +137,8 @@ class TaskManager {
                 this.isDarkMode = true;
                 this.applyDarkMode();
             } else {
-                // Se não houver preferência, usa o sistema
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                console.log('🌓 Preferência do sistema:', prefersDark ? 'escuro' : 'claro');
                 this.isDarkMode = prefersDark;
                 if (prefersDark) {
                     this.applyDarkMode();
@@ -99,31 +147,46 @@ class TaskManager {
                 }
             }
         } catch (e) {
-            console.error('Erro ao carregar tema:', e);
+            console.error('❌ Erro ao carregar tema:', e);
             this.isDarkMode = true;
             this.applyDarkMode();
         }
     }
 
     applyDarkMode() {
+        console.log('🌙 Aplicando modo escuro...');
         document.body.classList.remove('light-mode');
-        this.darkModeIcon.textContent = '☀️';
-        this.darkModeLabel.textContent = 'Modo Claro';
-        document.querySelector('meta[name="theme-color"]').content = '#000000';
+        document.body.classList.add('dark-mode');
+
+        if (this.darkModeIcon) this.darkModeIcon.textContent = '☀️';
+        if (this.darkModeLabel) this.darkModeLabel.textContent = 'Modo Claro';
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = '#0F172A';
+
         this.isDarkMode = true;
         localStorage.setItem('theme', 'dark');
+        console.log('✅ Modo escuro aplicado');
     }
 
     applyLightMode() {
+        console.log('☀️ Aplicando modo claro...');
+        document.body.classList.remove('dark-mode');
         document.body.classList.add('light-mode');
-        this.darkModeIcon.textContent = '🌙';
-        this.darkModeLabel.textContent = 'Modo Escuro';
-        document.querySelector('meta[name="theme-color"]').content = '#f0f2f5';
+
+        if (this.darkModeIcon) this.darkModeIcon.textContent = '🌙';
+        if (this.darkModeLabel) this.darkModeLabel.textContent = 'Modo Escuro';
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = '#F1F5F9';
+
         this.isDarkMode = false;
         localStorage.setItem('theme', 'light');
+        console.log('✅ Modo claro aplicado');
     }
 
     toggleTheme() {
+        console.log('🔄 Alternando tema...');
         if (this.isDarkMode) {
             this.applyLightMode();
             showToast('☀️ Modo claro ativado');
@@ -138,12 +201,12 @@ class TaskManager {
     // =============================================
 
     initializeDOM() {
+        console.log('🔧 Inicializando DOM...');
+
         // Principais
         this.taskList = document.getElementById('taskList');
         this.filterBtns = document.querySelectorAll('.filter-btn');
-        this.showingCount = document.getElementById('showingCount');
-        this.pendingCount = document.getElementById('pendingCount');
-        
+
         // Sidebar
         this.sidebar = document.getElementById('sidebar');
         this.sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -152,7 +215,7 @@ class TaskManager {
         this.profileEmail = document.getElementById('profileEmail');
         this.profileAvatar = document.getElementById('profileAvatar');
         this.taskCount = document.getElementById('taskCount');
-        
+
         // Modais
         this.taskModal = document.getElementById('taskModal');
         this.modalTitle = document.getElementById('modalTitle');
@@ -164,7 +227,7 @@ class TaskManager {
         this.modalSubmitBtn = document.getElementById('modalSubmitBtn');
         this.modalTaskClose = document.getElementById('modalTaskClose');
         this.fabAddTask = document.getElementById('fabAddTask');
-        
+
         // Endereço
         this.modalAddressSearch = document.getElementById('modalAddressSearch');
         this.modalSearchBtn = document.getElementById('modalSearchBtn');
@@ -172,7 +235,7 @@ class TaskManager {
         this.modalSelectedAddress = document.getElementById('modalSelectedAddress');
         this.modalSelectedText = document.getElementById('modalSelectedText');
         this.modalClearAddress = document.getElementById('modalClearAddress');
-        
+
         // Perfil
         this.profileModal = document.getElementById('profileModal');
         this.modalProfileClose = document.getElementById('modalProfileClose');
@@ -180,14 +243,13 @@ class TaskManager {
         this.modalName = document.getElementById('modalName');
         this.modalEmail = document.getElementById('modalEmail');
         this.modalAvatar = document.getElementById('modalAvatar');
-        
+
         // Botões
         this.clearAllData = document.getElementById('clearAllData');
         this.exportDataBtn = document.getElementById('exportDataBtn');
         this.importFileInput = document.getElementById('importFileInput');
         this.archiveTasksBtn = document.getElementById('archiveTasksBtn');
         this.resetAppBtn = document.getElementById('resetAppBtn');
-        this.fabShareWhatsApp = document.getElementById('fabShareWhatsApp');
         this.darkModeToggle = document.getElementById('darkModeToggle');
         this.darkModeIcon = document.getElementById('darkModeIcon');
         this.darkModeLabel = document.getElementById('darkModeLabel');
@@ -196,13 +258,24 @@ class TaskManager {
         this.installBanner = document.getElementById('installBanner');
         this.installBtn = document.getElementById('installBtn');
         this.installClose = document.getElementById('installClose');
-        
+
+        // Header Actions
+        this.headerWhatsApp = document.getElementById('headerWhatsApp');
+        this.headerEmail = document.getElementById('headerEmail');
+
         // Status
         this.statusDot = document.getElementById('statusDot');
         this.statusText = document.getElementById('statusText');
         this.connectionStatus = document.getElementById('connectionStatus');
         this.connectionText = document.getElementById('connectionText');
         this.toast = document.getElementById('toast');
+
+        // Contadores dos filtros
+        this.countAll = document.getElementById('countAll');
+        this.countPending = document.getElementById('countPending');
+        this.countCompleted = document.getElementById('countCompleted');
+
+        console.log('✅ DOM inicializado');
     }
 
     // =============================================
@@ -219,7 +292,10 @@ class TaskManager {
         const total = this.tasks.length;
         const completed = this.tasks.filter(t => t.completed).length;
         const pending = total - completed;
-        if (this.pendingCount) this.pendingCount.textContent = pending;
+
+        if (this.countAll) this.countAll.textContent = total;
+        if (this.countPending) this.countPending.textContent = pending;
+        if (this.countCompleted) this.countCompleted.textContent = completed;
     }
 
     updateSidebarStats() {
@@ -228,9 +304,9 @@ class TaskManager {
     }
 
     updateProfileUI() {
-        this.profileName.textContent = this.profile.name;
-        this.profileEmail.textContent = this.profile.email;
-        this.profileAvatar.textContent = this.profile.avatar || '👤';
+        if (this.profileName) this.profileName.textContent = this.profile.name;
+        if (this.profileEmail) this.profileEmail.textContent = this.profile.email;
+        if (this.profileAvatar) this.profileAvatar.textContent = this.profile.avatar || '👤';
     }
 
     // =============================================
@@ -248,8 +324,21 @@ class TaskManager {
     }
 
     render() {
+        console.log('🔄 Renderizando...');
+
         const filteredTasks = this.getFilteredTasks();
-        this.showingCount.textContent = filteredTasks.length;
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(t => t.completed).length;
+        const pending = total - completed;
+
+        if (this.countAll) this.countAll.textContent = total;
+        if (this.countPending) this.countPending.textContent = pending;
+        if (this.countCompleted) this.countCompleted.textContent = completed;
+
+        if (!this.taskList) {
+            console.error('❌ taskList não encontrado!');
+            return;
+        }
 
         if (filteredTasks.length === 0) {
             this.renderEmpty();
@@ -257,36 +346,68 @@ class TaskManager {
         }
 
         this.taskList.innerHTML = filteredTasks.map((task, index) => {
-            const metaParts = [];
-            if (task.ordem) {
-                metaParts.push(`<span class="meta-item"><span class="meta-label">#</span><span class="meta-value">${escapeHtml(task.ordem)}</span></span>`);
+            const dateStr = task.createdAt ? task.createdAt.split(',')[0] : '';
+
+            // TÍTULO = texto da tarefa (campo "O que precisa fazer")
+            const titulo = task.text || 'Tarefa sem título';
+
+            let obsHtml = '';
+            if (task.obs && task.obs.trim()) {
+                obsHtml = `
+                <div class="task-obs" data-expanded="false">
+                    <span class="obs-label">obs:</span>
+                    <span class="obs-content">${escapeHtml(task.obs)}</span>
+                    <span class="obs-toggle">ver mais ▼</span>
+                </div>
+            `;
             }
-            if (task.obs) {
-                metaParts.push(`<span class="meta-item"><span class="meta-label">📝</span><span class="meta-value">${escapeHtml(task.obs)}</span></span>`);
+
+            let addressHtml = '';
+            if (task.endereco) {
+                addressHtml = this.renderAddress(task.endereco);
             }
-            const metaHtml = metaParts.length > 0 ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
+
+            const ordemDisplayValue = task.ordem ? task.ordem : task.id;
 
             return `
-                <li class="task-item ${task.completed ? 'completed' : 'pending'}" 
-                    data-id="${task.id}" data-index="${index}">
-                    <div class="task-main">
-                        <span class="drag-handle">⠿</span>
-                        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
-                        <span class="task-text">${escapeHtml(task.text)}</span>
-                        <span class="task-date">${task.createdAt || ''}</span>
-                        <div class="task-actions">
-                            <button class="action-btn edit-btn" data-action="edit">✏️</button>
-                            <button class="action-btn delete-btn" data-action="delete">✕</button>
-                        </div>
+            <li class="task-item ${task.completed ? 'completed' : 'pending'}" 
+                data-id="${task.id}" data-index="${index}">
+                
+                <!-- LINHA 1: Checkbox + TÍTULO (texto da tarefa) -->
+                <div class="task-main">
+                    <span class="drag-handle">⠿</span>
+                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+                    <span class="task-title">${escapeHtml(titulo)}</span>
+                    <div class="task-actions">
+                        <button class="action-btn edit-btn" data-action="edit">✏️</button>
+                        <button class="action-btn delete-btn" data-action="delete">✕</button>
                     </div>
-                    ${metaHtml}
-                    ${task.endereco ? this.renderAddress(task.endereco) : ''}
-                </li>
-            `;
+                </div>
+                
+                <!-- LINHA 2: Ordem + Data (duas colunas) -->
+                <div class="task-meta-row">
+                    <div class="task-meta-col">
+                        <span class="meta-label">Ordem:</span>
+                        <span class="meta-value">${escapeHtml(String(ordemDisplayValue))}</span>
+                    </div>
+                    <div class="task-meta-col">
+                        <span class="meta-label">Data:</span>
+                        <span class="meta-value">${escapeHtml(dateStr)}</span>
+                    </div>
+                </div>
+                
+                <!-- LINHA 3: Observação -->
+                ${obsHtml}
+                
+                <!-- LINHA 4: Endereço -->
+                ${addressHtml}
+            </li>
+        `;
         }).join('');
 
         this.setupDragAndDrop();
         this.setupActionButtons();
+        this.setupObsExpand();
     }
 
     renderEmpty() {
@@ -305,30 +426,220 @@ class TaskManager {
         `;
     }
 
+    // =============================================
+    // MÉTODOS DE FORMATAÇÃO
+    // =============================================
+
+    formatAddressSimple(endereco) {
+        if (!endereco) return '';
+        const parts = [];
+        if (endereco.logradouro) {
+            const streetParts = endereco.logradouro.split(',');
+            parts.push(streetParts[0].trim());
+        }
+        if (endereco.bairro) parts.push(endereco.bairro);
+        if (endereco.cidade) parts.push(endereco.cidade);
+        return parts.join(' - ');
+    }
+
+    // =============================================
+    // MÉTODOS DE COORDENADAS
+    // =============================================
+
+    formatCoordinates(lat, lon) {
+        if (!lat || !lon) return '';
+        const latNum = parseFloat(lat);
+        const lonNum = parseFloat(lon);
+        if (isNaN(latNum) || isNaN(lonNum)) return '';
+        return `${latNum.toFixed(6)}, ${lonNum.toFixed(6)}`;
+    }
+
+    copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 Coordenadas copiadas!');
+            }).catch(() => {
+                this.fallbackCopy(text);
+            });
+        } else {
+            this.fallbackCopy(text);
+        }
+    }
+
+    fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showToast('📋 Coordenadas copiadas!');
+        } catch (e) {
+            showToast('⚠️ Erro ao copiar');
+        }
+        document.body.removeChild(textarea);
+    }
+
+    // =============================================
+    // MÉTODOS DE ENDEREÇO (RENDER)
+    // =============================================
+
     renderAddress(endereco) {
-        const enderecoStr = endereco.display_name || formatAddressDisplay(endereco);
+        const enderecoStr = this.formatAddressSimple(endereco);
         const lat = endereco.lat || '';
         const lon = endereco.lon || '';
-        const query = encodeURIComponent(enderecoStr);
-        
-        const googleMapsUrl = lat && lon 
+        const coords = this.formatCoordinates(lat, lon);
+        const query = encodeURIComponent(coords || enderecoStr);
+
+        const googleMapsUrl = lat && lon
             ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
             : `https://www.google.com/maps/search/?api=1&query=${query}`;
-        
+
         const wazeUrl = lat && lon
             ? `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`
             : `https://waze.com/ul?q=${query}&navigate=yes`;
 
-        return `
-            <div class="task-address">
-                <span class="address-icon">📍</span>
-                <span class="address-text">${escapeHtml(enderecoStr)}</span>
-                <div class="address-actions">
-                    <a href="${googleMapsUrl}" target="_blank" class="address-link google">🗺️ Google</a>
-                    <a href="${wazeUrl}" target="_blank" class="address-link waze">🚗 Waze</a>
+        let html = `<div class="address-row">`;
+        html += `<span class="address-icon">📍</span>`;
+        html += `<span class="address-text">${escapeHtml(enderecoStr)}</span>`;
+        html += `<div class="address-actions">`;
+        html += `<a href="${googleMapsUrl}" target="_blank" class="address-link google">🗺️</a>`;
+        html += `<a href="${wazeUrl}" target="_blank" class="address-link waze">🚗</a>`;
+        html += `</div></div>`;
+
+        if (coords) {
+            html += `
+                <div class="coord-container">
+                    <span class="coord-label">📍</span>
+                    <span class="coord-value" title="Clique para copiar">${coords}</span>
+                    <button class="coord-copy" data-coords="${coords}" title="Copiar coordenadas">Copiar</button>
                 </div>
-            </div>
+            `;
+        }
+
+        return `<div class="task-address">${html}</div>`;
+    }
+
+    // =============================================
+    // MÉTODOS DE BUSCA DE ENDEREÇO
+    // =============================================
+
+    async buscarEndereco(query) {
+        if (!query || query.trim().length < 3) {
+            this.modalSuggestions.classList.remove('active');
+            return;
+        }
+
+        const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
+        if (coordRegex.test(query.trim())) {
+            const parts = query.trim().split(',').map(p => parseFloat(p.trim()));
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                const lat = parts[0];
+                const lon = parts[1];
+                const address = {
+                    display_name: `Coordenadas: ${lat}, ${lon}`,
+                    lat: lat,
+                    lon: lon,
+                    logradouro: `Coordenadas: ${lat}, ${lon}`,
+                    bairro: '',
+                    cidade: 'Localização',
+                    uf: '',
+                    cep: ''
+                };
+                this.selectAddressModal(address);
+                return;
+            }
+        }
+
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
+            const response = await fetch(url, { headers: { 'User-Agent': 'TaskApp/1.0' } });
+            const data = await response.json();
+
+            if (data.length === 0) {
+                this.modalSuggestions.innerHTML = `<div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default;">Nenhum endereço encontrado</div>`;
+                this.modalSuggestions.classList.add('active');
+                return;
+            }
+
+            this.modalSuggestions.innerHTML = data.map(item => {
+                const icon = this.getAddressIcon(item.type);
+                const coords = this.formatCoordinates(item.lat, item.lon);
+                return `
+                    <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
+                        <div class="suggestion-main">${icon} ${item.display_name}</div>
+                        <div class="suggestion-detail">${this.formatAddressDetail(item)} ${coords ? '• ' + coords : ''}</div>
+                    </div>
+                `;
+            }).join('');
+
+            this.modalSuggestions.classList.add('active');
+
+            this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    this.selectAddressModal(JSON.parse(el.dataset.address));
+                });
+            });
+        } catch (error) {
+            console.error('❌ Erro ao buscar endereço:', error);
+            showToast('⚠️ Erro ao buscar endereço');
+        }
+    }
+
+    getAddressIcon(type) {
+        const icons = {
+            'administrative': '🏛️', 'village': '🏘️', 'town': '🏙️', 'city': '🏙️',
+            'state': '🗺️', 'road': '🛤️', 'building': '🏢', 'house': '🏠',
+            'amenity': '📍', 'shop': '🛍️'
+        };
+        return icons[type] || '📍';
+    }
+
+    formatAddressDetail(item) {
+        const parts = [];
+        if (item.address?.road) parts.push(item.address.road);
+        if (item.address?.suburb) parts.push(item.address.suburb);
+        if (item.address?.city) parts.push(item.address.city);
+        if (item.address?.state) parts.push(item.address.state);
+        if (item.address?.postcode) parts.push(`CEP: ${item.address.postcode}`);
+        return parts.join(' • ') || item.class;
+    }
+
+    // =============================================
+    // MÉTODOS DE MODAL
+    // =============================================
+
+    clearModalAddress() {
+        this.selectedAddress = null;
+        this.modalSelectedAddress.classList.remove('active');
+        this.modalAddressSearch.value = '';
+        this.modalSuggestions.classList.remove('active');
+    }
+
+    selectAddressModal(addressData) {
+        const address = {
+            display_name: addressData.display_name,
+            lat: addressData.lat,
+            lon: addressData.lon,
+            cep: addressData.address?.postcode || '',
+            logradouro: addressData.address?.road || '',
+            bairro: addressData.address?.suburb || addressData.address?.neighbourhood || '',
+            cidade: addressData.address?.city || addressData.address?.town || addressData.address?.village || '',
+            uf: addressData.address?.state || '',
+            pais: addressData.address?.country || 'Brasil'
+        };
+
+        this.selectedAddress = address;
+        this.modalSelectedText.innerHTML = `
+            <strong>📍 Endereço:</strong><br>
+            ${this.formatAddressSimple(address)}
         `;
+        this.modalSelectedAddress.classList.add('active');
+        this.modalSuggestions.classList.remove('active');
+        this.modalAddressSearch.value = address.display_name;
+        showToast('✅ Endereço selecionado!');
     }
 
     // =============================================
@@ -425,7 +736,7 @@ class TaskManager {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `tarefas_${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `tarefas_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -455,7 +766,7 @@ class TaskManager {
                 showToast(`📥 ${count} tarefas importadas com sucesso!`);
             } catch (error) {
                 showToast('⚠️ Erro ao ler o arquivo!');
-                console.error('Erro na importação:', error);
+                console.error('❌ Erro na importação:', error);
             }
         };
         reader.readAsText(file);
@@ -480,7 +791,7 @@ class TaskManager {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `arquivo_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `arquivo_${new Date().toISOString().slice(0, 10)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -531,7 +842,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE MODAL
+    // MÉTODOS DE MODAL (ABRIR/FECHAR)
     // =============================================
 
     openTaskModal(taskId = null) {
@@ -551,7 +862,7 @@ class TaskManager {
                     this.selectedAddress = { ...task.endereco };
                     this.modalSelectedText.innerHTML = `
                         <strong>📍 Endereço:</strong><br>
-                        ${formatAddressDisplay(task.endereco)}
+                        ${this.formatAddressSimple(task.endereco)}
                     `;
                     this.modalSelectedAddress.classList.add('active');
                     this.modalAddressSearch.value = task.endereco.display_name || '';
@@ -588,41 +899,6 @@ class TaskManager {
 
     closeProfileModal() {
         this.profileModal.classList.remove('active');
-    }
-
-    // =============================================
-    // MÉTODOS DE ENDEREÇO
-    // =============================================
-
-    clearModalAddress() {
-        this.selectedAddress = null;
-        this.modalSelectedAddress.classList.remove('active');
-        this.modalAddressSearch.value = '';
-        this.modalSuggestions.classList.remove('active');
-    }
-
-    selectAddressModal(addressData) {
-        const address = {
-            display_name: addressData.display_name,
-            lat: addressData.lat,
-            lon: addressData.lon,
-            cep: addressData.address?.postcode || '',
-            logradouro: addressData.address?.road || '',
-            bairro: addressData.address?.suburb || addressData.address?.neighbourhood || '',
-            cidade: addressData.address?.city || addressData.address?.town || addressData.address?.village || '',
-            uf: addressData.address?.state || '',
-            pais: addressData.address?.country || 'Brasil'
-        };
-
-        this.selectedAddress = address;
-        this.modalSelectedText.innerHTML = `
-            <strong>📍 Endereço:</strong><br>
-            ${formatAddressDisplay(address)}
-        `;
-        this.modalSelectedAddress.classList.add('active');
-        this.modalSuggestions.classList.remove('active');
-        this.modalAddressSearch.value = address.display_name;
-        showToast('✅ Endereço selecionado!');
     }
 
     // =============================================
@@ -726,7 +1002,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE DRAG & DROP
+    // MÉTODOS DE DRAG & DROP E AÇÕES
     // =============================================
 
     setupDragAndDrop() {
@@ -734,12 +1010,12 @@ class TaskManager {
         items.forEach(item => {
             item.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.task-checkbox') || e.target.closest('.action-btn')) return;
-                // Iniciar drag
             });
         });
     }
 
     setupActionButtons() {
+        // Botão Editar
         this.taskList.querySelectorAll('[data-action="edit"]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -750,12 +1026,48 @@ class TaskManager {
             });
         });
 
+        // Botão Excluir
         this.taskList.querySelectorAll('[data-action="delete"]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const taskItem = btn.closest('.task-item');
                 if (taskItem) {
                     this.deleteTask(parseInt(taskItem.dataset.id));
+                }
+            });
+        });
+
+        // Copiar coordenadas - CORRIGIDO
+        document.querySelectorAll('.coord-copy').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const coords = btn.dataset.coords;  // ← usando btn, não this
+                if (coords) {
+                    this.copyToClipboard(coords);
+                    btn.classList.add('copied');     // ← usando btn, não this
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }
+            });
+        });
+    }
+
+    setupObsExpand() {
+        document.querySelectorAll('.task-obs').forEach(el => {
+            el.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isExpanded = this.dataset.expanded === 'true';
+                const toggle = this.querySelector('.obs-toggle');
+
+                if (isExpanded) {
+                    this.classList.remove('expanded');
+                    this.dataset.expanded = 'false';
+                    toggle.textContent = 'ver mais ▼';
+                } else {
+                    this.classList.add('expanded');
+                    this.dataset.expanded = 'true';
+                    toggle.textContent = 'ver menos ▲';
                 }
             });
         });
@@ -787,7 +1099,7 @@ class TaskManager {
             message += `${titulo}\n`;
             if (task.obs) message += `   📝 ${task.obs}\n`;
             if (task.endereco) {
-                const enderecoStr = task.endereco.logradouro || task.endereco.display_name || '';
+                const enderecoStr = this.formatAddressSimple(task.endereco);
                 if (enderecoStr) message += `   📍 ${enderecoStr}\n`;
             }
             message += '\n';
@@ -797,67 +1109,40 @@ class TaskManager {
         showToast('📤 Abrindo WhatsApp para compartilhar');
     }
 
-    // =============================================
-    // MÉTODOS DE BUSCA DE ENDEREÇO
-    // =============================================
-
-    async buscarEndereco(query) {
-        if (!query || query.trim().length < 3) {
-            this.modalSuggestions.classList.remove('active');
+    shareEmail() {
+        if (this.tasks.length === 0) {
+            showToast('📭 Nenhuma tarefa para compartilhar');
             return;
         }
 
-        try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
-            const response = await fetch(url, { headers: { 'User-Agent': 'TaskApp/1.0' } });
-            const data = await response.json();
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(t => t.completed).length;
+        const pending = total - completed;
 
-            if (data.length === 0) {
-                this.modalSuggestions.innerHTML = `<div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default;">Nenhum endereço encontrado</div>`;
-                this.modalSuggestions.classList.add('active');
-                return;
+        let subject = encodeURIComponent('Minhas Tarefas - Relatório');
+        let body = '';
+
+        body += '📋 Minhas Tarefas\n';
+        body += `📊 Total: ${total} | ✅ Concluídas: ${completed} | ⏳ Pendentes: ${pending}\n\n`;
+        body += '━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━\n\n';
+
+        this.tasks.forEach((task, index) => {
+            const status = task.completed ? '✅' : '⏳';
+            const numero = (index + 1).toString().padStart(2, '0');
+            let titulo = `${numero}. ${status} ${task.text}`;
+            if (task.ordem) titulo = `${numero}. ${status} [#${task.ordem}] ${task.text}`;
+            body += `${titulo}\n`;
+            if (task.obs) body += `   📝 ${task.obs}\n`;
+            if (task.endereco) {
+                const enderecoStr = this.formatAddressSimple(task.endereco);
+                if (enderecoStr) body += `   📍 ${enderecoStr}\n`;
             }
+            body += '\n';
+        });
 
-            this.modalSuggestions.innerHTML = data.map(item => {
-                const icon = this.getAddressIcon(item.type);
-                return `
-                    <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
-                        <div class="suggestion-main">${icon} ${item.display_name}</div>
-                        <div class="suggestion-detail">${this.formatAddressDetail(item)}</div>
-                    </div>
-                `;
-            }).join('');
-
-            this.modalSuggestions.classList.add('active');
-
-            this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
-                el.addEventListener('click', () => {
-                    this.selectAddressModal(JSON.parse(el.dataset.address));
-                });
-            });
-        } catch (error) {
-            console.error('Erro ao buscar endereço:', error);
-            showToast('⚠️ Erro ao buscar endereço');
-        }
-    }
-
-    getAddressIcon(type) {
-        const icons = {
-            'administrative': '🏛️', 'village': '🏘️', 'town': '🏙️', 'city': '🏙️',
-            'state': '🗺️', 'road': '🛤️', 'building': '🏢', 'house': '🏠',
-            'amenity': '📍', 'shop': '🛍️'
-        };
-        return icons[type] || '📍';
-    }
-
-    formatAddressDetail(item) {
-        const parts = [];
-        if (item.address?.road) parts.push(item.address.road);
-        if (item.address?.suburb) parts.push(item.address.suburb);
-        if (item.address?.city) parts.push(item.address.city);
-        if (item.address?.state) parts.push(item.address.state);
-        if (item.address?.postcode) parts.push(`CEP: ${item.address.postcode}`);
-        return parts.join(' • ') || item.class;
+        const mailtoUrl = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
+        window.open(mailtoUrl, '_blank');
+        showToast('📧 Abrindo cliente de email');
     }
 
     // =============================================
@@ -878,12 +1163,36 @@ class TaskManager {
     // =============================================
 
     bindEvents() {
+        console.log('🔧 Vinculando eventos...');
+
+        // Botão WhatsApp no Header
+        if (this.headerWhatsApp) {
+            this.headerWhatsApp.addEventListener('click', () => {
+                this.shareWhatsApp();
+            });
+            console.log('✅ WhatsApp button bound');
+        }
+
+        // Botão Email no Header
+        if (this.headerEmail) {
+            this.headerEmail.addEventListener('click', () => {
+                this.shareEmail();
+            });
+            console.log('✅ Email button bound');
+        }
+
         // Sidebar
-        this.menuToggle.addEventListener('click', () => this.toggleSidebar());
-        this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
+        if (this.menuToggle) {
+            this.menuToggle.addEventListener('click', () => this.toggleSidebar());
+        }
+        if (this.sidebarOverlay) {
+            this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
+        }
 
         // Dark Mode
-        this.darkModeToggle.addEventListener('click', () => this.toggleTheme());
+        if (this.darkModeToggle) {
+            this.darkModeToggle.addEventListener('click', () => this.toggleTheme());
+        }
 
         // Menu items
         document.querySelectorAll('.menu-item[data-page]').forEach(item => {
@@ -900,96 +1209,131 @@ class TaskManager {
         });
 
         // Perfil
-        this.profileAvatar.addEventListener('click', () => this.openProfileModal());
-        this.profileForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = this.modalName.value.trim();
-            const email = this.modalEmail.value.trim();
-            if (!name || !email) {
-                showToast('⚠️ Preencha todos os campos');
-                return;
-            }
-            this.profile.name = name;
-            this.profile.email = email;
-            this.saveProfile();
-            this.closeProfileModal();
-            showToast('✅ Perfil atualizado!');
-        });
-        this.modalProfileClose.addEventListener('click', () => this.closeProfileModal());
-        this.profileModal.addEventListener('click', (e) => {
-            if (e.target === this.profileModal) this.closeProfileModal();
-        });
+        if (this.profileAvatar) {
+            this.profileAvatar.addEventListener('click', () => this.openProfileModal());
+        }
+        if (this.profileForm) {
+            this.profileForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = this.modalName.value.trim();
+                const email = this.modalEmail.value.trim();
+                if (!name || !email) {
+                    showToast('⚠️ Preencha todos os campos');
+                    return;
+                }
+                this.profile.name = name;
+                this.profile.email = email;
+                this.saveProfile();
+                this.closeProfileModal();
+                showToast('✅ Perfil atualizado!');
+            });
+        }
+        if (this.modalProfileClose) {
+            this.modalProfileClose.addEventListener('click', () => this.closeProfileModal());
+        }
+        if (this.profileModal) {
+            this.profileModal.addEventListener('click', (e) => {
+                if (e.target === this.profileModal) this.closeProfileModal();
+            });
+        }
 
         // Ações de dados
-        this.exportDataBtn.addEventListener('click', () => this.exportData());
-        this.importFileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) this.importData(e.target.files[0]);
-        });
-        this.archiveTasksBtn.addEventListener('click', () => this.archiveCompleted());
-        this.resetAppBtn.addEventListener('click', () => this.resetApp());
-        this.clearAllData.addEventListener('click', () => this.clearAllData());
+        if (this.exportDataBtn) {
+            this.exportDataBtn.addEventListener('click', () => this.exportData());
+        }
+        if (this.importFileInput) {
+            this.importFileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) this.importData(e.target.files[0]);
+            });
+        }
+        if (this.archiveTasksBtn) {
+            this.archiveTasksBtn.addEventListener('click', () => this.archiveCompleted());
+        }
+        if (this.resetAppBtn) {
+            this.resetAppBtn.addEventListener('click', () => this.resetApp());
+        }
+        if (this.clearAllData) {
+            this.clearAllData.addEventListener('click', () => this.clearAllData());
+        }
 
-        // FABs
-        this.fabAddTask.addEventListener('click', () => this.openTaskModal());
-        this.fabShareWhatsApp.addEventListener('click', () => this.shareWhatsApp());
+        // FAB
+        if (this.fabAddTask) {
+            this.fabAddTask.addEventListener('click', () => this.openTaskModal());
+        }
 
-        // Modal Tarefa
-        this.modalTaskClose.addEventListener('click', () => this.closeTaskModal());
-        this.taskModal.addEventListener('click', (e) => {
-            if (e.target === this.taskModal) this.closeTaskModal();
-        });
+        // Modal Tarefa - CORRIGIDO (removeu o ) extra)
+        if (this.modalTaskClose) {
+            this.modalTaskClose.addEventListener('click', () => this.closeTaskModal());
+        }
+        if (this.taskModal) {
+            this.taskModal.addEventListener('click', (e) => {
+                if (e.target === this.taskModal) this.closeTaskModal();
+            });
+        }
 
         // Busca de endereço
-        this.modalSearchBtn.addEventListener('click', () => {
-            this.buscarEndereco(this.modalAddressSearch.value);
-        });
-        this.modalAddressSearch.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
+        if (this.modalSearchBtn) {
+            this.modalSearchBtn.addEventListener('click', () => {
                 this.buscarEndereco(this.modalAddressSearch.value);
-            }
-        });
-        let searchTimeout;
-        this.modalAddressSearch.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            const query = this.modalAddressSearch.value;
-            if (query.length >= 3) {
-                searchTimeout = setTimeout(() => this.buscarEndereco(query), 800);
-            } else {
-                this.modalSuggestions.classList.remove('active');
-            }
-        });
+            });
+        }
+        if (this.modalAddressSearch) {
+            this.modalAddressSearch.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.buscarEndereco(this.modalAddressSearch.value);
+                }
+            });
+        }
+        if (this.modalAddressSearch) {
+            let searchTimeout;
+            this.modalAddressSearch.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                const query = this.modalAddressSearch.value;
+                if (query.length >= 3) {
+                    searchTimeout = setTimeout(() => this.buscarEndereco(query), 800);
+                } else {
+                    this.modalSuggestions.classList.remove('active');
+                }
+            });
+        }
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.modal-address-section')) {
                 this.modalSuggestions.classList.remove('active');
             }
         });
-        this.modalClearAddress.addEventListener('click', () => this.clearModalAddress());
+        if (this.modalClearAddress) {
+            this.modalClearAddress.addEventListener('click', () => this.clearModalAddress());
+        }
 
         // Formulário
-        this.taskForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const endereco = this.selectedAddress ? { ...this.selectedAddress } : null;
-            const ordem = this.taskOrder.value.trim();
-            const obs = this.taskObs.value.trim();
-            const text = this.taskInput.value.trim();
-            const editId = parseInt(this.editTaskId.value);
-            if (editId) {
-                this.updateTask(editId, text, endereco, ordem, obs);
-            } else {
-                this.addTask(text, endereco, ordem, obs);
-            }
-        });
+        if (this.taskForm) {
+            this.taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const endereco = this.selectedAddress ? { ...this.selectedAddress } : null;
+                const ordem = this.taskOrder.value.trim();
+                const obs = this.taskObs.value.trim();
+                const text = this.taskInput.value.trim();
+                const editId = parseInt(this.editTaskId.value);
+                if (editId) {
+                    this.updateTask(editId, text, endereco, ordem, obs);
+                } else {
+                    this.addTask(text, endereco, ordem, obs);
+                }
+            });
+        }
 
         // Checkbox
-        this.taskList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('task-checkbox')) {
-                const taskItem = e.target.closest('.task-item');
-                if (taskItem) {
-                    this.toggleTask(parseInt(taskItem.dataset.id));
+        if (this.taskList) {
+            this.taskList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('task-checkbox')) {
+                    const taskItem = e.target.closest('.task-item');
+                    if (taskItem) {
+                        this.toggleTask(parseInt(taskItem.dataset.id));
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Filtros
         this.filterBtns.forEach(btn => {
@@ -1011,14 +1355,16 @@ class TaskManager {
                 this.closeSidebar();
             }
         }, { passive: true });
+
+        console.log('✅ Eventos vinculados');
     }
 }
-
 // =============================================
 // INICIALIZAÇÃO
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM carregado, iniciando app...');
     const app = new TaskManager();
     console.log('✅ App organizado e inicializado!');
     window.app = app;
