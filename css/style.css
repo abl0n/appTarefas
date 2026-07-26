@@ -1,5 +1,3 @@
-/* ==================== PALETA DE CORES - CLIENTE ==================== */
-
 :root {
     /* ===== CORES PRINCIPAIS ===== */
     /* Tema Claro - Fundo Branco + Azul */
@@ -1352,14 +1350,14 @@ body.dark-mode .filter-btn.active {
 }
 
 /* ============================================ */
-/* SUGESTÕES - CORRIGIDO (ÚNICA VERSÃO)       */
+/* SUGESTÕES - VERSÃO ÚNICA CORRIGIDA          */
 /* ============================================ */
 
 .modal-suggestions {
     display: none;
     flex-direction: column;
     gap: 2px;
-    max-height: 180px;
+    max-height: 200px;
     overflow-y: auto;
     background: var(--bg-card);
     border-radius: var(--radius-sm);
@@ -1372,10 +1370,26 @@ body.dark-mode .filter-btn.active {
     z-index: 1000;
     box-shadow: 0 8px 24px var(--shadow-color);
     margin-top: 4px;
+    min-width: 100%;
 }
 
 .modal-suggestions.active {
     display: flex;
+}
+
+/* Scrollbar personalizada */
+.modal-suggestions::-webkit-scrollbar {
+    width: 5px;
+}
+
+.modal-suggestions::-webkit-scrollbar-track {
+    background: var(--bg-input);
+    border-radius: 4px;
+}
+
+.modal-suggestions::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
 }
 
 .modal-suggestion-item {
@@ -1390,6 +1404,7 @@ body.dark-mode .filter-btn.active {
     flex-direction: column;
     justify-content: center;
     background: var(--bg-card);
+    flex-shrink: 0;
 }
 
 .modal-suggestion-item:last-child {
@@ -1423,27 +1438,10 @@ body.dark-mode .filter-btn.active {
     text-overflow: ellipsis;
 }
 
-.modal-suggestions::-webkit-scrollbar {
-    width: 4px;
-}
-
-.modal-suggestions::-webkit-scrollbar-track {
-    background: var(--bg-input);
-    border-radius: 4px;
-}
-
-.modal-suggestions::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 4px;
-}
-
-/* ============================================ */
-/* RESPONSIVO - SUGESTÕES                      */
-/* ============================================ */
-
+/* Responsivo mobile */
 @media (max-width: 480px) {
     .modal-suggestions {
-        max-height: 140px;
+        max-height: 150px;
         position: fixed;
         top: auto;
         bottom: auto;
@@ -1451,6 +1449,7 @@ body.dark-mode .filter-btn.active {
         transform: translateX(-50%);
         width: calc(100% - 40px);
         max-width: 560px;
+        min-width: unset;
     }
 
     .modal-suggestion-item {
@@ -1839,6 +1838,7 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1849,20 +1849,24 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
     }
 }
 
 @keyframes pulse-dot {
+
     0%,
     100% {
         opacity: 1;
         transform: scale(1);
     }
+
     50% {
         opacity: 0.5;
         transform: scale(0.8);
@@ -1870,10 +1874,12 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 }
 
 @keyframes heartbeat {
+
     0%,
     100% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.2);
     }

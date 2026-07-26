@@ -424,7 +424,6 @@ class TaskManager {
         if (!endereco) return '';
         const parts = [];
 
-        // Mostrar logradouro completo (com número)
         if (endereco.logradouro) {
             parts.push(endereco.logradouro);
         }
@@ -553,7 +552,7 @@ class TaskManager {
         this.modalSearchBtn.disabled = true;
 
         try {
-            let url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&accept-language=pt-BR';
+            let url = 'https://nominatim.openstreetmap.org/search?format=json&limit=10&addressdetails=1&accept-language=pt-BR';
             url += `&q=${encodeURIComponent(query)}`;
             url += '&viewbox=-47.5,-22.5,-45.5,-24.5&bounded=1';
 
@@ -568,7 +567,7 @@ class TaskManager {
             const data = await response.json();
 
             if (data.length === 0) {
-                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
+                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
                 const fallbackResponse = await fetch(fallbackUrl, {
                     headers: { 'User-Agent': 'TaskApp/1.0' }
                 });
@@ -600,6 +599,10 @@ class TaskManager {
         }
     }
 
+    // =============================================
+    // RENDERIZAR SUGESTÕES - CORRIGIDO (sem duplicatas)
+    // =============================================
+
     renderSuggestions(data) {
         if (!data || data.length === 0) {
             this.modalSuggestions.innerHTML = `
@@ -611,24 +614,81 @@ class TaskManager {
             return;
         }
 
-        this.modalSuggestions.innerHTML = data.map(item => {
+        // 🔥 REMOVER DUPLICATAS - Compara pelo nome da rua + número + bairro + cidade
+        const uniqueResults = [];
+        const seen = new Set();
+
+        data.forEach(item => {
+            const road = item.address?.road || '';
+            const houseNumber = item.address?.house_number || '';
+            const suburb = item.address?.suburb || item.address?.neighbourhood || '';
+            const city = item.address?.city || item.address?.town || item.address?.village || '';
+            
+            const key = `${road}|${houseNumber}|${suburb}|${city}`.toLowerCase().trim();
+            
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueResults.push(item);
+            }
+        });
+
+        console.log(`📊 ${data.length} resultados → ${uniqueResults.length} únicos`);
+
+        const topResults = uniqueResults.slice(0, 6);
+
+        if (topResults.length === 0) {
+            this.modalSuggestions.innerHTML = `
+                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
+                    Nenhum endereço único encontrado
+                </div>
+            `;
+            this.modalSuggestions.classList.add('active');
+            return;
+        }
+
+        this.modalSuggestions.innerHTML = topResults.map(item => {
             const icon = this.getAddressIcon(item.type);
             const coords = this.formatCoordinates(item.lat, item.lon);
-            const displayName = item.display_name || '';
-            const shortName = displayName.length > 60 ? displayName.substring(0, 60) + '...' : displayName;
+            
+            // Formatar endereço de forma mais limpa
+            const road = item.address?.road || '';
+            const houseNumber = item.address?.house_number || '';
+            const suburb = item.address?.suburb || item.address?.neighbourhood || '';
+            const city = item.address?.city || item.address?.town || item.address?.village || '';
+            const state = item.address?.state || '';
+            
+            let addressLine = road;
+            if (houseNumber) {
+                addressLine += `, ${houseNumber}`;
+            }
+            if (suburb) {
+                addressLine += ` - ${suburb}`;
+            }
+            if (city) {
+                addressLine += `, ${city}`;
+            }
+            if (state) {
+                addressLine += ` - ${state}`;
+            }
+
+            const shortName = addressLine.length > 55 ? addressLine.substring(0, 55) + '...' : addressLine;
 
             return `
                 <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
                     <div class="suggestion-main">${icon} ${shortName}</div>
                     <div class="suggestion-detail">
-                        ${this.formatAddressDetail(item)} 
-                        ${coords ? '• ' + coords : ''}
+                        ${coords ? '📍 ' + coords : ''}
+                        ${item.address?.postcode ? ' • CEP: ' + item.address.postcode : ''}
                     </div>
                 </div>
             `;
         }).join('');
 
         this.modalSuggestions.classList.add('active');
+
+        // 🔥 Ajustar altura máxima da lista
+        const maxHeight = Math.min(topResults.length * 50 + 10, 200);
+        this.modalSuggestions.style.maxHeight = maxHeight + 'px';
 
         this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
             el.addEventListener('click', (e) => {
@@ -683,7 +743,6 @@ class TaskManager {
     }
 
     selectAddressModal(addressData) {
-        // Extrair número do logradouro
         let logradouroCompleto = addressData.address?.road || '';
         const houseNumber = addressData.address?.house_number || '';
 
@@ -708,9 +767,9 @@ class TaskManager {
 
         this.selectedAddress = address;
         this.modalSelectedText.innerHTML = `
-        <strong>📍 Endereço:</strong><br>
-        ${this.formatAddressSimple(address)}
-    `;
+            <strong>📍 Endereço:</strong><br>
+            ${this.formatAddressSimple(address)}
+        `;
         this.modalSelectedAddress.classList.add('active');
         this.modalSuggestions.classList.remove('active');
         this.modalAddressSearch.value = address.display_name;
@@ -1127,7 +1186,7 @@ class TaskManager {
 
     setupObsExpand() {
         document.querySelectorAll('.task-obs').forEach(el => {
-            el.addEventListener('click', function (e) {
+            el.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const isExpanded = this.dataset.expanded === 'true';
                 const toggle = this.querySelector('.obs-toggle');
