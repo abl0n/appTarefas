@@ -159,7 +159,7 @@ body.dark-mode {
 }
 
 /* ============================================ */
-/* CSS BASE                                       */
+/* CSS BASE                                    */
 /* ============================================ */
 
 * {
@@ -182,7 +182,7 @@ body {
 }
 
 /* ============================================ */
-/* SIDEBAR                                       */
+/* SIDEBAR                                     */
 /* ============================================ */
 
 .sidebar {
@@ -322,7 +322,7 @@ body {
 }
 
 /* ============================================ */
-/* MAIN CONTENT                                 */
+/* MAIN CONTENT                                */
 /* ============================================ */
 
 .main-content {
@@ -354,7 +354,7 @@ body {
 }
 
 /* ============================================ */
-/* HEADER                                      */
+/* HEADER                                     */
 /* ============================================ */
 
 header {
@@ -427,7 +427,7 @@ header {
     justify-content: center;
     border-radius: 8px;
     color: var(--text-secondary);
-    transition: all 0.2s;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
     position: relative;
 }
 
@@ -443,10 +443,16 @@ header {
 
 .header-btn.whatsapp:hover {
     color: var(--whatsapp-color);
+    background: rgba(37, 211, 102, 0.08);
+}
+
+.header-btn.whatsapp .icon-svg {
+    filter: none;
 }
 
 .header-btn.email:hover {
     color: var(--primary);
+    background: rgba(0, 82, 204, 0.08);
 }
 
 .header-status {
@@ -472,8 +478,6 @@ header {
     background: var(--danger);
     animation: pulse-dot 1.5s ease-in-out infinite;
 }
-
-
 
 /* ============================================ */
 /* FILTROS - TRANSIÇÃO SUAVE                   */
@@ -509,7 +513,6 @@ header {
     user-select: none;
     -webkit-user-select: none;
 
-    /* Transição suave - sem !important */
     transition: background 0.3s ease,
         border-color 0.3s ease,
         color 0.3s ease,
@@ -544,7 +547,6 @@ header {
     outline: none;
 }
 
-/* Estado ativo com hover mantém a cor */
 .filter-btn.active:hover,
 .filter-btn.active:active {
     background: var(--primary);
@@ -573,7 +575,6 @@ header {
     color: var(--badge-text);
 }
 
-/* Modo escuro - ajustes */
 body.dark-mode .filter-btn:not(.active) {
     background: var(--bg-card);
     color: var(--text-secondary);
@@ -866,6 +867,7 @@ body.dark-mode .filter-btn.active {
 
 .task-address .address-icon {
     font-size: 14px;
+    flex-shrink: 0;
 }
 
 .task-address .address-text {
@@ -878,36 +880,81 @@ body.dark-mode .filter-btn.active {
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
-.task-address .address-link {
-    text-decoration: none;
-    font-size: 0.7rem;
-    padding: 4px 10px;
-    border-radius: 20px;
-    transition: all 0.2s;
+/* ============================================ */
+/* ÍCONES SVG - CORRIGIDO                      */
+/* ============================================ */
+
+.icon-svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    object-fit: contain;
+}
+
+.header-btn .icon-svg {
+    width: 24px;
+    height: 24px;
+}
+
+.address-link .icon-svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ============================================ */
+/* BOTÕES DE ENDEREÇO                          */
+/* ============================================ */
+
+.address-link {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    font-weight: 600;
-    min-height: 30px;
+    justify-content: center;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    min-height: 36px;
+    min-width: 36px;
+    border: 1.5px solid transparent;
 }
 
-.task-address .address-link:active {
+.address-link:active {
     transform: scale(0.95);
 }
 
-.task-address .address-link.google {
-    color: #FFFFFF;
-    background: var(--google-color);
-    border-color: var(--google-color);
+.address-link.google {
+    background: #EA4335 !important;
+    border-color: #EA4335 !important;
 }
 
-.task-address .address-link.waze {
-    color: #FFFFFF;
-    background: var(--waze-color);
-    border-color: var(--waze-color);
+.address-link.google .icon-svg {
+    filter: brightness(0) invert(1);
+}
+
+.address-link.waze {
+    background: #33CCFF !important;
+    border-color: #33CCFF !important;
+}
+
+.address-link.waze .icon-svg {
+    filter: brightness(0) invert(1);
+}
+
+.address-link.google:hover {
+    background: #D33426 !important;
+    border-color: #D33426 !important;
+    transform: scale(1.05);
+}
+
+.address-link.waze:hover {
+    background: #1AB8E6 !important;
+    border-color: #1AB8E6 !important;
+    transform: scale(1.05);
 }
 
 /* ============================================ */
@@ -1157,7 +1204,7 @@ body.dark-mode .filter-btn.active {
 }
 
 /* ============================================ */
-/* MODAIS                                     */
+/* MODAL                                      */
 /* ============================================ */
 
 .modal-overlay {
@@ -1194,6 +1241,7 @@ body.dark-mode .filter-btn.active {
     transform: translateY(100%);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), background var(--transition);
     border-top: 1px solid var(--border-color);
+    position: relative;
 }
 
 .modal-overlay.active .modal {
@@ -1242,59 +1290,12 @@ body.dark-mode .filter-btn.active {
 }
 
 /* ============================================ */
-/* FORMULÁRIOS                                */
-/* ============================================ */
-
-.modal form {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.modal form label {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-    margin-bottom: -6px;
-}
-
-.modal form input,
-.modal form textarea {
-    padding: 14px 16px;
-    border: 2px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
-    -webkit-appearance: none;
-    appearance: none;
-    background: var(--bg-input);
-    color: var(--text-primary);
-    transition: all 0.3s;
-    font-family: inherit;
-    min-height: var(--touch-target-min);
-}
-
-.modal form input:focus,
-.modal form textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px var(--primary-light);
-}
-
-.modal form input::placeholder,
-.modal form textarea::placeholder {
-    color: var(--text-muted);
-}
-
-.modal form textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-/* ============================================ */
 /* ENDEREÇO NO MODAL                          */
 /* ============================================ */
 
 .modal-address-section {
+    position: relative;
+    z-index: 10;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1350,16 +1351,27 @@ body.dark-mode .filter-btn.active {
     transform: scale(0.95);
 }
 
+/* ============================================ */
+/* SUGESTÕES - CORRIGIDO (ÚNICA VERSÃO)       */
+/* ============================================ */
+
 .modal-suggestions {
     display: none;
     flex-direction: column;
-    gap: 4px;
-    max-height: 150px;
+    gap: 2px;
+    max-height: 180px;
     overflow-y: auto;
-    background: var(--bg-input);
+    background: var(--bg-card);
     border-radius: var(--radius-sm);
     border: 2px solid var(--border-color);
     padding: 4px 0;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 8px 24px var(--shadow-color);
+    margin-top: 4px;
 }
 
 .modal-suggestions.active {
@@ -1367,36 +1379,97 @@ body.dark-mode .filter-btn.active {
 }
 
 .modal-suggestion-item {
-    padding: 12px 14px;
+    padding: 10px 14px;
     cursor: pointer;
     transition: background 0.2s;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
-    min-height: 44px;
+    min-height: 40px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    background: var(--bg-card);
 }
 
 .modal-suggestion-item:last-child {
     border-bottom: none;
 }
 
-.modal-suggestion-item:active {
+.modal-suggestion-item:hover {
     background: var(--bg-hover);
+}
+
+.modal-suggestion-item:active {
+    background: var(--primary-light);
 }
 
 .modal-suggestion-item .suggestion-main {
     font-weight: 600;
     color: var(--text-primary);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .modal-suggestion-item .suggestion-detail {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     margin-top: 2px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+.modal-suggestions::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-suggestions::-webkit-scrollbar-track {
+    background: var(--bg-input);
+    border-radius: 4px;
+}
+
+.modal-suggestions::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+/* ============================================ */
+/* RESPONSIVO - SUGESTÕES                      */
+/* ============================================ */
+
+@media (max-width: 480px) {
+    .modal-suggestions {
+        max-height: 140px;
+        position: fixed;
+        top: auto;
+        bottom: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 560px;
+    }
+
+    .modal-suggestion-item {
+        padding: 8px 12px;
+        min-height: 36px;
+    }
+
+    .modal-suggestion-item .suggestion-main {
+        font-size: 0.8rem;
+    }
+
+    .modal-suggestion-item .suggestion-detail {
+        font-size: 0.6rem;
+    }
+}
+
+/* ============================================ */
+/* ENDEREÇO SELECIONADO NO MODAL              */
+/* ============================================ */
 
 .modal-selected-address {
     display: none;
@@ -1436,6 +1509,55 @@ body.dark-mode .filter-btn.active {
 
 .modal-selected-address .address-actions button:first-child {
     background: var(--gray-600);
+}
+
+/* ============================================ */
+/* FORMULÁRIOS                                */
+/* ============================================ */
+
+.modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal form label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: -6px;
+}
+
+.modal form input,
+.modal form textarea {
+    padding: 14px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    transition: all 0.3s;
+    font-family: inherit;
+    min-height: var(--touch-target-min);
+}
+
+.modal form input:focus,
+.modal form textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.modal form input::placeholder,
+.modal form textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.modal form textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 .modal form button[type="submit"] {
@@ -1717,7 +1839,6 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         opacity: 0;
         transform: translateY(-10px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1728,24 +1849,20 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
     0% {
         transform: scale(1);
     }
-
     50% {
         transform: scale(1.05);
     }
-
     100% {
         transform: scale(1);
     }
 }
 
 @keyframes pulse-dot {
-
     0%,
     100% {
         opacity: 1;
         transform: scale(1);
     }
-
     50% {
         opacity: 0.5;
         transform: scale(0.8);
@@ -1753,12 +1870,10 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 }
 
 @keyframes heartbeat {
-
     0%,
     100% {
         transform: scale(1);
     }
-
     50% {
         transform: scale(1.2);
     }
@@ -1829,6 +1944,13 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         right: 12px;
     }
 
+    .fab-share {
+        width: 56px;
+        height: 56px;
+        bottom: 16px;
+        right: 12px;
+    }
+
     #taskList {
         padding-bottom: 76px;
     }
@@ -1868,6 +1990,15 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
     .header-status {
         display: none;
     }
+
+    .modal-address-section .search-header {
+        flex-direction: column;
+    }
+
+    .modal-address-section .search-header button {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 380px) {
@@ -1894,6 +2025,13 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         height: 48px;
         font-size: 24px;
         bottom: 70px;
+        right: 10px;
+    }
+
+    .fab-share {
+        width: 48px;
+        height: 48px;
+        bottom: 14px;
         right: 10px;
     }
 
@@ -1931,6 +2069,10 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
     .fab:hover {
         transform: scale(1.08);
     }
+
+    .fab-share:hover {
+        transform: scale(1.08);
+    }
 }
 
 /* ============================================ */
@@ -1957,72 +2099,9 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         bottom: max(80px, env(safe-area-inset-bottom) + 70px);
         right: max(20px, env(safe-area-inset-right) + 10px);
     }
-}
 
-/* ==================== ÍCONES SVG ==================== */
-.icon-svg {
-    width: 20px;
-    height: 20px;
-    display: inline-block;
-    vertical-align: middle;
-    object-fit: contain;
-}
-
-.header-btn .icon-svg {
-    width: 24px;
-    height: 24px;
-}
-
-.address-link .icon-svg {
-    width: 18px;
-    height: 18px;
-    display: block;
-}
-
-/* Cores de fundo dos botões */
-.address-link.google {
-    background: #EA4335;
-    border-color: #EA4335;
-    color: #FFFFFF;
-}
-
-.address-link.waze {
-    background: #33CCFF;
-    border-color: #33CCFF;
-    color: #FFFFFF;
-}
-
-.address-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    padding: 6px 10px;
-    border-radius: 20px;
-    transition: all 0.2s;
-    min-height: 36px;
-    min-width: 36px;
-}
-
-.address-link:active {
-    transform: scale(0.95);
-}
-
-/* WhatsApp no header */
-.header-btn.whatsapp .icon-svg {
-    filter: none;
-}
-
-.header-btn.whatsapp:hover .icon-svg {
-    filter: drop-shadow(0 0 4px rgba(37, 211, 102, 0.4));
-}
-
-.header-btn.whatsapp:hover {
-    background: rgba(37, 211, 102, 0.1);
-}
-
-/* Email no header */
-.header-btn.email:hover {
-    background: rgba(0, 82, 204, 0.1);
-    color: var(--primary);
+    .fab-share {
+        bottom: max(20px, env(safe-area-inset-bottom) + 10px);
+        right: max(20px, env(safe-area-inset-right) + 10px);
+    }
 }

@@ -423,12 +423,16 @@ class TaskManager {
     formatAddressSimple(endereco) {
         if (!endereco) return '';
         const parts = [];
+
+        // Mostrar logradouro completo (com número)
         if (endereco.logradouro) {
-            const streetParts = endereco.logradouro.split(',');
-            parts.push(streetParts[0].trim());
+            parts.push(endereco.logradouro);
         }
+
         if (endereco.bairro) parts.push(endereco.bairro);
         if (endereco.cidade) parts.push(endereco.cidade);
+        if (endereco.uf) parts.push(endereco.uf);
+
         return parts.join(' - ');
     }
 
@@ -513,16 +517,16 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE BUSCA DE ENDEREÇO
+    // MÉTODOS DE BUSCA DE ENDEREÇO - CORRIGIDO
     // =============================================
 
     async buscarEndereco(query) {
         if (!query || query.trim().length < 3) {
+            showToast('📝 Digite pelo menos 3 caracteres');
             this.modalSuggestions.classList.remove('active');
             return;
         }
 
-        // Verificar se é coordenada
         const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
         if (coordRegex.test(query.trim())) {
             const parts = query.trim().split(',').map(p => parseFloat(p.trim()));
@@ -545,36 +549,13 @@ class TaskManager {
             }
         }
 
-        // Mostrar loading
         this.modalSearchBtn.textContent = '⏳ Buscando...';
         this.modalSearchBtn.disabled = true;
 
         try {
-            let userLat = null;
-            let userLon = null;
-
-            if (navigator.geolocation) {
-                try {
-                    const position = await this.getCurrentPositionWithFallback();
-                    if (position) {
-                        userLat = position.lat;
-                        userLon = position.lon;
-                        console.log('📍 Localização obtida:', userLat, userLon);
-                    }
-                } catch (e) {
-                    console.log('📍 Localização não disponível:', e.message);
-                }
-            }
-
-            let url = 'https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&accept-language=pt-BR';
+            let url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&accept-language=pt-BR';
             url += `&q=${encodeURIComponent(query)}`;
             url += '&viewbox=-47.5,-22.5,-45.5,-24.5&bounded=1';
-
-            if (userLat && userLon && !isNaN(userLat) && !isNaN(userLon)) {
-                url += `&lat=${userLat}&lon=${userLon}`;
-            }
-
-            console.log('🔍 Buscando:', url);
 
             const response = await fetch(url, {
                 headers: { 'User-Agent': 'TaskApp/1.0' }
@@ -587,7 +568,7 @@ class TaskManager {
             const data = await response.json();
 
             if (data.length === 0) {
-                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
+                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
                 const fallbackResponse = await fetch(fallbackUrl, {
                     headers: { 'User-Agent': 'TaskApp/1.0' }
                 });
@@ -605,9 +586,9 @@ class TaskManager {
                     return;
                 }
 
-                this.renderSuggestions(fallbackData, userLat, userLon);
+                this.renderSuggestions(fallbackData);
             } else {
-                this.renderSuggestions(data, userLat, userLon);
+                this.renderSuggestions(data);
             }
         } catch (error) {
             console.error('❌ Erro ao buscar endereço:', error);
@@ -617,6 +598,51 @@ class TaskManager {
             this.modalSearchBtn.textContent = '🔍 Buscar';
             this.modalSearchBtn.disabled = false;
         }
+    }
+
+    renderSuggestions(data) {
+        if (!data || data.length === 0) {
+            this.modalSuggestions.innerHTML = `
+                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
+                    Nenhum endereço encontrado
+                </div>
+            `;
+            this.modalSuggestions.classList.add('active');
+            return;
+        }
+
+        this.modalSuggestions.innerHTML = data.map(item => {
+            const icon = this.getAddressIcon(item.type);
+            const coords = this.formatCoordinates(item.lat, item.lon);
+            const displayName = item.display_name || '';
+            const shortName = displayName.length > 60 ? displayName.substring(0, 60) + '...' : displayName;
+
+            return `
+                <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
+                    <div class="suggestion-main">${icon} ${shortName}</div>
+                    <div class="suggestion-detail">
+                        ${this.formatAddressDetail(item)} 
+                        ${coords ? '• ' + coords : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.modalSuggestions.classList.add('active');
+
+        this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                try {
+                    const addressData = JSON.parse(el.dataset.address);
+                    this.selectAddressModal(addressData);
+                    this.modalSuggestions.classList.remove('active');
+                } catch (err) {
+                    console.error('Erro ao selecionar endereço:', err);
+                    showToast('⚠️ Erro ao selecionar endereço');
+                }
+            });
+        });
     }
 
     getAddressIcon(type) {
@@ -646,200 +672,6 @@ class TaskManager {
     }
 
     // =============================================
-    // RENDERIZAR SUGESTÕES
-    // =============================================
-
-    renderSuggestions(data, userLat = null, userLon = null) {
-        if (!data || data.length === 0) {
-            this.modalSuggestions.innerHTML = `
-                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
-                    Nenhum endereço encontrado
-                </div>
-            `;
-            this.modalSuggestions.classList.add('active');
-            return;
-        }
-
-        const results = data.map(item => {
-            let distance = null;
-            if (userLat && userLon && item.lat && item.lon) {
-                try {
-                    distance = this.calculateDistance(
-                        userLat, userLon,
-                        parseFloat(item.lat), parseFloat(item.lon)
-                    );
-                } catch (e) {
-                    // Ignorar erro de distância
-                }
-            }
-            return { ...item, distance };
-        });
-
-        if (userLat && userLon) {
-            results.sort((a, b) => {
-                if (a.distance === null && b.distance === null) return 0;
-                if (a.distance === null) return 1;
-                if (b.distance === null) return -1;
-                return a.distance - b.distance;
-            });
-        }
-
-        const topResults = results.slice(0, 6);
-
-        this.modalSuggestions.innerHTML = topResults.map(item => {
-            const icon = this.getAddressIcon(item.type);
-            const coords = this.formatCoordinates(item.lat, item.lon);
-            let distanceText = '';
-            if (item.distance !== null && !isNaN(item.distance)) {
-                distanceText = `• ${this.formatDistance(item.distance)}`;
-            }
-
-            const isSP = this.isSaoPaulo(item);
-            const spBadge = isSP ? '📍 SP' : '';
-
-            return `
-                <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
-                    <div class="suggestion-main">${icon} ${this.truncateText(item.display_name, 60)}</div>
-                    <div class="suggestion-detail">
-                        ${this.formatAddressDetail(item)} 
-                        ${coords ? '• ' + coords : ''}
-                        ${distanceText}
-                        ${spBadge ? '• ' + spBadge : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        this.modalSuggestions.classList.add('active');
-
-        this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
-            el.addEventListener('click', (e) => {
-                e.stopPropagation();
-                try {
-                    const addressData = JSON.parse(el.dataset.address);
-                    this.selectAddressModal(addressData);
-                    this.modalSuggestions.classList.remove('active');
-                } catch (err) {
-                    console.error('Erro ao selecionar endereço:', err);
-                    showToast('⚠️ Erro ao selecionar endereço');
-                }
-            });
-        });
-    }
-
-    // =============================================
-    // FUNÇÕES AUXILIARES
-    // =============================================
-
-    truncateText(text, maxLength = 60) {
-        if (!text) return '';
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
-    }
-
-    calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = this.toRad(lat2 - lat1);
-        const dLon = this.toRad(lon2 - lon1);
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    }
-
-    toRad(degrees) {
-        return degrees * (Math.PI / 180);
-    }
-
-    formatDistance(km) {
-        if (km < 1) {
-            return `${Math.round(km * 1000)}m`;
-        }
-        return `${km.toFixed(1)}km`;
-    }
-
-    isSaoPaulo(item) {
-        const address = item.address || {};
-        const city = (address.city || address.town || address.village || '').toLowerCase();
-        const state = (address.state || '').toLowerCase();
-        const spCities = [
-            'são paulo', 'guarulhos', 'campinas', 'são bernardo do campo',
-            'santo andré', 'osasco', 'são josé dos campos', 'ribeirão preto',
-            'sorocaba', 'santos', 'diadema', 'mauá', 'carapicuíba', 'itapecerica da serra',
-            'franco da rocha', 'taboão da serra', 'cotia', 'embu das artes', 'itapevi',
-            'jandira', 'vargem grande paulista', 'caieiras', 'ferraz de vasconcelos',
-            'mogi das cruzes', 'suzano', 'poá', 'itaquaquecetuba', 'arujá', 'santa isabel'
-        ];
-
-        if (state === 'são paulo' || state === 'sp') return true;
-        if (spCities.includes(city)) return true;
-
-        const spRegion = ['grande são paulo', 'região metropolitana de são paulo'];
-        const display = (item.display_name || '').toLowerCase();
-        return spRegion.some(region => display.includes(region));
-    }
-
-    // =============================================
-    // GEOLOCALIZAÇÃO COM FALLBACK
-    // =============================================
-
-    getCurrentPositionWithFallback() {
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                console.log('📍 Geolocalização não suportada');
-                resolve(null);
-                return;
-            }
-
-            if (navigator.permissions) {
-                navigator.permissions.query({ name: 'geolocation' })
-                    .then((result) => {
-                        if (result.state === 'denied') {
-                            console.log('📍 Permissão de geolocalização negada');
-                            resolve(null);
-                            return;
-                        }
-                        this.tryGetPosition(resolve);
-                    })
-                    .catch(() => {
-                        this.tryGetPosition(resolve);
-                    });
-            } else {
-                this.tryGetPosition(resolve);
-            }
-        });
-    }
-
-    tryGetPosition(resolve) {
-        const timeoutId = setTimeout(() => {
-            console.log('📍 Timeout na geolocalização');
-            resolve(null);
-        }, 5000);
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                clearTimeout(timeoutId);
-                resolve({
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude,
-                    accuracy: position.coords.accuracy
-                });
-            },
-            (error) => {
-                clearTimeout(timeoutId);
-                console.log('📍 Erro na geolocalização:', error.message);
-                resolve(null);
-            },
-            {
-                enableHighAccuracy: false,
-                timeout: 5000,
-                maximumAge: 60000
-            }
-        );
-    }
-
-    // =============================================
     // MÉTODOS DE MODAL
     // =============================================
 
@@ -851,12 +683,23 @@ class TaskManager {
     }
 
     selectAddressModal(addressData) {
+        // Extrair número do logradouro
+        let logradouroCompleto = addressData.address?.road || '';
+        const houseNumber = addressData.address?.house_number || '';
+
+        if (houseNumber && logradouroCompleto) {
+            logradouroCompleto = `${logradouroCompleto}, ${houseNumber}`;
+        } else if (houseNumber && !logradouroCompleto) {
+            logradouroCompleto = houseNumber;
+        }
+
         const address = {
             display_name: addressData.display_name,
             lat: addressData.lat,
             lon: addressData.lon,
             cep: addressData.address?.postcode || '',
-            logradouro: addressData.address?.road || '',
+            logradouro: logradouroCompleto,
+            numero: houseNumber,
             bairro: addressData.address?.suburb || addressData.address?.neighbourhood || '',
             cidade: addressData.address?.city || addressData.address?.town || addressData.address?.village || '',
             uf: addressData.address?.state || '',
@@ -865,9 +708,9 @@ class TaskManager {
 
         this.selectedAddress = address;
         this.modalSelectedText.innerHTML = `
-            <strong>📍 Endereço:</strong><br>
-            ${this.formatAddressSimple(address)}
-        `;
+        <strong>📍 Endereço:</strong><br>
+        ${this.formatAddressSimple(address)}
+    `;
         this.modalSelectedAddress.classList.add('active');
         this.modalSuggestions.classList.remove('active');
         this.modalAddressSearch.value = address.display_name;
@@ -1284,7 +1127,7 @@ class TaskManager {
 
     setupObsExpand() {
         document.querySelectorAll('.task-obs').forEach(el => {
-            el.addEventListener('click', function(e) {
+            el.addEventListener('click', function (e) {
                 e.stopPropagation();
                 const isExpanded = this.dataset.expanded === 'true';
                 const toggle = this.querySelector('.obs-toggle');
@@ -1491,6 +1334,7 @@ class TaskManager {
             });
         }
 
+        // Busca de endereço - APENAS BOTÃO E ENTER
         if (this.modalSearchBtn) {
             this.modalSearchBtn.addEventListener('click', () => {
                 this.buscarEndereco(this.modalAddressSearch.value);
@@ -1504,18 +1348,7 @@ class TaskManager {
                 }
             });
         }
-        if (this.modalAddressSearch) {
-            let searchTimeout;
-            this.modalAddressSearch.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                const query = this.modalAddressSearch.value;
-                if (query.length >= 3) {
-                    searchTimeout = setTimeout(() => this.buscarEndereco(query), 800);
-                } else {
-                    this.modalSuggestions.classList.remove('active');
-                }
-            });
-        }
+
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.modal-address-section')) {
                 this.modalSuggestions.classList.remove('active');
