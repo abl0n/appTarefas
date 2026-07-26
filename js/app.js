@@ -487,41 +487,49 @@ class TaskManager {
     // =============================================
 
     renderAddress(endereco) {
-        const enderecoStr = this.formatAddressSimple(endereco);
-        const lat = endereco.lat || '';
-        const lon = endereco.lon || '';
-        const coords = this.formatCoordinates(lat, lon);
-        const query = encodeURIComponent(coords || enderecoStr);
+    const enderecoStr = this.formatAddressSimple(endereco);
+    const lat = endereco.lat || '';
+    const lon = endereco.lon || '';
+    const coords = this.formatCoordinates(lat, lon);
+    const query = encodeURIComponent(coords || enderecoStr);
 
-        const googleMapsUrl = lat && lon
-            ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-            : `https://www.google.com/maps/search/?api=1&query=${query}`;
+    const googleMapsUrl = lat && lon
+        ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+        : `https://www.google.com/maps/search/?api=1&query=${query}`;
 
-        const wazeUrl = lat && lon
-            ? `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`
-            : `https://waze.com/ul?q=${query}&navigate=yes`;
+    const wazeUrl = lat && lon
+        ? `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`
+        : `https://waze.com/ul?q=${query}&navigate=yes`;
 
-        let html = `<div class="address-row">`;
-        html += `<span class="address-icon">📍</span>`;
-        html += `<span class="address-text">${escapeHtml(enderecoStr)}</span>`;
-        html += `<div class="address-actions">`;
-        html += `<a href="${googleMapsUrl}" target="_blank" class="address-link google">🗺️</a>`;
-        html += `<a href="${wazeUrl}" target="_blank" class="address-link waze">🚗</a>`;
-        html += `</div></div>`;
+    let html = `<div class="address-row">`;
+    html += `<span class="address-icon">📍</span>`;
+    html += `<span class="address-text">${escapeHtml(enderecoStr)}</span>`;
+    html += `<div class="address-actions">`;
+    
+    // GOOGLE MAPS com SVG
+    html += `<a href="${googleMapsUrl}" target="_blank" class="address-link google" title="Abrir no Google Maps">`;
+    html += `<img src="img/google-maps.svg" alt="Google Maps" class="icon-svg">`;
+    html += `</a>`;
+    
+    // WAZE com SVG
+    html += `<a href="${wazeUrl}" target="_blank" class="address-link waze" title="Abrir no Waze">`;
+    html += `<img src="img/waze.svg" alt="Waze" class="icon-svg">`;
+    html += `</a>`;
+    
+    html += `</div></div>`;
 
-        if (coords) {
-            html += `
-                <div class="coord-container">
-                    <span class="coord-label">📍</span>
-                    <span class="coord-value" title="Clique para copiar">${coords}</span>
-                    <button class="coord-copy" data-coords="${coords}" title="Copiar coordenadas">Copiar</button>
-                </div>
-            `;
-        }
-
-        return `<div class="task-address">${html}</div>`;
+    if (coords) {
+        html += `
+            <div class="coord-container">
+                <span class="coord-label">📍</span>
+                <span class="coord-value" title="Clique para copiar">${coords}</span>
+                <button class="coord-copy" data-coords="${coords}" title="Copiar coordenadas">Copiar</button>
+            </div>
+        `;
     }
 
+    return `<div class="task-address">${html}</div>`;
+}
     // =============================================
     // MÉTODOS DE BUSCA DE ENDEREÇO
     // =============================================

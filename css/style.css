@@ -1832,3 +1832,32 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         padding-left: 0;
     }
 }
+
+/* ==================== ÍCONES SVG ==================== */
+.icon-svg {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.header-btn .icon-svg {
+    width: 24px;
+    height: 24px;
+}
+
+.address-link .icon-svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Cores dos ícones */
+.address-link.google .icon-svg {
+    filter: brightness(0) invert(1);
+    /* Branco */
+}
+
+.address-link.waze .icon-svg {
+    filter: brightness(0) invert(1);
+    /* Branco */
+}
