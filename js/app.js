@@ -347,19 +347,17 @@ class TaskManager {
 
         this.taskList.innerHTML = filteredTasks.map((task, index) => {
             const dateStr = task.createdAt ? task.createdAt.split(',')[0] : '';
-
-            // TÍTULO = texto da tarefa (campo "O que precisa fazer")
             const titulo = task.text || 'Tarefa sem título';
 
             let obsHtml = '';
             if (task.obs && task.obs.trim()) {
                 obsHtml = `
-                <div class="task-obs" data-expanded="false">
-                    <span class="obs-label">obs:</span>
-                    <span class="obs-content">${escapeHtml(task.obs)}</span>
-                    <span class="obs-toggle">▼</span>
-                </div>
-            `;
+                    <div class="task-obs" data-expanded="false">
+                        <span class="obs-label">obs:</span>
+                        <span class="obs-content">${escapeHtml(task.obs)}</span>
+                        <span class="obs-toggle">▼</span>
+                    </div>
+                `;
             }
 
             let addressHtml = '';
@@ -370,39 +368,31 @@ class TaskManager {
             const ordemDisplayValue = task.ordem ? task.ordem : task.id;
 
             return `
-            <li class="task-item ${task.completed ? 'completed' : 'pending'}" 
-                data-id="${task.id}" data-index="${index}">
-                
-                <!-- LINHA 1: Checkbox + TÍTULO (texto da tarefa) -->
-                <div class="task-main">
-                    <span class="drag-handle">⠿</span>
-                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
-                    <span class="task-title">${escapeHtml(titulo)}</span>
-                    <div class="task-actions">
-                        <button class="action-btn edit-btn" data-action="edit">✏️</button>
-                        <button class="action-btn delete-btn" data-action="delete">✕</button>
+                <li class="task-item ${task.completed ? 'completed' : 'pending'}" 
+                    data-id="${task.id}" data-index="${index}">
+                    <div class="task-main">
+                        <span class="drag-handle">⠿</span>
+                        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+                        <span class="task-title">${escapeHtml(titulo)}</span>
+                        <div class="task-actions">
+                            <button class="action-btn edit-btn" data-action="edit">✏️</button>
+                            <button class="action-btn delete-btn" data-action="delete">✕</button>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- LINHA 2: Ordem + Data (duas colunas) -->
-                <div class="task-meta-row">
-                    <div class="task-meta-col">
-                        <span class="meta-label">Ordem:</span>
-                        <span class="meta-value">${escapeHtml(String(ordemDisplayValue))}</span>
+                    <div class="task-meta-row">
+                        <div class="task-meta-col">
+                            <span class="meta-label">Ordem:</span>
+                            <span class="meta-value">${escapeHtml(String(ordemDisplayValue))}</span>
+                        </div>
+                        <div class="task-meta-col">
+                            <span class="meta-label">Data:</span>
+                            <span class="meta-value">${escapeHtml(dateStr)}</span>
+                        </div>
                     </div>
-                    <div class="task-meta-col">
-                        <span class="meta-label">Data:</span>
-                        <span class="meta-value">${escapeHtml(dateStr)}</span>
-                    </div>
-                </div>
-                
-                <!-- LINHA 3: Observação -->
-                ${obsHtml}
-                
-                <!-- LINHA 4: Endereço -->
-                ${addressHtml}
-            </li>
-        `;
+                    ${obsHtml}
+                    ${addressHtml}
+                </li>
+            `;
         }).join('');
 
         this.setupDragAndDrop();
@@ -441,10 +431,6 @@ class TaskManager {
         if (endereco.cidade) parts.push(endereco.cidade);
         return parts.join(' - ');
     }
-
-    // =============================================
-    // MÉTODOS DE COORDENADAS
-    // =============================================
 
     formatCoordinates(lat, lon) {
         if (!lat || !lon) return '';
@@ -505,31 +491,27 @@ class TaskManager {
         html += `<span class="address-icon">📍</span>`;
         html += `<span class="address-text">${escapeHtml(enderecoStr)}</span>`;
         html += `<div class="address-actions">`;
-
-        // GOOGLE MAPS com SVG
         html += `<a href="${googleMapsUrl}" target="_blank" class="address-link google" title="Abrir no Google Maps">`;
         html += `<img src="img/google-maps.svg" alt="Google Maps" class="icon-svg">`;
         html += `</a>`;
-
-        // WAZE com SVG
         html += `<a href="${wazeUrl}" target="_blank" class="address-link waze" title="Abrir no Waze">`;
         html += `<img src="img/waze.svg" alt="Waze" class="icon-svg">`;
         html += `</a>`;
-
         html += `</div></div>`;
 
         if (coords) {
             html += `
-            <div class="coord-container">
-                <span class="coord-label">📍</span>
-                <span class="coord-value" title="Clique para copiar">${coords}</span>
-                <button class="coord-copy" data-coords="${coords}" title="Copiar coordenadas">Copiar</button>
-            </div>
-        `;
+                <div class="coord-container">
+                    <span class="coord-label">📍</span>
+                    <span class="coord-value" title="Clique para copiar">${coords}</span>
+                    <button class="coord-copy" data-coords="${coords}" title="Copiar coordenadas">Copiar</button>
+                </div>
+            `;
         }
 
         return `<div class="task-address">${html}</div>`;
     }
+
     // =============================================
     // MÉTODOS DE BUSCA DE ENDEREÇO
     // =============================================
@@ -540,6 +522,7 @@ class TaskManager {
             return;
         }
 
+        // Verificar se é coordenada
         const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
         if (coordRegex.test(query.trim())) {
             const parts = query.trim().split(',').map(p => parseFloat(p.trim()));
@@ -557,50 +540,97 @@ class TaskManager {
                     cep: ''
                 };
                 this.selectAddressModal(address);
+                this.modalSuggestions.classList.remove('active');
                 return;
             }
         }
 
+        // Mostrar loading
+        this.modalSearchBtn.textContent = '⏳ Buscando...';
+        this.modalSearchBtn.disabled = true;
+
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
-            const response = await fetch(url, { headers: { 'User-Agent': 'TaskApp/1.0' } });
+            let userLat = null;
+            let userLon = null;
+
+            if (navigator.geolocation) {
+                try {
+                    const position = await this.getCurrentPositionWithFallback();
+                    if (position) {
+                        userLat = position.lat;
+                        userLon = position.lon;
+                        console.log('📍 Localização obtida:', userLat, userLon);
+                    }
+                } catch (e) {
+                    console.log('📍 Localização não disponível:', e.message);
+                }
+            }
+
+            let url = 'https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&accept-language=pt-BR';
+            url += `&q=${encodeURIComponent(query)}`;
+            url += '&viewbox=-47.5,-22.5,-45.5,-24.5&bounded=1';
+
+            if (userLat && userLon && !isNaN(userLat) && !isNaN(userLon)) {
+                url += `&lat=${userLat}&lon=${userLon}`;
+            }
+
+            console.log('🔍 Buscando:', url);
+
+            const response = await fetch(url, {
+                headers: { 'User-Agent': 'TaskApp/1.0' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
 
             if (data.length === 0) {
-                this.modalSuggestions.innerHTML = `<div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default;">Nenhum endereço encontrado</div>`;
-                this.modalSuggestions.classList.add('active');
-                return;
-            }
-
-            this.modalSuggestions.innerHTML = data.map(item => {
-                const icon = this.getAddressIcon(item.type);
-                const coords = this.formatCoordinates(item.lat, item.lon);
-                return `
-                    <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
-                        <div class="suggestion-main">${icon} ${item.display_name}</div>
-                        <div class="suggestion-detail">${this.formatAddressDetail(item)} ${coords ? '• ' + coords : ''}</div>
-                    </div>
-                `;
-            }).join('');
-
-            this.modalSuggestions.classList.add('active');
-
-            this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
-                el.addEventListener('click', () => {
-                    this.selectAddressModal(JSON.parse(el.dataset.address));
+                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
+                const fallbackResponse = await fetch(fallbackUrl, {
+                    headers: { 'User-Agent': 'TaskApp/1.0' }
                 });
-            });
+                const fallbackData = await fallbackResponse.json();
+
+                if (fallbackData.length === 0) {
+                    this.modalSuggestions.innerHTML = `
+                        <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
+                            Nenhum endereço encontrado
+                        </div>
+                    `;
+                    this.modalSuggestions.classList.add('active');
+                    this.modalSearchBtn.textContent = '🔍 Buscar';
+                    this.modalSearchBtn.disabled = false;
+                    return;
+                }
+
+                this.renderSuggestions(fallbackData, userLat, userLon);
+            } else {
+                this.renderSuggestions(data, userLat, userLon);
+            }
         } catch (error) {
             console.error('❌ Erro ao buscar endereço:', error);
-            showToast('⚠️ Erro ao buscar endereço');
+            showToast('⚠️ Erro ao buscar endereço. Tente novamente.');
+            this.modalSuggestions.classList.remove('active');
+        } finally {
+            this.modalSearchBtn.textContent = '🔍 Buscar';
+            this.modalSearchBtn.disabled = false;
         }
     }
 
     getAddressIcon(type) {
         const icons = {
-            'administrative': '🏛️', 'village': '🏘️', 'town': '🏙️', 'city': '🏙️',
-            'state': '🗺️', 'road': '🛤️', 'building': '🏢', 'house': '🏠',
-            'amenity': '📍', 'shop': '🛍️'
+            'administrative': '🏛️',
+            'village': '🏘️',
+            'town': '🏙️',
+            'city': '🏙️',
+            'state': '🗺️',
+            'road': '🛤️',
+            'building': '🏢',
+            'house': '🏠',
+            'amenity': '📍',
+            'shop': '🛍️'
         };
         return icons[type] || '📍';
     }
@@ -613,6 +643,200 @@ class TaskManager {
         if (item.address?.state) parts.push(item.address.state);
         if (item.address?.postcode) parts.push(`CEP: ${item.address.postcode}`);
         return parts.join(' • ') || item.class;
+    }
+
+    // =============================================
+    // RENDERIZAR SUGESTÕES
+    // =============================================
+
+    renderSuggestions(data, userLat = null, userLon = null) {
+        if (!data || data.length === 0) {
+            this.modalSuggestions.innerHTML = `
+                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
+                    Nenhum endereço encontrado
+                </div>
+            `;
+            this.modalSuggestions.classList.add('active');
+            return;
+        }
+
+        const results = data.map(item => {
+            let distance = null;
+            if (userLat && userLon && item.lat && item.lon) {
+                try {
+                    distance = this.calculateDistance(
+                        userLat, userLon,
+                        parseFloat(item.lat), parseFloat(item.lon)
+                    );
+                } catch (e) {
+                    // Ignorar erro de distância
+                }
+            }
+            return { ...item, distance };
+        });
+
+        if (userLat && userLon) {
+            results.sort((a, b) => {
+                if (a.distance === null && b.distance === null) return 0;
+                if (a.distance === null) return 1;
+                if (b.distance === null) return -1;
+                return a.distance - b.distance;
+            });
+        }
+
+        const topResults = results.slice(0, 6);
+
+        this.modalSuggestions.innerHTML = topResults.map(item => {
+            const icon = this.getAddressIcon(item.type);
+            const coords = this.formatCoordinates(item.lat, item.lon);
+            let distanceText = '';
+            if (item.distance !== null && !isNaN(item.distance)) {
+                distanceText = `• ${this.formatDistance(item.distance)}`;
+            }
+
+            const isSP = this.isSaoPaulo(item);
+            const spBadge = isSP ? '📍 SP' : '';
+
+            return `
+                <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
+                    <div class="suggestion-main">${icon} ${this.truncateText(item.display_name, 60)}</div>
+                    <div class="suggestion-detail">
+                        ${this.formatAddressDetail(item)} 
+                        ${coords ? '• ' + coords : ''}
+                        ${distanceText}
+                        ${spBadge ? '• ' + spBadge : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.modalSuggestions.classList.add('active');
+
+        this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                try {
+                    const addressData = JSON.parse(el.dataset.address);
+                    this.selectAddressModal(addressData);
+                    this.modalSuggestions.classList.remove('active');
+                } catch (err) {
+                    console.error('Erro ao selecionar endereço:', err);
+                    showToast('⚠️ Erro ao selecionar endereço');
+                }
+            });
+        });
+    }
+
+    // =============================================
+    // FUNÇÕES AUXILIARES
+    // =============================================
+
+    truncateText(text, maxLength = 60) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = this.toRad(lat2 - lat1);
+        const dLon = this.toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    toRad(degrees) {
+        return degrees * (Math.PI / 180);
+    }
+
+    formatDistance(km) {
+        if (km < 1) {
+            return `${Math.round(km * 1000)}m`;
+        }
+        return `${km.toFixed(1)}km`;
+    }
+
+    isSaoPaulo(item) {
+        const address = item.address || {};
+        const city = (address.city || address.town || address.village || '').toLowerCase();
+        const state = (address.state || '').toLowerCase();
+        const spCities = [
+            'são paulo', 'guarulhos', 'campinas', 'são bernardo do campo',
+            'santo andré', 'osasco', 'são josé dos campos', 'ribeirão preto',
+            'sorocaba', 'santos', 'diadema', 'mauá', 'carapicuíba', 'itapecerica da serra',
+            'franco da rocha', 'taboão da serra', 'cotia', 'embu das artes', 'itapevi',
+            'jandira', 'vargem grande paulista', 'caieiras', 'ferraz de vasconcelos',
+            'mogi das cruzes', 'suzano', 'poá', 'itaquaquecetuba', 'arujá', 'santa isabel'
+        ];
+
+        if (state === 'são paulo' || state === 'sp') return true;
+        if (spCities.includes(city)) return true;
+
+        const spRegion = ['grande são paulo', 'região metropolitana de são paulo'];
+        const display = (item.display_name || '').toLowerCase();
+        return spRegion.some(region => display.includes(region));
+    }
+
+    // =============================================
+    // GEOLOCALIZAÇÃO COM FALLBACK
+    // =============================================
+
+    getCurrentPositionWithFallback() {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                console.log('📍 Geolocalização não suportada');
+                resolve(null);
+                return;
+            }
+
+            if (navigator.permissions) {
+                navigator.permissions.query({ name: 'geolocation' })
+                    .then((result) => {
+                        if (result.state === 'denied') {
+                            console.log('📍 Permissão de geolocalização negada');
+                            resolve(null);
+                            return;
+                        }
+                        this.tryGetPosition(resolve);
+                    })
+                    .catch(() => {
+                        this.tryGetPosition(resolve);
+                    });
+            } else {
+                this.tryGetPosition(resolve);
+            }
+        });
+    }
+
+    tryGetPosition(resolve) {
+        const timeoutId = setTimeout(() => {
+            console.log('📍 Timeout na geolocalização');
+            resolve(null);
+        }, 5000);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                clearTimeout(timeoutId);
+                resolve({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                });
+            },
+            (error) => {
+                clearTimeout(timeoutId);
+                console.log('📍 Erro na geolocalização:', error.message);
+                resolve(null);
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 5000,
+                maximumAge: 60000
+            }
+        );
     }
 
     // =============================================
@@ -1023,7 +1247,6 @@ class TaskManager {
     }
 
     setupActionButtons() {
-        // Botão Editar
         this.taskList.querySelectorAll('[data-action="edit"]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1034,7 +1257,6 @@ class TaskManager {
             });
         });
 
-        // Botão Excluir
         this.taskList.querySelectorAll('[data-action="delete"]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1045,14 +1267,13 @@ class TaskManager {
             });
         });
 
-        // Copiar coordenadas - CORRIGIDO
         document.querySelectorAll('.coord-copy').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const coords = btn.dataset.coords;  // ← usando btn, não this
+                const coords = btn.dataset.coords;
                 if (coords) {
                     this.copyToClipboard(coords);
-                    btn.classList.add('copied');     // ← usando btn, não this
+                    btn.classList.add('copied');
                     setTimeout(() => {
                         btn.classList.remove('copied');
                     }, 2000);
@@ -1063,7 +1284,7 @@ class TaskManager {
 
     setupObsExpand() {
         document.querySelectorAll('.task-obs').forEach(el => {
-            el.addEventListener('click', function (e) {
+            el.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const isExpanded = this.dataset.expanded === 'true';
                 const toggle = this.querySelector('.obs-toggle');
@@ -1173,7 +1394,6 @@ class TaskManager {
     bindEvents() {
         console.log('🔧 Vinculando eventos...');
 
-        // Botão WhatsApp no Header
         if (this.headerWhatsApp) {
             this.headerWhatsApp.addEventListener('click', () => {
                 this.shareWhatsApp();
@@ -1181,7 +1401,6 @@ class TaskManager {
             console.log('✅ WhatsApp button bound');
         }
 
-        // Botão Email no Header
         if (this.headerEmail) {
             this.headerEmail.addEventListener('click', () => {
                 this.shareEmail();
@@ -1189,7 +1408,6 @@ class TaskManager {
             console.log('✅ Email button bound');
         }
 
-        // Sidebar
         if (this.menuToggle) {
             this.menuToggle.addEventListener('click', () => this.toggleSidebar());
         }
@@ -1197,12 +1415,10 @@ class TaskManager {
             this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
         }
 
-        // Dark Mode
         if (this.darkModeToggle) {
             this.darkModeToggle.addEventListener('click', () => this.toggleTheme());
         }
 
-        // Menu items
         document.querySelectorAll('.menu-item[data-page]').forEach(item => {
             item.addEventListener('click', () => {
                 const page = item.dataset.page;
@@ -1216,7 +1432,6 @@ class TaskManager {
             });
         });
 
-        // Perfil
         if (this.profileAvatar) {
             this.profileAvatar.addEventListener('click', () => this.openProfileModal());
         }
@@ -1245,7 +1460,6 @@ class TaskManager {
             });
         }
 
-        // Ações de dados
         if (this.exportDataBtn) {
             this.exportDataBtn.addEventListener('click', () => this.exportData());
         }
@@ -1264,12 +1478,10 @@ class TaskManager {
             this.clearAllData.addEventListener('click', () => this.clearAllData());
         }
 
-        // FAB
         if (this.fabAddTask) {
             this.fabAddTask.addEventListener('click', () => this.openTaskModal());
         }
 
-        // Modal Tarefa - CORRIGIDO (removeu o ) extra)
         if (this.modalTaskClose) {
             this.modalTaskClose.addEventListener('click', () => this.closeTaskModal());
         }
@@ -1279,7 +1491,6 @@ class TaskManager {
             });
         }
 
-        // Busca de endereço
         if (this.modalSearchBtn) {
             this.modalSearchBtn.addEventListener('click', () => {
                 this.buscarEndereco(this.modalAddressSearch.value);
@@ -1314,7 +1525,6 @@ class TaskManager {
             this.modalClearAddress.addEventListener('click', () => this.clearModalAddress());
         }
 
-        // Formulário
         if (this.taskForm) {
             this.taskForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -1331,7 +1541,6 @@ class TaskManager {
             });
         }
 
-        // Checkbox
         if (this.taskList) {
             this.taskList.addEventListener('click', (e) => {
                 if (e.target.classList.contains('task-checkbox')) {
@@ -1343,7 +1552,6 @@ class TaskManager {
             });
         }
 
-        // Filtros
         this.filterBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 this.filterBtns.forEach(b => b.classList.remove('active'));
@@ -1353,7 +1561,6 @@ class TaskManager {
             });
         });
 
-        // Fechar sidebar com gesto
         let touchStartX = 0;
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
@@ -1367,6 +1574,7 @@ class TaskManager {
         console.log('✅ Eventos vinculados');
     }
 }
+
 // =============================================
 // INICIALIZAÇÃO
 // =============================================
