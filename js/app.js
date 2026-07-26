@@ -357,7 +357,7 @@ class TaskManager {
                 <div class="task-obs" data-expanded="false">
                     <span class="obs-label">obs:</span>
                     <span class="obs-content">${escapeHtml(task.obs)}</span>
-                    <span class="obs-toggle">ver mais ▼</span>
+                    <span class="obs-toggle">▼</span>
                 </div>
             `;
             }
@@ -1071,11 +1071,11 @@ class TaskManager {
                 if (isExpanded) {
                     this.classList.remove('expanded');
                     this.dataset.expanded = 'false';
-                    toggle.textContent = 'ver mais ▼';
+                    toggle.textContent = '▼';
                 } else {
                     this.classList.add('expanded');
                     this.dataset.expanded = 'true';
-                    toggle.textContent = 'ver menos ▲';
+                    toggle.textContent = '▲';
                 }
             });
         });
