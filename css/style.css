@@ -2,23 +2,15 @@
     /* ===== CORES PRINCIPAIS ===== */
     /* Tema Claro - Fundo Branco + Azul */
     --primary-blue: #0052CC;
-    /* Azul principal */
     --primary-blue-dark: #003D99;
-    /* Azul escuro */
     --primary-blue-light: #E6F0FF;
-    /* Azul claro (hover/background) */
     --primary-blue-bg: #F0F7FF;
-    /* Azul bem claro (bg) */
 
     /* Tema Escuro - Fundo Grafite/Preto + Verde */
     --primary-green: #00C853;
-    /* Verde principal */
     --primary-green-dark: #00A844;
-    /* Verde escuro */
     --primary-green-light: #E8F5E9;
-    /* Verde claro */
     --primary-green-bg: #1B2E1B;
-    /* Verde escuro (bg) */
 
     /* Cores Semânticas */
     --success: #00C853;
@@ -68,7 +60,6 @@
 /* ============================================ */
 
 body:not(.dark-mode) {
-    /* Cores de Fundo */
     --bg-body: #F0F7FF;
     --bg-container: #FFFFFF;
     --bg-sidebar: #FFFFFF;
@@ -77,17 +68,14 @@ body:not(.dark-mode) {
     --bg-input: #F8FAFC;
     --bg-hover: #E6F0FF;
 
-    /* Cores de Texto */
     --text-primary: #1A2332;
     --text-secondary: #4A5A6E;
     --text-muted: #8A9BB0;
 
-    /* Cores de Borda e Sombra */
     --border-color: #DEE2E6;
     --shadow-color: rgba(0, 82, 204, 0.08);
     --shadow-hover: rgba(0, 82, 204, 0.15);
 
-    /* Cores de Componentes */
     --badge-bg: #0052CC;
     --badge-text: #FFFFFF;
     --modal-bg: #FFFFFF;
@@ -97,7 +85,6 @@ body:not(.dark-mode) {
     --sidebar-profile-bg: linear-gradient(135deg, #0052CC 0%, #003D99 100%);
     --primary-light: #E6F0FF;
 
-    /* Cores de Ação */
     --primary: #0052CC;
     --primary-dark: #003D99;
     --primary-accent: #0052CC;
@@ -110,7 +97,6 @@ body:not(.dark-mode) {
 /* ============================================ */
 
 body.dark-mode {
-    /* Cores de Fundo */
     --bg-body: #0D1117;
     --bg-container: #161B22;
     --bg-sidebar: #161B22;
@@ -119,17 +105,14 @@ body.dark-mode {
     --bg-input: #0D1117;
     --bg-hover: rgba(0, 200, 83, 0.10);
 
-    /* Cores de Texto */
     --text-primary: #E6EDF3;
     --text-secondary: #B0C4DE;
     --text-muted: #7A8FA6;
 
-    /* Cores de Borda e Sombra */
     --border-color: #30363D;
     --shadow-color: rgba(0, 0, 0, 0.5);
     --shadow-hover: rgba(0, 200, 83, 0.15);
 
-    /* Cores de Componentes */
     --badge-bg: #00C853;
     --badge-text: #000000;
     --modal-bg: #161B22;
@@ -139,14 +122,12 @@ body.dark-mode {
     --sidebar-profile-bg: linear-gradient(135deg, #1C2333 0%, #0D1117 100%);
     --primary-light: rgba(0, 200, 83, 0.12);
 
-    /* Cores de Ação */
     --primary: #00C853;
     --primary-dark: #00A844;
     --primary-accent: #00C853;
     --primary-accent-hover: #00A844;
     --primary-accent-light: rgba(0, 200, 83, 0.15);
 
-    /* Cores Semânticas no Escuro */
     --success: #00C853;
     --success-dark: #00A844;
     --success-light: rgba(0, 200, 83, 0.15);
@@ -352,23 +333,25 @@ body {
 }
 
 /* ============================================ */
-/* HEADER                                     */
+/* HEADER - GRID MODERNO                       */
 /* ============================================ */
 
 header {
-    flex-shrink: 0;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 12px;
-    padding-bottom: 12px;
+    padding: 8px 0 12px 0;
     border-bottom: 2px solid var(--border-color);
     transition: border-color var(--transition);
 }
 
+/* Botão do menu (hambúrguer) */
 .menu-toggle {
+    grid-column: 1;
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     cursor: pointer;
     padding: 4px 8px;
     min-height: 44px;
@@ -377,108 +360,114 @@ header {
     align-items: center;
     justify-content: center;
     color: var(--text-primary);
-    transition: transform 0.2s;
     border-radius: 8px;
+    transition: background 0.2s, transform 0.1s;
 }
 
-.menu-toggle:active {
-    transform: scale(0.9);
+.menu-toggle:hover {
     background: var(--bg-hover);
 }
 
+.menu-toggle:active {
+    transform: scale(0.92);
+}
+
+/* Título centralizado à esquerda */
 .header-title {
-    flex: 1;
+    grid-column: 2;
+    justify-self: start;
 }
 
 .header-title h1 {
+    font-size: clamp(1.2rem, 4vw, 1.6rem);
+    font-weight: 700;
     color: var(--text-primary);
-    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: color var(--transition);
-}
-
-.header-title .subtitle {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-weight: 400;
-}
-
-.header-actions {
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
 }
 
+/* Remove qualquer subtítulo que ainda exista */
+.header-title .subtitle {
+    display: none;
+}
+
+/* Container das ações (ícones) */
+.header-actions {
+    grid-column: 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-self: end;
+}
+
+/* ===== BOTÕES DE AÇÃO (ÍCONES) ===== */
 .header-btn {
     background: none;
     border: none;
-    font-size: 1.3rem;
-    cursor: pointer;
-    padding: 6px 10px;
+    padding: 6px;
     min-height: 40px;
     min-width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
     color: var(--text-secondary);
-    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
     position: relative;
 }
 
-.header-btn:active {
-    transform: scale(0.9);
-    background: var(--bg-hover);
+/* Tamanho uniforme para os ícones dentro dos botões */
+.header-btn .icon-svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+    object-fit: contain;
+    transition: transform 0.2s;
 }
 
+/* Para quem usa emoji, forçar tamanho consistente */
+.header-btn:not(.has-svg) {
+    font-size: 24px;
+    line-height: 1;
+}
+
+/* Efeitos hover */
 .header-btn:hover {
     background: var(--bg-hover);
-    color: var(--text-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px var(--shadow-color);
 }
 
+.header-btn:active {
+    transform: scale(0.92);
+}
+
+/* Cores específicas por tipo (opcional, mas fica moderno) */
 .header-btn.whatsapp:hover {
     color: var(--whatsapp-color);
     background: rgba(37, 211, 102, 0.08);
 }
 
-.header-btn.whatsapp .icon-svg {
-    filter: none;
+.header-btn.map:hover {
+    color: #33CCFF;
+    background: rgba(51, 204, 255, 0.08);
 }
 
 .header-btn.email:hover {
     color: var(--primary);
-    background: rgba(0, 82, 204, 0.08);
+    background: var(--primary-light);
 }
 
+/* Remove o status (já que tiramos do HTML, mas por segurança) */
 .header-status {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-}
-
-.header-status .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.header-status .dot.online {
-    background: var(--success);
-}
-
-.header-status .dot.offline {
-    background: var(--danger);
-    animation: pulse-dot 1.5s ease-in-out infinite;
+    display: none !important;
 }
 
 /* ============================================ */
-/* FILTROS - TRANSIÇÃO SUAVE                   */
+/* FILTROS                                    */
 /* ============================================ */
 
 .filter-section {
@@ -506,16 +495,8 @@ header {
     gap: 6px;
     color: var(--text-secondary);
     font-weight: 500;
-    position: relative;
-    -webkit-tap-highlight-color: transparent;
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.15s ease, box-shadow 0.3s ease;
     user-select: none;
-    -webkit-user-select: none;
-
-    transition: background 0.3s ease,
-        border-color 0.3s ease,
-        color 0.3s ease,
-        transform 0.15s ease,
-        box-shadow 0.3s ease;
 }
 
 .filter-btn:active {
@@ -541,18 +522,6 @@ header {
     transform: translateY(-1px);
 }
 
-.filter-btn:focus {
-    outline: none;
-}
-
-.filter-btn.active:hover,
-.filter-btn.active:active {
-    background: var(--primary);
-    color: var(--badge-text);
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
 .filter-count {
     display: inline-flex;
     align-items: center;
@@ -571,23 +540,6 @@ header {
 .filter-btn.active .filter-count {
     background: rgba(255, 255, 255, 0.2);
     color: var(--badge-text);
-}
-
-body.dark-mode .filter-btn:not(.active) {
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    border-color: var(--border-color);
-}
-
-body.dark-mode .filter-btn:not(.active):hover {
-    border-color: var(--primary);
-    background: var(--primary-light);
-}
-
-body.dark-mode .filter-btn.active {
-    background: var(--primary);
-    color: var(--badge-text);
-    border-color: var(--primary);
 }
 
 /* ============================================ */
@@ -753,7 +705,7 @@ body.dark-mode .filter-btn.active {
 }
 
 /* ============================================ */
-/* METADATA ROW (DUAS COLUNAS)                 */
+/* METADATA ROW                                */
 /* ============================================ */
 
 .task-meta-row {
@@ -882,7 +834,7 @@ body.dark-mode .filter-btn.active {
 }
 
 /* ============================================ */
-/* ÍCONES SVG - CORRIGIDO                      */
+/* ÍCONES SVG                                  */
 /* ============================================ */
 
 .icon-svg {
@@ -1053,45 +1005,6 @@ body.dark-mode .filter-btn.active {
 
 .fab-pulse {
     animation: pulse 2s ease-in-out infinite;
-}
-
-/* ============================================ */
-/* FAB SHARE (WHATSAPP)                        */
-/* ============================================ */
-
-.fab-share {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: var(--fab-size);
-    height: var(--fab-size);
-    border-radius: 50%;
-    background: var(--whatsapp-color);
-    color: white;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-}
-
-.fab-share:active {
-    transform: scale(0.9);
-}
-
-.fab-share .whatsapp-icon {
-    width: 32px;
-    height: 32px;
-}
-
-.fab-share .whatsapp-icon svg {
-    width: 100%;
-    height: 100%;
-    fill: white;
 }
 
 /* ============================================ */
@@ -1350,7 +1263,7 @@ body.dark-mode .filter-btn.active {
 }
 
 /* ============================================ */
-/* SUGESTÕES - VERSÃO ÚNICA CORRIGIDA          */
+/* SUGESTÕES                                   */
 /* ============================================ */
 
 .modal-suggestions {
@@ -1377,7 +1290,6 @@ body.dark-mode .filter-btn.active {
     display: flex;
 }
 
-/* Scrollbar personalizada */
 .modal-suggestions::-webkit-scrollbar {
     width: 5px;
 }
@@ -1438,7 +1350,7 @@ body.dark-mode .filter-btn.active {
     text-overflow: ellipsis;
 }
 
-/* Responsivo mobile */
+/* Responsivo mobile para sugestões */
 @media (max-width: 480px) {
     .modal-suggestions {
         max-height: 150px;
@@ -1886,6 +1798,69 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 }
 
 /* ============================================ */
+/* MAPA - ESTILOS                              */
+/* ============================================ */
+
+#mapContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    background: white;
+    display: none;
+}
+
+#mapContainer .leaflet-control-attribution {
+    font-size: 9px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.start-marker,
+.end-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.custom-marker div {
+    animation: markerBounce 0.5s ease-out;
+}
+
+@keyframes markerBounce {
+    0% {
+        transform: scale(0);
+    }
+
+    60% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 480px) {
+    #mapContainer .leaflet-control-zoom {
+        bottom: 20px !important;
+        right: 10px !important;
+    }
+
+    #mapContainer .leaflet-popup-content {
+        font-size: 13px;
+        max-width: 200px !important;
+    }
+}
+
+/* ============================================ */
 /* RESPONSIVO                                 */
 /* ============================================ */
 
@@ -1947,13 +1922,6 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         height: 56px;
         font-size: 28px;
         bottom: 76px;
-        right: 12px;
-    }
-
-    .fab-share {
-        width: 56px;
-        height: 56px;
-        bottom: 16px;
         right: 12px;
     }
 
@@ -2034,13 +2002,6 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         right: 10px;
     }
 
-    .fab-share {
-        width: 48px;
-        height: 48px;
-        bottom: 14px;
-        right: 10px;
-    }
-
     .action-btn {
         min-height: 32px;
         min-width: 32px;
@@ -2075,10 +2036,6 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
     .fab:hover {
         transform: scale(1.08);
     }
-
-    .fab-share:hover {
-        transform: scale(1.08);
-    }
 }
 
 /* ============================================ */
@@ -2105,9 +2062,126 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         bottom: max(80px, env(safe-area-inset-bottom) + 70px);
         right: max(20px, env(safe-area-inset-right) + 10px);
     }
+}
 
-    .fab-share {
-        bottom: max(20px, env(safe-area-inset-bottom) + 10px);
-        right: max(20px, env(safe-area-inset-right) + 10px);
-    }
+.task-priority-badge {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 6px;
+}
+
+.task-priority-badge.planned {
+    background: #0052CC;
+}
+
+.task-priority-badge.attention {
+    background: #F9A825;
+}
+
+.task-priority-badge.critical {
+    background: #D32F2F;
+}
+
+.task-item.completed .task-priority-badge {
+    display: none;
+}
+
+/* Bordas por prioridade (já aplicadas pela classe priority-*) */
+.task-item.priority-planned {
+    border-left-color: #0052CC;
+}
+
+.task-item.priority-attention {
+    border-left-color: #F9A825;
+}
+
+.task-item.priority-critical {
+    border-left-color: #D32F2F;
+}
+
+.task-item.completed {
+    border-left-color: #00C853 !important;
+}
+
+/* ============================================ */
+/* SELETOR DE PRIORIDADE (RADIO ESTILIZADO)    */
+/* ============================================ */
+
+.priority-selector {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.priority-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    background: var(--bg-card);
+    user-select: none;
+}
+
+.priority-option:hover {
+    background: var(--bg-hover);
+}
+
+.priority-option input[type="radio"] {
+    display: none;
+    /* esconde o radio original */
+}
+
+.priority-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.priority-dot.planned {
+    background: #0052CC;
+}
+
+.priority-dot.attention {
+    background: #F9A825;
+}
+
+.priority-dot.critical {
+    background: #D32F2F;
+}
+
+/* Estado selecionado: destaca a borda da opção */
+.priority-option.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--text-primary);
+}
+
+.priority-option.active .priority-dot {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--primary);
+}
+
+/* Tema escuro */
+body.dark-mode .priority-option {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .priority-option.active {
+    border-color: var(--primary);
+    background: rgba(0, 200, 83, 0.15);
 }

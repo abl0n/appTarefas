@@ -9,13 +9,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="version" content="3.0">
 
-    <!-- ===== FAVICON ===== -->
+    <!-- FAVICON -->
     <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
 
-    <!-- ===== CSS ===== -->
+    <!-- LEAFLET (MAPAS) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
 
     <title>✅ Minhas Tarefas</title>
@@ -23,13 +27,13 @@
 
 <body>
 
-    <!-- ==================== STATUS DE CONEXÃO ==================== -->
+    <!-- STATUS DE CONEXÃO -->
     <div id="connectionStatus" class="connection-status">
         <span class="status-dot"></span>
         <span id="connectionText">Conectado</span>
     </div>
 
-    <!-- ==================== SIDEBAR ==================== -->
+    <!-- SIDEBAR -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-profile">
@@ -51,7 +55,6 @@
 
             <div class="menu-divider"></div>
 
-            <!-- Modo Escuro -->
             <button class="dark-mode-toggle" id="darkModeToggle">
                 <span class="toggle-icon" id="darkModeIcon">🌙</span>
                 <span class="toggle-label" id="darkModeLabel">Modo Escuro</span>
@@ -60,7 +63,6 @@
 
             <div class="menu-divider"></div>
 
-            <!-- Gerenciamento de Dados -->
             <button class="menu-item" id="exportDataBtn">
                 <span class="menu-icon">📤</span> Exportar Dados
             </button>
@@ -89,36 +91,31 @@
         </nav>
     </aside>
 
-    <!-- ==================== MAIN ==================== -->
+    <!-- MAIN -->
     <main class="main-content">
         <div class="container">
 
-            <!-- ==================== HEADER COM BOTÕES DE RELATÓRIO ==================== -->
             <header>
                 <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
                 <div class="header-title">
-                    <h1>
-                        📋 Tarefas
-                        <span class="subtitle">v3.0</span>
-                    </h1>
+                    <h1>📋 Tarefas</h1>
                 </div>
                 <div class="header-actions">
-                    <!-- WhatsApp (Header) - CORRIGIDO: usando whatsapp.svg -->
-                    <button class="header-btn whatsapp" id="headerWhatsApp" title="Compartilhar no WhatsApp" aria-label="Compartilhar WhatsApp">
+                    <button class="header-btn whatsapp" id="headerWhatsApp" title="Compartilhar no WhatsApp"
+                        aria-label="Compartilhar WhatsApp">
                         <img src="img/whatsapp.svg" alt="WhatsApp" class="icon-svg">
                     </button>
-                    <!-- Botão Email -->
-                    <button class="header-btn email" id="headerEmail" title="Enviar por Email" aria-label="Enviar por Email">
-                        📧
+                    <button class="header-btn map" id="headerMap" title="Ver Mapa de Tarefas" aria-label="Ver Mapa">
+                        <img src="img/map.svg" alt="Mapa" class="icon-svg">
                     </button>
-                    <div class="header-status">
-                        <span class="dot online" id="statusDot"></span>
-                        <span id="statusText">Online</span>
-                    </div>
+                    <button class="header-btn email" id="headerEmail" title="Enviar por Email"
+                        aria-label="Enviar por Email">
+                        <img src="img/email.svg" alt="Email" class="icon-svg">
+                    </button>
                 </div>
             </header>
 
-            <!-- ==================== FILTROS COM CONTADORES ==================== -->
+            <!-- FILTROS -->
             <div class="filter-section">
                 <button class="filter-btn active" data-filter="all">
                     📋 Todas <span class="filter-count" id="countAll">0</span>
@@ -131,13 +128,13 @@
                 </button>
             </div>
 
-            <!-- ==================== LISTA DE TAREFAS ==================== -->
+            <!-- LISTA DE TAREFAS -->
             <ul id="taskList"></ul>
 
-            <!-- ==================== BOTÃO FLUTUANTE ==================== -->
+            <!-- BOTÃO FLUTUANTE -->
             <button class="fab fab-pulse" id="fabAddTask">✚</button>
 
-            <!-- ==================== RODAPÉ ==================== -->
+            <!-- RODAPÉ -->
             <div class="footer">
                 <div class="signature">
                     <span>🚀 Desenvolvido por</span>
@@ -153,7 +150,7 @@
         </div>
     </main>
 
-    <!-- ==================== MODAL TAREFA ==================== -->
+    <!-- MODAL TAREFA -->
     <div class="modal-overlay" id="taskModal">
         <div class="modal">
             <div class="modal-handle"></div>
@@ -172,10 +169,23 @@
                 <label for="taskObs">📝 Obs.</label>
                 <textarea id="taskObs" placeholder="Observações sobre a tarefa..."></textarea>
 
+                <!-- ===== CAMPO PRIORIDADE ===== -->
+                <label for="taskPriority">🚩 Prioridade</label>
+                <select id="taskPriority">
+                    <option value="planned">🔵 Planejado</option>
+                    <option value="attention">🟡 Atenção</option>
+                    <option value="critical">🔴 Crítico</option>
+                </select>
+
+                <label for="taskDate">📅 Data</label>
+                <input type="date" id="taskDate">
+
                 <label>📍 Endereço <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
                 <div class="modal-address-section">
                     <div class="search-header">
-                        <input type="text" id="modalAddressSearch" placeholder="Digite endereço, CEP ou coordenada (ex: -23.550520, -46.633309)">
+                        <input type="text" id="modalAddressSearch"
+                            placeholder="Digite endereço, CEP ou coordenada (ex: -23.550520, -46.633309)"
+                            aria-label="Buscar endereço">
                         <button id="modalSearchBtn">🔍 Buscar</button>
                     </div>
                     <div id="modalSuggestions" class="modal-suggestions"></div>
@@ -185,10 +195,6 @@
                             <button id="modalClearAddress">✖ Limpar</button>
                         </div>
                     </div>
-                    <!-- Loading da busca -->
-                    <div id="searchLoading" style="display: none; text-align: center; padding: 8px;">
-                        <span>⏳ Buscando...</span>
-                    </div>
                 </div>
 
                 <button type="submit" id="modalSubmitBtn">✅ Adicionar Tarefa</button>
@@ -196,7 +202,7 @@
         </div>
     </div>
 
-    <!-- ==================== MODAL PERFIL ==================== -->
+    <!-- MODAL PERFIL -->
     <div class="modal-overlay modal-profile" id="profileModal">
         <div class="modal">
             <div class="modal-header">
@@ -216,7 +222,10 @@
         </div>
     </div>
 
-    <!-- ==================== INSTALL BANNER ==================== -->
+    <!-- CONTAINER DO MAPA (oculto) -->
+    <div id="mapContainer" style="display:none;"></div>
+
+    <!-- INSTALL BANNER -->
     <div class="install-banner" id="installBanner">
         <div class="install-info">
             <span class="install-icon">📱</span>
@@ -231,10 +240,10 @@
         </div>
     </div>
 
-    <!-- ==================== TOAST ==================== -->
+    <!-- TOAST -->
     <div id="toast" class="toast"></div>
 
-    <!-- ==================== JAVASCRIPT ==================== -->
+    <!-- JAVASCRIPT -->
     <script src="js/utils.js"></script>
     <script src="js/app.js"></script>
 </body>

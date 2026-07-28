@@ -1,47 +1,11 @@
 // =============================================
-// FUNÇÕES AUXILIARES (UTILS)
-// =============================================
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showToast(message, duration = 3000) {
-    const toast = document.getElementById('toast');
-    if (!toast) {
-        console.warn('Toast element not found');
-        return;
-    }
-    toast.textContent = message;
-    toast.classList.add('show');
-    clearTimeout(toast._timeout);
-    toast._timeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, duration);
-}
-
-function formatAddressDisplay(address) {
-    if (!address) return '';
-    const parts = [];
-    if (address.logradouro) parts.push(address.logradouro);
-    if (address.bairro) parts.push(address.bairro);
-    if (address.cidade) parts.push(address.cidade);
-    if (address.uf) parts.push(address.uf);
-    if (address.cep) parts.push(`CEP: ${address.cep}`);
-    return parts.join(' - ');
-}
-
-// =============================================
-// CLASSE PRINCIPAL - TaskManager
+// APP.JS - TASK MANAGER (COMPATÍVEL COM SELECT)
 // =============================================
 
 class TaskManager {
     constructor() {
         console.log('🔧 Inicializando TaskManager...');
 
-        // Estado
         this.tasks = [];
         this.currentFilter = 'all';
         this.selectedAddress = null;
@@ -49,14 +13,12 @@ class TaskManager {
         this.isDarkMode = false;
         this.deferredPrompt = null;
 
-        // Configurações
         this.profile = {
             name: 'Usuário',
             email: 'usuario@email.com',
             avatar: '👤'
         };
 
-        // Inicialização
         this.loadTasks();
         this.loadProfile();
         this.initializeDOM();
@@ -78,13 +40,8 @@ class TaskManager {
     loadTasks() {
         try {
             const saved = localStorage.getItem('tasks');
-            if (saved) {
-                this.tasks = JSON.parse(saved);
-                console.log(`📋 ${this.tasks.length} tarefas carregadas`);
-            } else {
-                this.tasks = [];
-                console.log('📭 Nenhuma tarefa salva');
-            }
+            this.tasks = saved ? JSON.parse(saved) : [];
+            console.log(`📋 ${this.tasks.length} tarefas carregadas`);
         } catch (e) {
             console.error('❌ Erro ao carregar tarefas:', e);
             this.tasks = [];
@@ -128,8 +85,6 @@ class TaskManager {
     loadTheme() {
         try {
             const savedTheme = localStorage.getItem('theme');
-            console.log('📂 Tema salvo:', savedTheme);
-
             if (savedTheme === 'light') {
                 this.isDarkMode = false;
                 this.applyLightMode();
@@ -138,7 +93,6 @@ class TaskManager {
                 this.applyDarkMode();
             } else {
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                console.log('🌓 Preferência do sistema:', prefersDark ? 'escuro' : 'claro');
                 this.isDarkMode = prefersDark;
                 if (prefersDark) {
                     this.applyDarkMode();
@@ -157,32 +111,24 @@ class TaskManager {
         console.log('🌙 Aplicando modo escuro...');
         document.body.classList.remove('light-mode');
         document.body.classList.add('dark-mode');
-
         if (this.darkModeIcon) this.darkModeIcon.textContent = '☀️';
         if (this.darkModeLabel) this.darkModeLabel.textContent = 'Modo Claro';
-
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.content = '#0F172A';
-
         this.isDarkMode = true;
         localStorage.setItem('theme', 'dark');
-        console.log('✅ Modo escuro aplicado');
     }
 
     applyLightMode() {
         console.log('☀️ Aplicando modo claro...');
         document.body.classList.remove('dark-mode');
         document.body.classList.add('light-mode');
-
         if (this.darkModeIcon) this.darkModeIcon.textContent = '🌙';
         if (this.darkModeLabel) this.darkModeLabel.textContent = 'Modo Escuro';
-
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.content = '#F1F5F9';
-
         this.isDarkMode = false;
         localStorage.setItem('theme', 'light');
-        console.log('✅ Modo claro aplicado');
     }
 
     toggleTheme() {
@@ -203,11 +149,9 @@ class TaskManager {
     initializeDOM() {
         console.log('🔧 Inicializando DOM...');
 
-        // Principais
         this.taskList = document.getElementById('taskList');
         this.filterBtns = document.querySelectorAll('.filter-btn');
 
-        // Sidebar
         this.sidebar = document.getElementById('sidebar');
         this.sidebarOverlay = document.getElementById('sidebarOverlay');
         this.menuToggle = document.getElementById('menuToggle');
@@ -216,19 +160,19 @@ class TaskManager {
         this.profileAvatar = document.getElementById('profileAvatar');
         this.taskCount = document.getElementById('taskCount');
 
-        // Modais
         this.taskModal = document.getElementById('taskModal');
         this.modalTitle = document.getElementById('modalTitle');
         this.taskForm = document.getElementById('taskForm');
         this.taskInput = document.getElementById('taskInput');
         this.taskOrder = document.getElementById('taskOrder');
         this.taskObs = document.getElementById('taskObs');
+        this.taskDate = document.getElementById('taskDate');
+        this.taskPriority = document.getElementById('taskPriority'); // <-- SELECT
         this.editTaskId = document.getElementById('editTaskId');
         this.modalSubmitBtn = document.getElementById('modalSubmitBtn');
         this.modalTaskClose = document.getElementById('modalTaskClose');
         this.fabAddTask = document.getElementById('fabAddTask');
 
-        // Endereço
         this.modalAddressSearch = document.getElementById('modalAddressSearch');
         this.modalSearchBtn = document.getElementById('modalSearchBtn');
         this.modalSuggestions = document.getElementById('modalSuggestions');
@@ -236,7 +180,6 @@ class TaskManager {
         this.modalSelectedText = document.getElementById('modalSelectedText');
         this.modalClearAddress = document.getElementById('modalClearAddress');
 
-        // Perfil
         this.profileModal = document.getElementById('profileModal');
         this.modalProfileClose = document.getElementById('modalProfileClose');
         this.profileForm = document.getElementById('profileForm');
@@ -244,7 +187,6 @@ class TaskManager {
         this.modalEmail = document.getElementById('modalEmail');
         this.modalAvatar = document.getElementById('modalAvatar');
 
-        // Botões
         this.clearAllData = document.getElementById('clearAllData');
         this.exportDataBtn = document.getElementById('exportDataBtn');
         this.importFileInput = document.getElementById('importFileInput');
@@ -259,23 +201,20 @@ class TaskManager {
         this.installBtn = document.getElementById('installBtn');
         this.installClose = document.getElementById('installClose');
 
-        // Header Actions
         this.headerWhatsApp = document.getElementById('headerWhatsApp');
         this.headerEmail = document.getElementById('headerEmail');
+        this.headerMap = document.getElementById('headerMap');
 
-        // Status
         this.statusDot = document.getElementById('statusDot');
         this.statusText = document.getElementById('statusText');
         this.connectionStatus = document.getElementById('connectionStatus');
         this.connectionText = document.getElementById('connectionText');
-        this.toast = document.getElementById('toast');
 
-        // Contadores dos filtros
         this.countAll = document.getElementById('countAll');
         this.countPending = document.getElementById('countPending');
         this.countCompleted = document.getElementById('countCompleted');
 
-        console.log('✅ DOM inicializado');
+        this.mapContainer = document.getElementById('mapContainer');
     }
 
     // =============================================
@@ -325,15 +264,7 @@ class TaskManager {
 
     render() {
         console.log('🔄 Renderizando...');
-
         const filteredTasks = this.getFilteredTasks();
-        const total = this.tasks.length;
-        const completed = this.tasks.filter(t => t.completed).length;
-        const pending = total - completed;
-
-        if (this.countAll) this.countAll.textContent = total;
-        if (this.countPending) this.countPending.textContent = pending;
-        if (this.countCompleted) this.countCompleted.textContent = completed;
 
         if (!this.taskList) {
             console.error('❌ taskList não encontrado!');
@@ -346,8 +277,10 @@ class TaskManager {
         }
 
         this.taskList.innerHTML = filteredTasks.map((task, index) => {
-            const dateStr = task.createdAt ? task.createdAt.split(',')[0] : '';
+            const dateStr = task.data ? task.data : (task.createdAt ? task.createdAt.split(',')[0] : '');
             const titulo = task.text || 'Tarefa sem título';
+            const priorityClass = task.completed ? '' : `priority-${task.priority || 'planned'}`;
+            const ordemDisplayValue = task.ordem ? task.ordem : task.id;
 
             let obsHtml = '';
             if (task.obs && task.obs.trim()) {
@@ -365,15 +298,16 @@ class TaskManager {
                 addressHtml = this.renderAddress(task.endereco);
             }
 
-            const ordemDisplayValue = task.ordem ? task.ordem : task.id;
-
             return `
-                <li class="task-item ${task.completed ? 'completed' : 'pending'}" 
+                <li class="task-item ${task.completed ? 'completed' : ''} ${priorityClass}" 
                     data-id="${task.id}" data-index="${index}">
                     <div class="task-main">
                         <span class="drag-handle">⠿</span>
                         <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
-                        <span class="task-title">${escapeHtml(titulo)}</span>
+                        <span class="task-title">
+                            ${!task.completed ? `<span class="task-priority-badge ${task.priority || 'planned'}"></span>` : ''}
+                            ${escapeHtml(titulo)}
+                        </span>
                         <div class="task-actions">
                             <button class="action-btn edit-btn" data-action="edit">✏️</button>
                             <button class="action-btn delete-btn" data-action="delete">✕</button>
@@ -423,15 +357,10 @@ class TaskManager {
     formatAddressSimple(endereco) {
         if (!endereco) return '';
         const parts = [];
-
-        if (endereco.logradouro) {
-            parts.push(endereco.logradouro);
-        }
-
+        if (endereco.logradouro) parts.push(endereco.logradouro);
         if (endereco.bairro) parts.push(endereco.bairro);
         if (endereco.cidade) parts.push(endereco.cidade);
         if (endereco.uf) parts.push(endereco.uf);
-
         return parts.join(' - ');
     }
 
@@ -516,7 +445,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE BUSCA DE ENDEREÇO - CORRIGIDO
+    // MÉTODOS DE BUSCA DE ENDEREÇO
     // =============================================
 
     async buscarEndereco(query) {
@@ -560,9 +489,7 @@ class TaskManager {
                 headers: { 'User-Agent': 'TaskApp/1.0' }
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
             const data = await response.json();
 
@@ -600,7 +527,7 @@ class TaskManager {
     }
 
     // =============================================
-    // RENDERIZAR SUGESTÕES - CORRIGIDO (sem duplicatas)
+    // RENDERIZAR SUGESTÕES
     // =============================================
 
     renderSuggestions(data) {
@@ -614,25 +541,19 @@ class TaskManager {
             return;
         }
 
-        // 🔥 REMOVER DUPLICATAS - Compara pelo nome da rua + número + bairro + cidade
         const uniqueResults = [];
         const seen = new Set();
-
         data.forEach(item => {
             const road = item.address?.road || '';
             const houseNumber = item.address?.house_number || '';
             const suburb = item.address?.suburb || item.address?.neighbourhood || '';
             const city = item.address?.city || item.address?.town || item.address?.village || '';
-            
             const key = `${road}|${houseNumber}|${suburb}|${city}`.toLowerCase().trim();
-            
             if (!seen.has(key)) {
                 seen.add(key);
                 uniqueResults.push(item);
             }
         });
-
-        console.log(`📊 ${data.length} resultados → ${uniqueResults.length} únicos`);
 
         const topResults = uniqueResults.slice(0, 6);
 
@@ -649,28 +570,16 @@ class TaskManager {
         this.modalSuggestions.innerHTML = topResults.map(item => {
             const icon = this.getAddressIcon(item.type);
             const coords = this.formatCoordinates(item.lat, item.lon);
-            
-            // Formatar endereço de forma mais limpa
             const road = item.address?.road || '';
             const houseNumber = item.address?.house_number || '';
             const suburb = item.address?.suburb || item.address?.neighbourhood || '';
             const city = item.address?.city || item.address?.town || item.address?.village || '';
             const state = item.address?.state || '';
-            
             let addressLine = road;
-            if (houseNumber) {
-                addressLine += `, ${houseNumber}`;
-            }
-            if (suburb) {
-                addressLine += ` - ${suburb}`;
-            }
-            if (city) {
-                addressLine += `, ${city}`;
-            }
-            if (state) {
-                addressLine += ` - ${state}`;
-            }
-
+            if (houseNumber) addressLine += `, ${houseNumber}`;
+            if (suburb) addressLine += ` - ${suburb}`;
+            if (city) addressLine += `, ${city}`;
+            if (state) addressLine += ` - ${state}`;
             const shortName = addressLine.length > 55 ? addressLine.substring(0, 55) + '...' : addressLine;
 
             return `
@@ -686,7 +595,6 @@ class TaskManager {
 
         this.modalSuggestions.classList.add('active');
 
-        // 🔥 Ajustar altura máxima da lista
         const maxHeight = Math.min(topResults.length * 50 + 10, 200);
         this.modalSuggestions.style.maxHeight = maxHeight + 'px';
 
@@ -719,16 +627,6 @@ class TaskManager {
             'shop': '🛍️'
         };
         return icons[type] || '📍';
-    }
-
-    formatAddressDetail(item) {
-        const parts = [];
-        if (item.address?.road) parts.push(item.address.road);
-        if (item.address?.suburb) parts.push(item.address.suburb);
-        if (item.address?.city) parts.push(item.address.city);
-        if (item.address?.state) parts.push(item.address.state);
-        if (item.address?.postcode) parts.push(`CEP: ${item.address.postcode}`);
-        return parts.join(' • ') || item.class;
     }
 
     // =============================================
@@ -777,23 +675,27 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS CRUD
+    // MÉTODOS CRUD (COM SELECT)
     // =============================================
 
-    addTask(text, endereco, ordem, obs) {
+    addTask(text, endereco, ordem, obs, data) {
         if (!text || !text.trim()) {
             showToast('⚠️ Digite uma tarefa!');
             return false;
         }
+
+        const priority = this.taskPriority ? this.taskPriority.value : 'planned';
 
         const task = {
             id: Date.now(),
             text: text.trim(),
             completed: false,
             createdAt: new Date().toLocaleString('pt-BR'),
+            data: data || '',
             endereco: endereco || null,
             ordem: ordem || '',
             obs: obs || '',
+            priority: priority,
             order: this.tasks.length
         };
 
@@ -805,7 +707,7 @@ class TaskManager {
         return true;
     }
 
-    updateTask(id, text, endereco, ordem, obs) {
+    updateTask(id, text, endereco, ordem, obs, data) {
         if (!text || !text.trim()) {
             showToast('⚠️ Digite uma tarefa!');
             return false;
@@ -817,10 +719,14 @@ class TaskManager {
             return false;
         }
 
+        const priority = this.taskPriority ? this.taskPriority.value : 'planned';
+
         task.text = text.trim();
         task.endereco = endereco || null;
         task.ordem = ordem || '';
         task.obs = obs || '';
+        task.data = data || '';
+        task.priority = priority;
 
         this.saveTasks();
         this.render();
@@ -991,6 +897,8 @@ class TaskManager {
                 this.taskInput.value = task.text;
                 this.taskOrder.value = task.ordem || '';
                 this.taskObs.value = task.obs || '';
+                this.taskDate.value = task.data || '';
+                this.taskPriority.value = task.priority || 'planned'; // <-- SELECT
                 this.editTaskId.value = taskId;
                 if (task.endereco) {
                     this.selectedAddress = { ...task.endereco };
@@ -1008,6 +916,8 @@ class TaskManager {
             this.taskInput.value = '';
             this.taskOrder.value = '';
             this.taskObs.value = '';
+            this.taskDate.value = '';
+            this.taskPriority.value = 'planned'; // padrão
             this.editTaskId.value = '';
         }
 
@@ -1140,12 +1050,7 @@ class TaskManager {
     // =============================================
 
     setupDragAndDrop() {
-        const items = this.taskList.querySelectorAll('.task-item');
-        items.forEach(item => {
-            item.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.task-checkbox') || e.target.closest('.action-btn')) return;
-            });
-        });
+        // Placeholder
     }
 
     setupActionButtons() {
@@ -1277,7 +1182,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE CONFIGURAÇÃO
+    // MÉTODOS DE ESTATÍSTICAS
     // =============================================
 
     showStats() {
@@ -1290,6 +1195,406 @@ class TaskManager {
     }
 
     // =============================================
+    // MÉTODOS DE MAPA E ROTA (COM PRIORIDADES)
+    // =============================================
+
+    showMap() {
+        const tasksWithAddress = this.tasks.filter(t => t.endereco && t.endereco.lat && t.endereco.lon);
+        if (tasksWithAddress.length === 0) {
+            showToast('📍 Nenhuma tarefa com endereço para mostrar no mapa');
+            return;
+        }
+
+        const container = this.mapContainer;
+        if (!container) {
+            console.error('Map container not found');
+            return;
+        }
+
+        container.innerHTML = '';
+        container.style.display = 'block';
+
+        let overlay = document.getElementById('mapOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'mapOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 9998;
+                background: rgba(0,0,0,0.5);
+                display: none;
+            `;
+            document.body.appendChild(overlay);
+        }
+        overlay.style.display = 'block';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10000;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        `;
+        closeBtn.onmouseover = () => { closeBtn.style.background = '#f0f0f0'; };
+        closeBtn.onmouseout = () => { closeBtn.style.background = 'white'; };
+        closeBtn.onclick = () => {
+            container.style.display = 'none';
+            overlay.style.display = 'none';
+            if (window.map) {
+                window.map.remove();
+                window.map = null;
+            }
+        };
+        container.appendChild(closeBtn);
+
+        const title = document.createElement('div');
+        title.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: rgba(255,255,255,0.95);
+            padding: 8px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+            pointer-events: none;
+            text-align: center;
+        `;
+        title.textContent = `📍 ${tasksWithAddress.length} tarefas no mapa`;
+        container.appendChild(title);
+
+        setTimeout(() => {
+            const centerLat = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lat), 0) / tasksWithAddress.length;
+            const centerLon = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lon), 0) / tasksWithAddress.length;
+
+            const map = L.map(container, {
+                zoomControl: false,
+                attributionControl: false,
+                center: [centerLat, centerLon],
+                zoom: 12
+            });
+            window.map = map;
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            // ===== CORES POR PRIORIDADE =====
+            const statusColors = {
+                'completed': '#00C853',
+                'planned': '#0052CC',
+                'attention': '#F9A825',
+                'critical': '#D32F2F'
+            };
+
+            const getTaskStatus = (task) => {
+                if (task.completed) return 'completed';
+                return task.priority || 'planned';
+            };
+
+            const markers = [];
+            const waypoints = [];
+
+            tasksWithAddress.forEach((task, index) => {
+                const lat = parseFloat(task.endereco.lat);
+                const lon = parseFloat(task.endereco.lon);
+                const status = getTaskStatus(task);
+                const color = statusColors[status] || statusColors.planned;
+
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `
+                        <div style="
+                            background: ${color};
+                            color: white;
+                            border-radius: 50%;
+                            width: 32px;
+                            height: 32px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 14px;
+                            font-weight: bold;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">
+                            ${index + 1}
+                        </div>
+                    `,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16],
+                    popupAnchor: [0, -20]
+                });
+
+                const marker = L.marker([lat, lon], { icon }).addTo(map);
+                markers.push(marker);
+
+                const statusLabel = {
+                    'completed': '✅ Concluída',
+                    'planned': '📌 Planejada',
+                    'attention': '⚠️ Atenção',
+                    'critical': '🚨 Crítica'
+                }[status] || '📌 Planejada';
+
+                const popupContent = `
+                    <div style="max-width: 250px; padding: 4px;">
+                        <strong>${index + 1}. ${escapeHtml(task.text)}</strong><br>
+                        ${task.ordem ? `<small>Ordem: ${escapeHtml(task.ordem)}</small><br>` : ''}
+                        ${task.data ? `<small>📅 Data: ${escapeHtml(task.data)}</small><br>` : ''}
+                        <small>${escapeHtml(task.endereco.logradouro || task.endereco.display_name || '')}</small><br>
+                        ${task.obs ? `<small>📝 ${escapeHtml(task.obs)}</small><br>` : ''}
+                        <span style="
+                            display: inline-block;
+                            padding: 2px 8px;
+                            border-radius: 12px;
+                            font-size: 11px;
+                            margin-top: 4px;
+                            background: ${status === 'completed' ? '#E8F5E9' : status === 'critical' ? '#FDECEA' : status === 'attention' ? '#FFF8E1' : '#E6F0FF'};
+                            color: ${color};
+                            border: 1px solid ${color};
+                        ">
+                            ${statusLabel}
+                        </span>
+                    </div>
+                `;
+                marker.bindPopup(popupContent, { maxWidth: 280 });
+
+                waypoints.push({
+                    lat: lat,
+                    lon: lon,
+                    task: task,
+                    index: index
+                });
+            });
+
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+
+            // ===== ROTA (LINHA RETA) =====
+            if (waypoints.length > 1) {
+                const optimizedRoute = this.calculateOptimalRoute(waypoints);
+                const totalDistance = this.calculateTotalDistance(optimizedRoute);
+
+                const routePoints = optimizedRoute.map(w => [w.lat, w.lon]);
+                const polyline = L.polyline(routePoints, {
+                    color: '#0052CC',
+                    weight: 4,
+                    opacity: 0.7,
+                    dashArray: '10, 10'
+                }).addTo(map);
+                polyline.bindPopup(`🔄 Rota otimizada • ${totalDistance.toFixed(1)} km total`);
+
+                // Marcador de início
+                const first = optimizedRoute[0];
+                L.marker([first.lat, first.lon], {
+                    icon: L.divIcon({
+                        className: 'start-marker',
+                        html: `<div style="
+                            background: #00C853;
+                            color: white;
+                            border-radius: 50%;
+                            width: 24px;
+                            height: 24px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 12px;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">🏁</div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(map).bindPopup(`
+                    <strong>🏁 Início</strong><br>
+                    ${escapeHtml(first.task.text)}
+                `);
+
+                if (optimizedRoute.length > 1) {
+                    const last = optimizedRoute[optimizedRoute.length - 1];
+                    L.marker([last.lat, last.lon], {
+                        icon: L.divIcon({
+                            className: 'end-marker',
+                            html: `<div style="
+                                background: #D32F2F;
+                                color: white;
+                                border-radius: 50%;
+                                width: 24px;
+                                height: 24px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 12px;
+                                border: 2px solid white;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                            ">🏁</div>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        })
+                    }).addTo(map).bindPopup(`
+                        <strong>🏁 Fim</strong><br>
+                        ${escapeHtml(last.task.text)}
+                    `);
+                }
+
+                const infoPanel = document.createElement('div');
+                infoPanel.style.cssText = `
+                    position: absolute;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 10000;
+                    background: rgba(255,255,255,0.95);
+                    padding: 12px 20px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+                    max-width: 90%;
+                    text-align: center;
+                    font-size: 13px;
+                    color: #333;
+                    pointer-events: none;
+                `;
+                infoPanel.innerHTML = `
+                    <strong>🔄 Ordem de Visita</strong><br>
+                    ${optimizedRoute.map((w, i) => `${i + 1}. ${escapeHtml(w.task.text)}`).join(' → ')}
+                    <br><br>
+                    <span style="font-size: 12px; color: #666;">
+                        📍 ${optimizedRoute.length} pontos • 🚗 ${totalDistance.toFixed(1)} km total
+                    </span>
+                `;
+                container.appendChild(infoPanel);
+            }
+
+            const closeMapBtn = document.createElement('button');
+            closeMapBtn.textContent = '✕ Fechar Mapa';
+            closeMapBtn.style.cssText = `
+                position: absolute;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10000;
+                background: #0052CC;
+                color: white;
+                border: none;
+                border-radius: 20px;
+                padding: 10px 24px;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                transition: all 0.2s;
+                font-size: 14px;
+            `;
+            closeMapBtn.onmouseover = () => { closeMapBtn.style.background = '#003D99'; };
+            closeMapBtn.onmouseout = () => { closeMapBtn.style.background = '#0052CC'; };
+            closeMapBtn.onclick = () => {
+                container.style.display = 'none';
+                overlay.style.display = 'none';
+                if (window.map) {
+                    window.map.remove();
+                    window.map = null;
+                }
+            };
+            container.appendChild(closeMapBtn);
+
+        }, 100);
+
+        this.closeSidebar();
+        showToast(`🗺️ Mostrando ${tasksWithAddress.length} tarefas no mapa`);
+    }
+
+    calculateOptimalRoute(waypoints) {
+        if (waypoints.length <= 1) return waypoints;
+
+        const unvisited = [...waypoints];
+        const route = [];
+
+        const centerLat = waypoints.reduce((sum, w) => sum + w.lat, 0) / waypoints.length;
+        const centerLon = waypoints.reduce((sum, w) => sum + w.lon, 0) / waypoints.length;
+
+        let closestIndex = 0;
+        let closestDist = Infinity;
+        unvisited.forEach((w, i) => {
+            const dist = this.calculateDistance(centerLat, centerLon, w.lat, w.lon);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestIndex = i;
+            }
+        });
+
+        route.push(unvisited.splice(closestIndex, 1)[0]);
+
+        while (unvisited.length > 0) {
+            const last = route[route.length - 1];
+            let nearestIndex = 0;
+            let nearestDist = Infinity;
+
+            unvisited.forEach((w, i) => {
+                const dist = this.calculateDistance(last.lat, last.lon, w.lat, w.lon);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestIndex = i;
+                }
+            });
+
+            route.push(unvisited.splice(nearestIndex, 1)[0]);
+        }
+
+        return route;
+    }
+
+    calculateTotalDistance(route) {
+        let total = 0;
+        for (let i = 0; i < route.length - 1; i++) {
+            total += this.calculateDistance(
+                route[i].lat, route[i].lon,
+                route[i + 1].lat, route[i + 1].lon
+            );
+        }
+        return total;
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = this.toRad(lat2 - lat1);
+        const dLon = this.toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    toRad(degrees) {
+        return degrees * (Math.PI / 180);
+    }
+
+    // =============================================
     // MÉTODOS DE EVENTOS
     // =============================================
 
@@ -1297,17 +1602,15 @@ class TaskManager {
         console.log('🔧 Vinculando eventos...');
 
         if (this.headerWhatsApp) {
-            this.headerWhatsApp.addEventListener('click', () => {
-                this.shareWhatsApp();
-            });
-            console.log('✅ WhatsApp button bound');
+            this.headerWhatsApp.addEventListener('click', () => this.shareWhatsApp());
         }
 
         if (this.headerEmail) {
-            this.headerEmail.addEventListener('click', () => {
-                this.shareEmail();
-            });
-            console.log('✅ Email button bound');
+            this.headerEmail.addEventListener('click', () => this.shareEmail());
+        }
+
+        if (this.headerMap) {
+            this.headerMap.addEventListener('click', () => this.showMap());
         }
 
         if (this.menuToggle) {
@@ -1393,7 +1696,6 @@ class TaskManager {
             });
         }
 
-        // Busca de endereço - APENAS BOTÃO E ENTER
         if (this.modalSearchBtn) {
             this.modalSearchBtn.addEventListener('click', () => {
                 this.buscarEndereco(this.modalAddressSearch.value);
@@ -1413,6 +1715,7 @@ class TaskManager {
                 this.modalSuggestions.classList.remove('active');
             }
         });
+
         if (this.modalClearAddress) {
             this.modalClearAddress.addEventListener('click', () => this.clearModalAddress());
         }
@@ -1424,11 +1727,12 @@ class TaskManager {
                 const ordem = this.taskOrder.value.trim();
                 const obs = this.taskObs.value.trim();
                 const text = this.taskInput.value.trim();
+                const data = this.taskDate.value;
                 const editId = parseInt(this.editTaskId.value);
                 if (editId) {
-                    this.updateTask(editId, text, endereco, ordem, obs);
+                    this.updateTask(editId, text, endereco, ordem, obs, data);
                 } else {
-                    this.addTask(text, endereco, ordem, obs);
+                    this.addTask(text, endereco, ordem, obs, data);
                 }
             });
         }
