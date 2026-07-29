@@ -461,21 +461,83 @@ class TaskManager {
             if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
                 const lat = parts[0];
                 const lon = parts[1];
-                const address = {
-                    display_name: `Coordenadas: ${lat}, ${lon}`,
-                    lat: lat,
-                    lon: lon,
-                    logradouro: `Coordenadas: ${lat}, ${lon}`,
-                    bairro: '',
-                    cidade: 'Localização',
-                    uf: '',
-                    cep: ''
-                };
-                this.selectAddressModal(address);
-                this.modalSuggestions.classList.remove('active');
+
+                // Mostrar indicador de carregamento
+                this.modalSearchBtn.textContent = '⏳ Buscando endereço...';
+                this.modalSearchBtn.disabled = true;
+
+                try {
+                    // ===== CHAMADA PARA REVERSE GEOCODING =====
+                    const reverseUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=pt-BR`;
+                    const response = await fetch(reverseUrl, {
+                        headers: { 'User-Agent': 'TaskApp/1.0' }
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const data = await response.json();
+
+                    // Verifica se a resposta tem dados de endereço
+                    if (data && data.address) {
+                        const addr = data.address;
+                        const logradouro = addr.road || addr.pedestrian || addr.footway || addr.path || '';
+                        const houseNumber = addr.house_number || '';
+                        const logradouroCompleto = logradouro + (houseNumber ? `, ${houseNumber}` : '');
+
+                        const address = {
+                            display_name: data.display_name || `Coordenadas: ${lat}, ${lon}`,
+                            lat: lat,
+                            lon: lon,
+                            cep: addr.postcode || '',
+                            logradouro: logradouroCompleto || `Coordenadas: ${lat}, ${lon}`,
+                            numero: houseNumber,
+                            bairro: addr.suburb || addr.neighbourhood || addr.district || '',
+                            cidade: addr.city || addr.town || addr.village || addr.municipality || '',
+                            uf: addr.state || addr.region || '',
+                            pais: addr.country || 'Brasil'
+                        };
+
+                        this.selectAddressModal(address);
+                        showToast(`✅ Endereço encontrado: ${logradouroCompleto || 'Localização'}`);
+                    } else {
+                        // Fallback: coordenada sem endereço
+                        const address = {
+                            display_name: `Coordenadas: ${lat}, ${lon}`,
+                            lat: lat,
+                            lon: lon,
+                            logradouro: `Coordenadas: ${lat}, ${lon}`,
+                            bairro: '',
+                            cidade: 'Localização',
+                            uf: '',
+                            cep: ''
+                        };
+                        this.selectAddressModal(address);
+                        showToast('📍 Coordenada adicionada (endereço não encontrado)');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Erro no reverse geocoding:', error);
+                    // Fallback: apenas coordenada
+                    const address = {
+                        display_name: `Coordenadas: ${lat}, ${lon}`,
+                        lat: lat,
+                        lon: lon,
+                        logradouro: `Coordenadas: ${lat}, ${lon}`,
+                        bairro: '',
+                        cidade: 'Localização',
+                        uf: '',
+                        cep: ''
+                    };
+                    this.selectAddressModal(address);
+                    showToast('📍 Coordenada adicionada (sem endereço)');
+                } finally {
+                    this.modalSearchBtn.textContent = '🔍 Buscar';
+                    this.modalSearchBtn.disabled = false;
+                    this.modalSuggestions.classList.remove('active');
+                }
                 return;
             }
         }
+
 
         this.modalSearchBtn.textContent = '⏳ Buscando...';
         this.modalSearchBtn.disabled = true;
@@ -641,8 +703,9 @@ class TaskManager {
     }
 
     selectAddressModal(addressData) {
-        let logradouroCompleto = addressData.address?.road || '';
-        const houseNumber = addressData.address?.house_number || '';
+        // Verifica se veio da API (com sub-objeto 'address') ou se é objeto direto (coordenadas)
+        let logradouroCompleto = addressData.logradouro || addressData.address?.road || '';
+        const houseNumber = addressData.address?.house_number || addressData.numero || '';
 
         if (houseNumber && logradouroCompleto) {
             logradouroCompleto = `${logradouroCompleto}, ${houseNumber}`;
@@ -650,30 +713,84 @@ class TaskManager {
             logradouroCompleto = houseNumber;
         }
 
+        // Monta o objeto de endereço padronizado
         const address = {
-            display_name: addressData.display_name,
-            lat: addressData.lat,
-            lon: addressData.lon,
-            cep: addressData.address?.postcode || '',
+            display_name: addressData.display_name || '',
+            lat: addressData.lat || '',
+            lon: addressData.lon || '',
+            cep: addressData.address?.postcode || addressData.cep || '',
             logradouro: logradouroCompleto,
             numero: houseNumber,
-            bairro: addressData.address?.suburb || addressData.address?.neighbourhood || '',
-            cidade: addressData.address?.city || addressData.address?.town || addressData.address?.village || '',
-            uf: addressData.address?.state || '',
-            pais: addressData.address?.country || 'Brasil'
+            bairro: addressData.address?.suburb || addressData.address?.neighbourhood || addressData.bairro || '',
+            cidade: addressData.address?.city || addressData.address?.town || addressData.address?.village || addressData.cidade || '',
+            uf: addressData.address?.state || addressData.uf || '',
+            pais: addressData.address?.country || addressData.pais || 'Brasil'
         };
 
         this.selectedAddress = address;
         this.modalSelectedText.innerHTML = `
-            <strong>📍 Endereço:</strong><br>
-            ${this.formatAddressSimple(address)}
-        `;
+        <strong>📍 Endereço:</strong><br>
+        ${this.formatAddressSimple(address)}
+    `;
         this.modalSelectedAddress.classList.add('active');
         this.modalSuggestions.classList.remove('active');
-        this.modalAddressSearch.value = address.display_name;
+        // Preenche o campo de busca com o display_name ou o logradouro
+        this.modalAddressSearch.value = address.display_name || address.logradouro;
         showToast('✅ Endereço selecionado!');
     }
 
+    calculateOptimalRoute(waypoints) {
+        if (waypoints.length <= 1) return waypoints;
+
+        const unvisited = [...waypoints];
+        const route = [];
+
+        const centerLat = waypoints.reduce((sum, w) => sum + w.lat, 0) / waypoints.length;
+        const centerLon = waypoints.reduce((sum, w) => sum + w.lon, 0) / waypoints.length;
+
+        let closestIndex = 0;
+        let closestDist = Infinity;
+        unvisited.forEach((w, i) => {
+            const dist = this.calculateDistance(centerLat, centerLon, w.lat, w.lon);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestIndex = i;
+            }
+        });
+
+        route.push(unvisited.splice(closestIndex, 1)[0]);
+
+        while (unvisited.length > 0) {
+            const last = route[route.length - 1];
+            let nearestIndex = 0;
+            let nearestDist = Infinity;
+
+            unvisited.forEach((w, i) => {
+                const dist = this.calculateDistance(last.lat, last.lon, w.lat, w.lon);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestIndex = i;
+                }
+            });
+
+            route.push(unvisited.splice(nearestIndex, 1)[0]);
+        }
+
+        return route;
+    }
+
+    drawStraightRoute(map, optimizedRoute) {
+        const routePoints = optimizedRoute.map(w => [w.lat, w.lon]);
+        const totalDistance = this.calculateTotalDistance(optimizedRoute);
+        const polyline = L.polyline(routePoints, {
+            color: '#0052CC',
+            weight: 4,
+            opacity: 0.7,
+            dashArray: '10, 10'
+        }).addTo(map);
+        polyline.bindPopup(`🔄 Rota (linha reta) • ${totalDistance.toFixed(1)} km total`);
+        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+    }
     // =============================================
     // MÉTODOS CRUD (COM SELECT)
     // =============================================
@@ -1091,7 +1208,7 @@ class TaskManager {
 
     setupObsExpand() {
         document.querySelectorAll('.task-obs').forEach(el => {
-            el.addEventListener('click', function(e) {
+            el.addEventListener('click', function (e) {
                 e.stopPropagation();
                 const isExpanded = this.dataset.expanded === 'true';
                 const toggle = this.querySelector('.obs-toggle');
@@ -1198,7 +1315,7 @@ class TaskManager {
     // MÉTODOS DE MAPA E ROTA (COM PRIORIDADES)
     // =============================================
 
-    showMap() {
+    async showMap() {
         const tasksWithAddress = this.tasks.filter(t => t.endereco && t.endereco.lat && t.endereco.lon);
         if (tasksWithAddress.length === 0) {
             showToast('📍 Nenhuma tarefa com endereço para mostrar no mapa');
@@ -1214,44 +1331,46 @@ class TaskManager {
         container.innerHTML = '';
         container.style.display = 'block';
 
+        // Overlay para escurecer fundo
         let overlay = document.getElementById('mapOverlay');
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'mapOverlay';
             overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 9998;
-                background: rgba(0,0,0,0.5);
-                display: none;
-            `;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9998;
+            background: rgba(0,0,0,0.5);
+            display: none;
+        `;
             document.body.appendChild(overlay);
         }
         overlay.style.display = 'block';
 
+        // Botão fechar (X) – canto superior direito
         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '✕';
         closeBtn.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 10000;
-            background: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        `;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10000;
+        background: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    `;
         closeBtn.onmouseover = () => { closeBtn.style.background = '#f0f0f0'; };
         closeBtn.onmouseout = () => { closeBtn.style.background = 'white'; };
         closeBtn.onclick = () => {
@@ -1264,158 +1383,205 @@ class TaskManager {
         };
         container.appendChild(closeBtn);
 
-        const title = document.createElement('div');
-        title.style.cssText = `
+        // ===== HEADER DO MAPA (PONTOS, DISTÂNCIA, TEMPO) =====
+        const headerMap = document.createElement('div');
+        headerMap.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000;
+        background: rgba(255,255,255,0.95);
+        padding: 8px 20px;
+        border-radius: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+        pointer-events: none;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.2);
+    `;
+        headerMap.innerHTML = `<span>📍 ${tasksWithAddress.length} pontos</span>`;
+        container.appendChild(headerMap);
+
+        // Inicializar mapa
+        const centerLat = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lat), 0) / tasksWithAddress.length;
+        const centerLon = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lon), 0) / tasksWithAddress.length;
+
+        const map = L.map(container, {
+            zoomControl: false,
+            attributionControl: false,
+            center: [centerLat, centerLon],
+            zoom: 12
+        });
+        window.map = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Cores por prioridade
+        const statusColors = {
+            'completed': '#00C853',
+            'planned': '#0052CC',
+            'attention': '#F9A825',
+            'critical': '#D32F2F'
+        };
+
+        const getTaskStatus = (task) => {
+            if (task.completed) return 'completed';
+            return task.priority || 'planned';
+        };
+
+        const markers = [];
+        const waypoints = [];
+
+        // Adicionar marcadores
+        tasksWithAddress.forEach((task, index) => {
+            const lat = parseFloat(task.endereco.lat);
+            const lon = parseFloat(task.endereco.lon);
+            const status = getTaskStatus(task);
+            const color = statusColors[status] || statusColors.planned;
+
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                <div style="
+                    background: ${color};
+                    color: white;
+                    border-radius: 50%;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                    font-weight: bold;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                ">
+                    ${index + 1}
+                </div>
+            `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -20]
+            });
+
+            const marker = L.marker([lat, lon], { icon }).addTo(map);
+            markers.push(marker);
+
+            const statusLabel = {
+                'completed': '✅ Concluída',
+                'planned': '📌 Planejada',
+                'attention': '⚠️ Atenção',
+                'critical': '🚨 Crítica'
+            }[status] || '📌 Planejada';
+
+            const popupContent = `
+            <div style="max-width: 250px; padding: 4px;">
+                <strong>${index + 1}. ${escapeHtml(task.text)}</strong><br>
+                ${task.ordem ? `<small>Ordem: ${escapeHtml(task.ordem)}</small><br>` : ''}
+                ${task.data ? `<small>📅 Data: ${escapeHtml(task.data)}</small><br>` : ''}
+                <small>${escapeHtml(task.endereco.logradouro || task.endereco.display_name || '')}</small><br>
+                ${task.obs ? `<small>📝 ${escapeHtml(task.obs)}</small><br>` : ''}
+                <span style="
+                    display: inline-block;
+                    padding: 2px 8px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    margin-top: 4px;
+                    background: ${status === 'completed' ? '#E8F5E9' : status === 'critical' ? '#FDECEA' : status === 'attention' ? '#FFF8E1' : '#E6F0FF'};
+                    color: ${color};
+                    border: 1px solid ${color};
+                ">
+                    ${statusLabel}
+                </span>
+            </div>
+        `;
+            marker.bindPopup(popupContent, { maxWidth: 280 });
+
+            waypoints.push({
+                lat: lat,
+                lon: lon,
+                task: task,
+                index: index
+            });
+        });
+
+        // Ajustar zoom inicial
+        if (markers.length > 0) {
+            const group = L.featureGroup(markers);
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
+        }
+
+        // ===== ROTA (OSRM + FALLBACK) =====
+        if (waypoints.length > 1) {
+            const optimizedRoute = this.calculateOptimalRoute(waypoints);
+            const coordinates = optimizedRoute.map(w => `${w.lon},${w.lat}`).join(';');
+
+            // Indicador de carregamento (opcional)
+            const loadingMsg = document.createElement('div');
+            loadingMsg.style.cssText = `
             position: absolute;
-            top: 10px;
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10000;
-            background: rgba(255,255,255,0.95);
+            background: rgba(0,0,0,0.7);
+            color: white;
             padding: 8px 16px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            font-weight: 600;
+            border-radius: 20px;
             font-size: 14px;
-            color: #333;
             pointer-events: none;
-            text-align: center;
         `;
-        title.textContent = `📍 ${tasksWithAddress.length} tarefas no mapa`;
-        container.appendChild(title);
+            loadingMsg.textContent = '⏳ Calculando rota...';
+            container.appendChild(loadingMsg);
 
-        setTimeout(() => {
-            const centerLat = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lat), 0) / tasksWithAddress.length;
-            const centerLon = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lon), 0) / tasksWithAddress.length;
+            try {
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+                const response = await fetch(osrmUrl);
+                const data = await response.json();
 
-            const map = L.map(container, {
-                zoomControl: false,
-                attributionControl: false,
-                center: [centerLat, centerLon],
-                zoom: 12
-            });
-            window.map = map;
+                if (loadingMsg.parentNode) loadingMsg.remove();
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+                if (data.code === 'Ok' && data.routes.length > 0) {
+                    const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    const totalDistance = data.routes[0].distance / 1000; // km
+                    const totalDuration = Math.round(data.routes[0].duration / 60); // minutos
 
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
+                    // Desenha a rota
+                    const polyline = L.polyline(routeCoords, {
+                        color: '#0052CC',
+                        weight: 5,
+                        opacity: 0.8,
+                        smoothFactor: 1
+                    }).addTo(map);
 
-            // ===== CORES POR PRIORIDADE =====
-            const statusColors = {
-                'completed': '#00C853',
-                'planned': '#0052CC',
-                'attention': '#F9A825',
-                'critical': '#D32F2F'
-            };
-
-            const getTaskStatus = (task) => {
-                if (task.completed) return 'completed';
-                return task.priority || 'planned';
-            };
-
-            const markers = [];
-            const waypoints = [];
-
-            tasksWithAddress.forEach((task, index) => {
-                const lat = parseFloat(task.endereco.lat);
-                const lon = parseFloat(task.endereco.lon);
-                const status = getTaskStatus(task);
-                const color = statusColors[status] || statusColors.planned;
-
-                const icon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `
-                        <div style="
-                            background: ${color};
-                            color: white;
-                            border-radius: 50%;
-                            width: 32px;
-                            height: 32px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 14px;
-                            font-weight: bold;
-                            border: 2px solid white;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                        ">
-                            ${index + 1}
-                        </div>
-                    `,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16],
-                    popupAnchor: [0, -20]
-                });
-
-                const marker = L.marker([lat, lon], { icon }).addTo(map);
-                markers.push(marker);
-
-                const statusLabel = {
-                    'completed': '✅ Concluída',
-                    'planned': '📌 Planejada',
-                    'attention': '⚠️ Atenção',
-                    'critical': '🚨 Crítica'
-                }[status] || '📌 Planejada';
-
-                const popupContent = `
-                    <div style="max-width: 250px; padding: 4px;">
-                        <strong>${index + 1}. ${escapeHtml(task.text)}</strong><br>
-                        ${task.ordem ? `<small>Ordem: ${escapeHtml(task.ordem)}</small><br>` : ''}
-                        ${task.data ? `<small>📅 Data: ${escapeHtml(task.data)}</small><br>` : ''}
-                        <small>${escapeHtml(task.endereco.logradouro || task.endereco.display_name || '')}</small><br>
-                        ${task.obs ? `<small>📝 ${escapeHtml(task.obs)}</small><br>` : ''}
-                        <span style="
-                            display: inline-block;
-                            padding: 2px 8px;
-                            border-radius: 12px;
-                            font-size: 11px;
-                            margin-top: 4px;
-                            background: ${status === 'completed' ? '#E8F5E9' : status === 'critical' ? '#FDECEA' : status === 'attention' ? '#FFF8E1' : '#E6F0FF'};
-                            color: ${color};
-                            border: 1px solid ${color};
-                        ">
-                            ${statusLabel}
-                        </span>
-                    </div>
+                    // Atualiza o header com as métricas
+                    headerMap.innerHTML = `
+                    <span>📍 ${tasksWithAddress.length} pontos</span>
+                    <span>🚗 ${totalDistance.toFixed(1)} km</span>
+                    <span>⏱️ ~${totalDuration} min</span>
                 `;
-                marker.bindPopup(popupContent, { maxWidth: 280 });
 
-                waypoints.push({
-                    lat: lat,
-                    lon: lon,
-                    task: task,
-                    index: index
-                });
-            });
+                    // Ajustar zoom para a rota
+                    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
 
-            if (markers.length > 0) {
-                const group = L.featureGroup(markers);
-                map.fitBounds(group.getBounds(), { padding: [50, 50] });
-            }
-
-            // ===== ROTA (LINHA RETA) =====
-            if (waypoints.length > 1) {
-                const optimizedRoute = this.calculateOptimalRoute(waypoints);
-                const totalDistance = this.calculateTotalDistance(optimizedRoute);
-
-                const routePoints = optimizedRoute.map(w => [w.lat, w.lon]);
-                const polyline = L.polyline(routePoints, {
-                    color: '#0052CC',
-                    weight: 4,
-                    opacity: 0.7,
-                    dashArray: '10, 10'
-                }).addTo(map);
-                polyline.bindPopup(`🔄 Rota otimizada • ${totalDistance.toFixed(1)} km total`);
-
-                // Marcador de início
-                const first = optimizedRoute[0];
-                L.marker([first.lat, first.lon], {
-                    icon: L.divIcon({
-                        className: 'start-marker',
-                        html: `<div style="
+                    // ===== MARCADORES DE INÍCIO E FIM (com popup) =====
+                    const first = optimizedRoute[0];
+                    L.marker([first.lat, first.lon], {
+                        icon: L.divIcon({
+                            className: 'start-marker',
+                            html: `<div style="
                             background: #00C853;
                             color: white;
                             border-radius: 50%;
@@ -1428,20 +1594,20 @@ class TaskManager {
                             border: 2px solid white;
                             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                         ">🏁</div>`,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
-                    })
-                }).addTo(map).bindPopup(`
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        })
+                    }).addTo(map).bindPopup(`
                     <strong>🏁 Início</strong><br>
                     ${escapeHtml(first.task.text)}
                 `);
 
-                if (optimizedRoute.length > 1) {
-                    const last = optimizedRoute[optimizedRoute.length - 1];
-                    L.marker([last.lat, last.lon], {
-                        icon: L.divIcon({
-                            className: 'end-marker',
-                            html: `<div style="
+                    if (optimizedRoute.length > 1) {
+                        const last = optimizedRoute[optimizedRoute.length - 1];
+                        L.marker([last.lat, last.lon], {
+                            icon: L.divIcon({
+                                className: 'end-marker',
+                                html: `<div style="
                                 background: #D32F2F;
                                 color: white;
                                 border-radius: 50%;
@@ -1454,118 +1620,76 @@ class TaskManager {
                                 border: 2px solid white;
                                 box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                             ">🏁</div>`,
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                        })
-                    }).addTo(map).bindPopup(`
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                            })
+                        }).addTo(map).bindPopup(`
                         <strong>🏁 Fim</strong><br>
                         ${escapeHtml(last.task.text)}
                     `);
+                    }
+
+                } else {
+                    // Fallback: rota em linha reta
+                    this.drawStraightRoute(map, optimizedRoute);
+                    const totalDist = this.calculateTotalDistance(optimizedRoute);
+                    headerMap.innerHTML = `
+                    <span>📍 ${tasksWithAddress.length} pontos</span>
+                    <span>🚗 ${totalDist.toFixed(1)} km (reta)</span>
+                `;
+                    showToast('⚠️ Rota por ruas indisponível, usando linha reta');
                 }
-
-                const infoPanel = document.createElement('div');
-                infoPanel.style.cssText = `
-                    position: absolute;
-                    bottom: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    z-index: 10000;
-                    background: rgba(255,255,255,0.95);
-                    padding: 12px 20px;
-                    border-radius: 12px;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-                    max-width: 90%;
-                    text-align: center;
-                    font-size: 13px;
-                    color: #333;
-                    pointer-events: none;
-                `;
-                infoPanel.innerHTML = `
-                    <strong>🔄 Ordem de Visita</strong><br>
-                    ${optimizedRoute.map((w, i) => `${i + 1}. ${escapeHtml(w.task.text)}`).join(' → ')}
-                    <br><br>
-                    <span style="font-size: 12px; color: #666;">
-                        📍 ${optimizedRoute.length} pontos • 🚗 ${totalDistance.toFixed(1)} km total
-                    </span>
-                `;
-                container.appendChild(infoPanel);
-            }
-
-            const closeMapBtn = document.createElement('button');
-            closeMapBtn.textContent = '✕ Fechar Mapa';
-            closeMapBtn.style.cssText = `
-                position: absolute;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 10000;
-                background: #0052CC;
-                color: white;
-                border: none;
-                border-radius: 20px;
-                padding: 10px 24px;
-                font-weight: 600;
-                cursor: pointer;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                transition: all 0.2s;
-                font-size: 14px;
+            } catch (error) {
+                console.warn('⚠️ Erro ao buscar rota OSRM:', error);
+                if (loadingMsg.parentNode) loadingMsg.remove();
+                this.drawStraightRoute(map, optimizedRoute);
+                const totalDist = this.calculateTotalDistance(optimizedRoute);
+                headerMap.innerHTML = `
+                <span>📍 ${tasksWithAddress.length} pontos</span>
+                <span>🚗 ${totalDist.toFixed(1)} km (reta)</span>
             `;
-            closeMapBtn.onmouseover = () => { closeMapBtn.style.background = '#003D99'; };
-            closeMapBtn.onmouseout = () => { closeMapBtn.style.background = '#0052CC'; };
-            closeMapBtn.onclick = () => {
-                container.style.display = 'none';
-                overlay.style.display = 'none';
-                if (window.map) {
-                    window.map.remove();
-                    window.map = null;
-                }
-            };
-            container.appendChild(closeMapBtn);
+                showToast('⚠️ Erro ao calcular rota, usando linha reta');
+            }
+        } else {
+            // Apenas um ponto – mostra apenas a quantidade
+            headerMap.innerHTML = `<span>📍 ${tasksWithAddress.length} ponto</span>`;
+            map.setView([waypoints[0].lat, waypoints[0].lon], 14);
+        }
 
-        }, 100);
+        // ===== BOTÃO FECHAR (adicional, na parte inferior) =====
+        const closeMapBtn = document.createElement('button');
+        closeMapBtn.textContent = '✕ Fechar Mapa';
+        closeMapBtn.style.cssText = `
+        position: absolute;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10000;
+        background: #0052CC;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 24px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: all 0.2s;
+        font-size: 14px;
+    `;
+        closeMapBtn.onmouseover = () => { closeMapBtn.style.background = '#003D99'; };
+        closeMapBtn.onmouseout = () => { closeMapBtn.style.background = '#0052CC'; };
+        closeMapBtn.onclick = () => {
+            container.style.display = 'none';
+            overlay.style.display = 'none';
+            if (window.map) {
+                window.map.remove();
+                window.map = null;
+            }
+        };
+        container.appendChild(closeMapBtn);
 
         this.closeSidebar();
         showToast(`🗺️ Mostrando ${tasksWithAddress.length} tarefas no mapa`);
-    }
-
-    calculateOptimalRoute(waypoints) {
-        if (waypoints.length <= 1) return waypoints;
-
-        const unvisited = [...waypoints];
-        const route = [];
-
-        const centerLat = waypoints.reduce((sum, w) => sum + w.lat, 0) / waypoints.length;
-        const centerLon = waypoints.reduce((sum, w) => sum + w.lon, 0) / waypoints.length;
-
-        let closestIndex = 0;
-        let closestDist = Infinity;
-        unvisited.forEach((w, i) => {
-            const dist = this.calculateDistance(centerLat, centerLon, w.lat, w.lon);
-            if (dist < closestDist) {
-                closestDist = dist;
-                closestIndex = i;
-            }
-        });
-
-        route.push(unvisited.splice(closestIndex, 1)[0]);
-
-        while (unvisited.length > 0) {
-            const last = route[route.length - 1];
-            let nearestIndex = 0;
-            let nearestDist = Infinity;
-
-            unvisited.forEach((w, i) => {
-                const dist = this.calculateDistance(last.lat, last.lon, w.lat, w.lon);
-                if (dist < nearestDist) {
-                    nearestDist = dist;
-                    nearestIndex = i;
-                }
-            });
-
-            route.push(unvisited.splice(nearestIndex, 1)[0]);
-        }
-
-        return route;
     }
 
     calculateTotalDistance(route) {
@@ -1584,8 +1708,8 @@ class TaskManager {
         const dLat = this.toRad(lat2 - lat1);
         const dLon = this.toRad(lon2 - lon1);
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
