@@ -1350,29 +1350,62 @@ class TaskManager {
         }
         overlay.style.display = 'block';
 
-        // Botão fechar (X) – canto superior direito
+        // ===== HEADER DO MAPA (PONTOS, DISTÂNCIA, TEMPO) =====
+        const headerMap = document.createElement('div');
+        headerMap.style.cssText = `
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        padding: 10px 16px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        font-weight: 600;
+        font-size: 13px;
+        color: #fff;
+        pointer-events: none;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        border: 1px solid rgba(255,255,255,0.15);
+    `;
+        headerMap.innerHTML = `<span>📍 ${tasksWithAddress.length} ${tasksWithAddress.length === 1 ? 'ponto' : 'pontos'}</span>`;
+        container.appendChild(headerMap);
+
+        // ===== BOTÃO FECHAR (X) – canto superior direito =====
         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '✕';
         closeBtn.style.cssText = `
         position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10000;
-        background: white;
+        top: 16px;
+        right: 16px;
+        z-index: 10001;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
         border: none;
         border-radius: 50%;
         width: 40px;
         height: 40px;
         font-size: 20px;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transition: background 0.2s;
     `;
-        closeBtn.onmouseover = () => { closeBtn.style.background = '#f0f0f0'; };
-        closeBtn.onmouseout = () => { closeBtn.style.background = 'white'; };
+        closeBtn.onmouseover = () => { closeBtn.style.background = 'rgba(255,255,255,0.2)'; };
+        closeBtn.onmouseout = () => { closeBtn.style.background = 'rgba(0,0,0,0.5)'; };
         closeBtn.onclick = () => {
             container.style.display = 'none';
             overlay.style.display = 'none';
@@ -1382,32 +1415,6 @@ class TaskManager {
             }
         };
         container.appendChild(closeBtn);
-
-        // ===== HEADER DO MAPA (PONTOS, DISTÂNCIA, TEMPO) =====
-        const headerMap = document.createElement('div');
-        headerMap.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10000;
-        background: rgba(255,255,255,0.95);
-        padding: 8px 20px;
-        border-radius: 20px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-        font-weight: 600;
-        font-size: 14px;
-        color: #333;
-        pointer-events: none;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(255,255,255,0.2);
-    `;
-        headerMap.innerHTML = `<span>📍 ${tasksWithAddress.length} pontos</span>`;
-        container.appendChild(headerMap);
 
         // Inicializar mapa
         const centerLat = tasksWithAddress.reduce((sum, t) => sum + parseFloat(t.endereco.lat), 0) / tasksWithAddress.length;
@@ -1444,7 +1451,6 @@ class TaskManager {
         const markers = [];
         const waypoints = [];
 
-        // Adicionar marcadores
         tasksWithAddress.forEach((task, index) => {
             const lat = parseFloat(task.endereco.lat);
             const lon = parseFloat(task.endereco.lon);
@@ -1517,18 +1523,16 @@ class TaskManager {
             });
         });
 
-        // Ajustar zoom inicial
         if (markers.length > 0) {
             const group = L.featureGroup(markers);
             map.fitBounds(group.getBounds(), { padding: [50, 50] });
         }
 
-        // ===== ROTA (OSRM + FALLBACK) =====
+        // ===== ROTA =====
         if (waypoints.length > 1) {
             const optimizedRoute = this.calculateOptimalRoute(waypoints);
             const coordinates = optimizedRoute.map(w => `${w.lon},${w.lat}`).join(';');
 
-            // Indicador de carregamento (opcional)
             const loadingMsg = document.createElement('div');
             loadingMsg.style.cssText = `
             position: absolute;
@@ -1555,10 +1559,9 @@ class TaskManager {
 
                 if (data.code === 'Ok' && data.routes.length > 0) {
                     const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                    const totalDistance = data.routes[0].distance / 1000; // km
-                    const totalDuration = Math.round(data.routes[0].duration / 60); // minutos
+                    const totalDistance = data.routes[0].distance / 1000;
+                    const totalDuration = Math.round(data.routes[0].duration / 60);
 
-                    // Desenha a rota
                     const polyline = L.polyline(routeCoords, {
                         color: '#0052CC',
                         weight: 5,
@@ -1566,17 +1569,15 @@ class TaskManager {
                         smoothFactor: 1
                     }).addTo(map);
 
-                    // Atualiza o header com as métricas
                     headerMap.innerHTML = `
                     <span>📍 ${tasksWithAddress.length} pontos</span>
                     <span>🚗 ${totalDistance.toFixed(1)} km</span>
                     <span>⏱️ ~${totalDuration} min</span>
                 `;
 
-                    // Ajustar zoom para a rota
                     map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
 
-                    // ===== MARCADORES DE INÍCIO E FIM (com popup) =====
+                    // Marcadores início/fim
                     const first = optimizedRoute[0];
                     L.marker([first.lat, first.lon], {
                         icon: L.divIcon({
@@ -1630,7 +1631,6 @@ class TaskManager {
                     }
 
                 } else {
-                    // Fallback: rota em linha reta
                     this.drawStraightRoute(map, optimizedRoute);
                     const totalDist = this.calculateTotalDistance(optimizedRoute);
                     headerMap.innerHTML = `
@@ -1651,42 +1651,12 @@ class TaskManager {
                 showToast('⚠️ Erro ao calcular rota, usando linha reta');
             }
         } else {
-            // Apenas um ponto – mostra apenas a quantidade
             headerMap.innerHTML = `<span>📍 ${tasksWithAddress.length} ponto</span>`;
             map.setView([waypoints[0].lat, waypoints[0].lon], 14);
         }
 
-        // ===== BOTÃO FECHAR (adicional, na parte inferior) =====
-        const closeMapBtn = document.createElement('button');
-        closeMapBtn.textContent = '✕ Fechar Mapa';
-        closeMapBtn.style.cssText = `
-        position: absolute;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10000;
-        background: #0052CC;
-        color: white;
-        border: none;
-        border-radius: 20px;
-        padding: 10px 24px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        transition: all 0.2s;
-        font-size: 14px;
-    `;
-        closeMapBtn.onmouseover = () => { closeMapBtn.style.background = '#003D99'; };
-        closeMapBtn.onmouseout = () => { closeMapBtn.style.background = '#0052CC'; };
-        closeMapBtn.onclick = () => {
-            container.style.display = 'none';
-            overlay.style.display = 'none';
-            if (window.map) {
-                window.map.remove();
-                window.map = null;
-            }
-        };
-        container.appendChild(closeMapBtn);
+        // NÃO ADICIONAR BOTÃO FECHAR MAPA AZUL NO RODAPÉ (removido)
+        // Tudo certo, apenas o "X" no canto superior direito está presente.
 
         this.closeSidebar();
         showToast(`🗺️ Mostrando ${tasksWithAddress.length} tarefas no mapa`);
