@@ -2185,3 +2185,479 @@ body.dark-mode .priority-option.active {
     border-color: var(--primary);
     background: rgba(0, 200, 83, 0.15);
 }
+
+/* ===== MODAL RDO ===== */
+.modal-rdo .modal {
+    max-height: 95vh;
+    padding: 16px 16px 24px;
+    border-radius: 16px 16px 0 0;
+    background: var(--bg-container);
+}
+
+.rdo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rdo-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rdo-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.rdo-field {
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rdo-field.full {
+    flex: 0 0 100%;
+}
+
+.rdo-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rdo-field label .icon {
+    font-size: 1rem;
+}
+
+.rdo-field input,
+.rdo-field textarea,
+.rdo-field select {
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    transition: all 0.3s;
+    font-family: inherit;
+    width: 100%;
+}
+
+.rdo-field input:focus,
+.rdo-field textarea:focus,
+.rdo-field select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.rdo-divider {
+    border: none;
+    border-top: 2px solid var(--border-color);
+    margin: 6px 0;
+}
+
+.rdo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.rdo-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    min-height: 48px;
+}
+
+.rdo-btn:active {
+    transform: scale(0.96);
+}
+
+.rdo-btn.primary {
+    background: var(--primary);
+    color: var(--badge-text);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.rdo-btn.primary:hover {
+    opacity: 0.9;
+}
+
+.rdo-btn.secondary {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.rdo-btn.secondary:hover {
+    background: var(--border-color);
+}
+
+@media (max-width: 480px) {
+    .rdo-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .rdo-field {
+        min-width: 100%;
+    }
+
+    .rdo-actions {
+        flex-direction: column;
+    }
+
+    .rdo-btn {
+        width: 100%;
+    }
+}
+
+/* ===== MODAL GERAR RDO ===== */
+.rdo-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 4px 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rdo-task-list {
+    max-height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    background: var(--bg-input);
+}
+
+.rdo-task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.rdo-task-item:hover {
+    background: var(--bg-hover);
+}
+
+.rdo-task-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.rdo-task-item .task-info {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.rdo-task-item .task-info strong {
+    color: var(--text-primary);
+    display: block;
+}
+
+.rdo-task-item .task-info small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ===== DESVIOS ===== */
+.rdo-desvio-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.rdo-desvio-row .rdo-field {
+    min-width: 80px;
+}
+
+.rdo-desvio-row .rdo-desvio-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 4px;
+}
+
+.rdo-btn-remove-desvio {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--danger);
+    transition: background 0.2s;
+}
+
+.rdo-btn-remove-desvio:hover {
+    background: var(--danger-light);
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 480px) {
+    .rdo-desvio-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .rdo-desvio-row .rdo-desvio-actions {
+        grid-column: span 2;
+        justify-content: flex-end;
+    }
+
+    .rdo-task-item {
+        flex-wrap: wrap;
+    }
+}
+
+/* ===== SELETOR DE TIPO DE ATIVIDADE ===== */
+.activity-type-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.activity-type-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.activity-type-btn .icon {
+    font-size: 1.2rem;
+}
+
+.activity-type-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+}
+
+.activity-type-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+body.dark-mode .activity-type-btn.active {
+    background: rgba(0, 200, 83, 0.15);
+    border-color: var(--primary);
+}
+
+/* ===== MODAL PERFIL ===== */
+.modal-profile .rdo-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 4px 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.modal-profile .rdo-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.modal-profile .rdo-field {
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.modal-profile .rdo-field.full {
+    flex: 0 0 100%;
+}
+
+.modal-profile .rdo-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.modal-profile .rdo-field input {
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    transition: all 0.3s;
+    font-family: inherit;
+    width: 100%;
+}
+
+.modal-profile .rdo-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.modal-profile .rdo-divider {
+    border: none;
+    border-top: 2px solid var(--border-color);
+    margin: 12px 0;
+}
+
+@media (max-width: 480px) {
+    .modal-profile .rdo-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .modal-profile .rdo-field {
+        min-width: 100%;
+    }
+}
+
+/* ===== SELECT MÚLTIPLO ===== */
+.rdo-multiselect {
+    width: 100%;
+    min-height: 120px;
+    padding: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.3s;
+}
+
+.rdo-multiselect:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.rdo-multiselect option {
+    padding: 4px 8px;
+}
+
+/* ===== ÍCONES RDO ===== */
+.rdo-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 4px;
+    filter: var(--icon-filter, none);
+}
+
+body.dark-mode .rdo-icon {
+    filter: brightness(0) invert(1);
+}
+
+/* ===== CHECKBOX MATERIAL DESIGN ===== */
+.material-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-input);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.material-checkbox:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.material-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.material-checkbox:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.material-checkbox:active {
+    transform: scale(0.9);
+}
+
+/* ===== SELETOR DE CÓDIGO DE DESVIO ===== */
+.rdo-desvio-row .rdo-field select.rdoDesvioCodigo {
+    appearance: auto;
+    -webkit-appearance: auto;
+    padding-right: 30px;
+    cursor: pointer;
+}
+
+/* Dica visual do código selecionado (opcional) */
+.rdo-codigo-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    background: var(--bg-input);
+    padding: 0 4px;
+    border-radius: 4px;
+}
