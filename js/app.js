@@ -1,5 +1,5 @@
 // =============================================
-// APP.JS - TASK MANAGER (VERSÃO FINAL CORRIGIDA E COMPLETA)
+// APP.JS - TASK MANAGER (VERSÃO FINAL COMPLETA)
 // =============================================
 
 // ===== CONSTANTE DE DESVIOS (GLOBAL) =====
@@ -11,6 +11,70 @@ const CODIGOS_DESVIO = [
     { codigo: "04", descricao: "Condições climáticas" },
     { codigo: "08", descricao: "Deslocamento" },
     { codigo: "13", descricao: "Almoço/Janta" }
+];
+
+// ===== LISTA DE ATIVIDADES DE MANUTENÇÃO =====
+const ATIVIDADES_MANUTENCAO = [
+    "Abastecimento de odorante",
+    "Acompanhar obras",
+    "ADM",
+    "Apoio equipe Comgás",
+    "Apoio equipe interna",
+    "Apoio equipe terceira",
+    "AVG CRM / ECP / válvula / etc",
+    "AVG de City Gate",
+    "AVG irregularidades",
+    "AVG LKG",
+    "AVG pressão",
+    "AVG pressão interna",
+    "AVG reclamação",
+    "Bloquear ECP / VGB / CRM",
+    "Check list de start",
+    "Comissionamento",
+    "Comunicado sala de controle",
+    "Controle de estoque",
+    "Desligar gás",
+    "Entrega / retirada de equipamentos e materiais",
+    "Entrega / retirada de viatura",
+    "Fechar / abrir",
+    "Inspeção de VB",
+    "Instalar lacre",
+    "Instalar TAG",
+    "Instalar venteo",
+    "Integração",
+    "Lavagem VB / CRM / ECP / etc",
+    "Limpeza e organização de viatura",
+    "Manobrar tramos City Gate",
+    "Manobrar tramos ECP / CRM / CM / etc",
+    "Manobrar válvula",
+    "Manutenção de tampa ECP",
+    "Manutenção em bancada",
+    "Manutenção nível A",
+    "Manutenção nível B",
+    "Manutenção nível C",
+    "Manutenção de válvula",
+    "Monitorar pressão",
+    "Passagem de PIG",
+    "Projeto 4.0",
+    "Recomissionamento de rede",
+    "Relatório fotográfico",
+    "Relatório técnico / check list",
+    "Religar gás",
+    "Remanejamento de rede",
+    "Renovação de CRM / ECP / etc",
+    "Retirada CRM / CM / CR / etc",
+    "Retirar água da caixa",
+    "RVC",
+    "Start CRM / ECP / etc",
+    "Teste de CRC",
+    "Treinamento",
+    "Troca de componente",
+    "Troca de conexão",
+    "Troca de datalogger",
+    "Troca de equipamento",
+    "Troca de kit",
+    "Troca de medidor",
+    "Outro"
 ];
 
 class TaskManager {
@@ -179,6 +243,7 @@ class TaskManager {
     initializeDOM() {
         console.log('🔧 Inicializando DOM...');
 
+        // Perfil
         this.profileEquipe = document.getElementById('profileEquipe');
         this.profileEscala = document.getElementById('profileEscala');
         this.profileTecnico1 = document.getElementById('profileTecnico1');
@@ -196,6 +261,7 @@ class TaskManager {
         this.profileLogotipoImg = document.getElementById('profileLogotipoImg');
         this.profileLogotipoRemover = document.getElementById('profileLogotipoRemover');
 
+        // Principais
         this.taskList = document.getElementById('taskList');
         this.filterBtns = document.querySelectorAll('.filter-btn');
         this.sidebar = document.getElementById('sidebar');
@@ -206,6 +272,7 @@ class TaskManager {
         this.profileAvatar = document.getElementById('profileAvatar');
         this.taskCount = document.getElementById('taskCount');
 
+        // Modal de atividade
         this.taskModal = document.getElementById('taskModal');
         this.modalTitle = document.getElementById('modalTitle');
         this.taskForm = document.getElementById('taskForm');
@@ -218,6 +285,7 @@ class TaskManager {
         this.modalTaskClose = document.getElementById('modalTaskClose');
         this.fabAddTask = document.getElementById('fabAddTask');
 
+        // Endereço
         this.modalAddressSearch = document.getElementById('modalAddressSearch');
         this.modalSearchBtn = document.getElementById('modalSearchBtn');
         this.modalSuggestions = document.getElementById('modalSuggestions');
@@ -225,6 +293,7 @@ class TaskManager {
         this.modalSelectedText = document.getElementById('modalSelectedText');
         this.modalClearAddress = document.getElementById('modalClearAddress');
 
+        // Perfil modal
         this.profileModal = document.getElementById('profileModal');
         this.modalProfileClose = document.getElementById('modalProfileClose');
         this.profileForm = document.getElementById('profileForm');
@@ -232,6 +301,7 @@ class TaskManager {
         this.modalEmail = document.getElementById('modalEmail');
         this.modalAvatar = document.getElementById('modalAvatar');
 
+        // Botões de dados
         this.clearAllData = document.getElementById('clearAllData');
         this.exportDataBtn = document.getElementById('exportDataBtn');
         this.importFileInput = document.getElementById('importFileInput');
@@ -246,26 +316,33 @@ class TaskManager {
         this.installBtn = document.getElementById('installBtn');
         this.installClose = document.getElementById('installClose');
 
+        // Header
         this.headerWhatsApp = document.getElementById('headerWhatsApp');
         this.headerEmail = document.getElementById('headerEmail');
         this.headerMap = document.getElementById('headerMap');
         this.headerRDO = document.getElementById('headerRDO');
 
+        // Status
         this.statusDot = document.getElementById('statusDot');
         this.statusText = document.getElementById('statusText');
         this.connectionStatus = document.getElementById('connectionStatus');
         this.connectionText = document.getElementById('connectionText');
 
+        // Contadores
         this.countAll = document.getElementById('countAll');
         this.countPending = document.getElementById('countPending');
         this.countCompleted = document.getElementById('countCompleted');
 
+        // Mapa
         this.mapContainer = document.getElementById('mapContainer');
 
+        // Atividade
         this.activityTypeBtns = document.querySelectorAll('.activity-type-btn');
         this.manutencaoFields = document.getElementById('manutencaoFields');
         this.comissionamentoFields = document.getElementById('comissionamentoFields');
-        this.rdoAtividadeSelect = document.getElementById('rdoAtividadeSelect');
+        this.rdoAtividadeSearch = document.getElementById('rdoAtividadeSearch');
+        this.rdoAtividadeContainer = document.getElementById('rdoAtividadeContainer');
+        this.rdoAtividadeEmpty = document.getElementById('rdoAtividadeEmpty');
         this.rdoAtividadeOutro = document.getElementById('rdoAtividadeOutro');
         this.rdoAtividadeDisplay = document.getElementById('rdoAtividadeDisplay');
         this.rdoAtividadeHidden = document.getElementById('rdoAtividadeHidden');
@@ -278,6 +355,7 @@ class TaskManager {
         this.rdoTu = document.getElementById('rdoTu');
         this.rdoPocc = document.getElementById('rdoPocc');
 
+        // RDO Generator
         this.rdoDisplayEquipe = document.getElementById('rdoDisplayEquipe');
         this.rdoDisplayVeiculo = document.getElementById('rdoDisplayVeiculo');
         this.rdoDisplayUsuario1 = document.getElementById('rdoDisplayUsuario1');
@@ -860,12 +938,51 @@ class TaskManager {
         return active ? active.dataset.type : 'manutencao';
     }
 
+    // ===== MÉTODOS PARA CHECKBOXES DE ATIVIDADES =====
+    renderizarAtividades(filtro = '') {
+        const container = this.rdoAtividadeContainer;
+        const empty = this.rdoAtividadeEmpty;
+        if (!container) return;
+
+        const termo = filtro.toLowerCase().trim();
+        const atividades = ATIVIDADES_MANUTENCAO.filter(atv => {
+            if (!termo) return true;
+            return atv.toLowerCase().includes(termo);
+        });
+
+        if (atividades.length === 0) {
+            container.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+
+        const selecionados = this.getAtividadesSelecionadas();
+
+        container.innerHTML = atividades.map(atv => `
+            <label class="checkbox-item" data-value="${atv}">
+                <input type="checkbox" class="atividade-checkbox" value="${atv}" 
+                    ${selecionados.includes(atv) ? 'checked' : ''}>
+                <span>${atv}</span>
+            </label>
+        `).join('');
+
+        container.querySelectorAll('.atividade-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => this.atualizarAtividade());
+        });
+    }
+
+    getAtividadesSelecionadas() {
+        const container = this.rdoAtividadeContainer;
+        if (!container) return [];
+        const checkboxes = container.querySelectorAll('.atividade-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
     atualizarAtividade() {
-        const select = this.rdoAtividadeSelect;
-        if (!select) return;
-        const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+        const selecionados = this.getAtividadesSelecionadas();
         const outro = this.rdoAtividadeOutro ? this.rdoAtividadeOutro.value.trim() : '';
-        let atividades = [...selectedOptions];
+        let atividades = [...selecionados];
         if (outro) atividades.push(outro);
         const texto = atividades.join('; ');
         if (this.rdoAtividadeDisplay) this.rdoAtividadeDisplay.value = texto;
@@ -876,17 +993,12 @@ class TaskManager {
         if (tipo === 'comissionamento') {
             if (this.manutencaoFields) this.manutencaoFields.style.display = 'none';
             if (this.comissionamentoFields) this.comissionamentoFields.style.display = 'block';
-            if (this.rdoAtividadeSelect) this.rdoAtividadeSelect.disabled = true;
             if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.disabled = true;
-            if (this.rdoAtividadeDisplay) this.rdoAtividadeDisplay.value = 'Comissionamento';
-            if (this.rdoAtividadeHidden) this.rdoAtividadeHidden.value = 'Comissionamento';
-            if (this.rdoAtividadeComiss) this.rdoAtividadeComiss.value = 'Comissionamento';
         } else {
             if (this.manutencaoFields) this.manutencaoFields.style.display = 'block';
             if (this.comissionamentoFields) this.comissionamentoFields.style.display = 'none';
-            if (this.rdoAtividadeSelect) this.rdoAtividadeSelect.disabled = false;
             if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.disabled = false;
-            this.atualizarAtividade();
+            this.renderizarAtividades(this.rdoAtividadeSearch?.value || '');
         }
     }
 
@@ -1135,17 +1247,18 @@ class TaskManager {
                 this.rdoObs.value = task.obs || '';
 
                 if (tipo === 'manutencao') {
-                    if (this.rdoAtividadeSelect) {
-                        Array.from(this.rdoAtividadeSelect.options).forEach(opt => opt.selected = false);
-                        const atividades = task.text ? task.text.split('; ').map(s => s.trim()) : [];
-                        atividades.forEach(item => {
-                            const opt = Array.from(this.rdoAtividadeSelect.options).find(o => o.value === item);
-                            if (opt) opt.selected = true;
+                    // Carregar atividades selecionadas nos checkboxes
+                    const atividades = task.text ? task.text.split('; ').map(s => s.trim()) : [];
+                    const checkboxes = this.rdoAtividadeContainer?.querySelectorAll('.atividade-checkbox');
+                    if (checkboxes) {
+                        checkboxes.forEach(cb => {
+                            cb.checked = atividades.includes(cb.value);
                         });
-                        const noSelect = atividades.filter(item => !Array.from(this.rdoAtividadeSelect.options).some(o => o.value === item));
-                        if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = noSelect.join('; ');
-                        this.atualizarAtividade();
                     }
+                    // O que não estiver no checkbox, colocar no "Outro"
+                    const noCheckbox = atividades.filter(item => !ATIVIDADES_MANUTENCAO.includes(item));
+                    if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = noCheckbox.join('; ');
+                    this.atualizarAtividade();
                 } else {
                     if (this.rdoAtividadeComiss) this.rdoAtividadeComiss.value = 'Comissionamento';
                     this.rdoProjeto.value = task.projeto || '';
@@ -1181,9 +1294,6 @@ class TaskManager {
             this.rdoOrdem.value = '';
             this.rdoDataAtividade.value = '';
             this.rdoObs.value = '';
-            if (this.rdoAtividadeSelect) {
-                Array.from(this.rdoAtividadeSelect.options).forEach(opt => opt.selected = false);
-            }
             if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = '';
             if (this.rdoAtividadeDisplay) this.rdoAtividadeDisplay.value = '';
             if (this.rdoAtividadeHidden) this.rdoAtividadeHidden.value = '';
@@ -1203,7 +1313,7 @@ class TaskManager {
 
         this.taskModal.classList.add('active');
         setTimeout(() => {
-            if (this.rdoAtividadeSelect) this.rdoAtividadeSelect.focus();
+            if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.focus();
         }, 400);
         this.closeSidebar();
     }
@@ -1213,6 +1323,8 @@ class TaskManager {
         this.clearModalAddress();
         this.modalSuggestions.classList.remove('active');
         this.editingTaskId = null;
+        if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.value = '';
+        this.renderizarAtividades(); // reset da lista
     }
 
     openProfileModal() {
@@ -1227,13 +1339,18 @@ class TaskManager {
         document.getElementById('profileRegistro2').value = this.profile.registro2 || '';
         document.getElementById('profilePrefixo').value = this.profile.prefixo || '';
         document.getElementById('profileTipoVeiculo').value = this.profile.tipoVeiculo || '';
+        document.getElementById('profileNomeEmpresa').value = this.profile.nomeEmpresa || '';
         document.getElementById('profileJornadaInicio').value = this.profile.jornadaInicio || '08:00';
         document.getElementById('profileJornadaFim').value = this.profile.jornadaFim || '17:00';
-        document.getElementById('profileNomeEmpresa').value = this.profile.nomeEmpresa || '';
-        if (this.profile.logotipo) {
-            document.getElementById('profileLogotipoImg').src = this.profile.logotipo;
+        // Carregar logotipo
+        const logotipo = this.profile.logotipo || '';
+        if (logotipo) {
+            document.getElementById('profileLogotipoImg').src = logotipo;
             document.getElementById('profileLogotipoPreview').style.display = 'block';
             document.getElementById('profileLogotipoRemover').style.display = 'inline';
+        } else {
+            document.getElementById('profileLogotipoPreview').style.display = 'none';
+            document.getElementById('profileLogotipoRemover').style.display = 'none';
         }
         this.calcularDuracaoJornada();
         this.profileModal.classList.add('active');
@@ -1894,7 +2011,6 @@ class TaskManager {
     openRDOGenerator() {
         console.log('📂 Abrindo gerador de RDO...');
         const profile = this.profile;
-        console.log('📋 Dados do perfil:', profile);
 
         const equipeField = document.getElementById('rdoDisplayEquipe');
         if (equipeField) {
@@ -1998,7 +2114,7 @@ class TaskManager {
         `;
         container.appendChild(row);
 
-        // --- Evento para mostrar popup ao selecionar o código ---
+        // Evento para mostrar popup ao selecionar código
         const select = row.querySelector('.rdoDesvioCodigo');
         if (select) {
             select.addEventListener('change', function () {
@@ -2012,7 +2128,6 @@ class TaskManager {
             });
         }
 
-        // --- Botão remover ---
         row.querySelector('.rdo-btn-remove-desvio').addEventListener('click', () => {
             if (container.children.length > 1) {
                 row.remove();
@@ -2121,13 +2236,13 @@ class TaskManager {
                 </div>
                 <div style="max-height: 400px; overflow-y: auto; padding: 8px 0;">
                     ${rdos.map(r => `
-                        <div style="border-bottom: 1px solid var(--border-color); padding: 10px 0;">
-                            <strong>${r.data}</strong> - ${r.equipe} - ${r.tarefas.length} atividades
+                        <div style="border-bottom: 1px solid var(--border-color, #eee); padding: 10px 0;">
+                            <strong>${r.data}</strong> - ${r.equipe} - ${(r.tarefas || []).length} atividades
                             <br><small>${r.observacao || 'Sem observação'}</small>
                             <div style="margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap;">
                                 <button class="rdo-btn secondary btn-editar-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">✏️ Editar</button>
                                 <button class="rdo-btn secondary btn-pdf-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">📄 Gerar PDF</button>
-                                <button class="rdo-btn secondary btn-excluir-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px; color: var(--danger);">🗑️ Excluir</button>
+                                <button class="rdo-btn secondary btn-excluir-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px; color: var(--danger, red);">🗑️ Excluir</button>
                             </div>
                         </div>
                     `).join('')}
@@ -2159,9 +2274,7 @@ class TaskManager {
     }
 
     editarRDO(id) {
-        console.log('✏️ Editando RDO ID:', id);
-        const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-        const rdo = rdos.find(r => r.id === id);
+        const rdo = this.buscarRDO(id);
         if (!rdo) {
             showToast('⚠️ RDO não encontrado.');
             return;
@@ -2596,16 +2709,39 @@ class TaskManager {
         }
     }
 
-    excluirRDO(id) {
-        if (confirm('🗑️ Tem certeza que deseja excluir este RDO?')) {
-            let rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            rdos = rdos.filter(r => r.id !== id);
-            localStorage.setItem('rdos', JSON.stringify(rdos));
-            showToast('🗑️ RDO excluído.');
-            const listModal = document.querySelector('.modal-overlay.active');
-            if (listModal) listModal.remove();
-            this.listarRDOs();
-        }
+    // ===== MÉTODOS DE COMPARTILHAMENTO =====
+    exibirOpcoesCompartilhamento(id) {
+        const rdo = this.buscarRDO(id);
+        if (!rdo) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal modal-rdo" style="max-width: 420px; border-radius: 16px;">
+                <div class="modal-header">
+                    <h3>📤 Compartilhar RDO</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                </div>
+                <div style="text-align: center; padding: 16px 0;">
+                    <p style="margin-bottom: 16px;">Deseja compartilhar este RDO via WhatsApp ou Email?</p>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button class="rdo-btn secondary" onclick="window.app.compartilharRDOWhatsApp(${id}); this.closest('.modal-overlay').remove();" style="padding: 10px 24px; font-size: 1rem; background: #25D366; color: white; border: none; border-radius: 30px;">
+                            📱 WhatsApp
+                        </button>
+                        <button class="rdo-btn secondary" onclick="window.app.compartilharRDOEmail(${id}); this.closest('.modal-overlay').remove();" style="padding: 10px 24px; font-size: 1rem; background: #0052CC; color: white; border: none; border-radius: 30px;">
+                            📧 Email
+                        </button>
+                        <button class="rdo-btn secondary" onclick="this.closest('.modal-overlay').remove();" style="padding: 10px 24px; font-size: 1rem; background: var(--bg-hover, #ccc); color: var(--text-primary, #000); border: none; border-radius: 30px;">
+                            ✖ Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
     }
 
     compartilharRDOWhatsApp(id) {
@@ -2614,7 +2750,7 @@ class TaskManager {
         const msg = `📋 *RDO - ${rdo.data}*\n` +
             `👥 Equipe: ${rdo.equipe}\n` +
             `🚛 Veículo: ${rdo.veiculo}\n` +
-            `📌 Atividades: ${rdo.tarefas.length}\n` +
+            `📌 Atividades: ${(rdo.tarefas || []).length}\n` +
             `📝 Obs: ${rdo.observacao || 'Sem observação'}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     }
@@ -2626,7 +2762,7 @@ class TaskManager {
         const body = `RDO - ${rdo.data}\n\n` +
             `Equipe: ${rdo.equipe}\n` +
             `Veículo: ${rdo.veiculo}\n` +
-            `Atividades: ${rdo.tarefas.length}\n` +
+            `Atividades: ${(rdo.tarefas || []).length}\n` +
             `Obs: ${rdo.observacao || 'Sem observação'}`;
         window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
     }
@@ -2639,6 +2775,13 @@ class TaskManager {
             return null;
         }
         return rdo;
+    }
+
+    excluirRDO(id) {
+        let rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+        rdos = rdos.filter(r => r.id !== id);
+        localStorage.setItem('rdos', JSON.stringify(rdos));
+        showToast('🗑️ RDO excluído com sucesso.');
     }
 
     calcularDuracaoJornada() {
@@ -2662,7 +2805,7 @@ class TaskManager {
     bindEvents() {
         console.log('🔧 Vinculando eventos...');
 
-        // ----- Upload de logotipo com validações -----
+        // ----- Upload de logotipo -----
         if (this.profileLogotipo) {
             this.profileLogotipo.addEventListener('change', (e) => {
                 const file = e.target.files[0];
@@ -2682,9 +2825,9 @@ class TaskManager {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     const base64 = ev.target.result;
-                    document.getElementById('profileLogotipoImg').src = base64;
-                    document.getElementById('profileLogotipoPreview').style.display = 'block';
-                    document.getElementById('profileLogotipoRemover').style.display = 'inline';
+                    this.profileLogotipoImg.src = base64;
+                    this.profileLogotipoPreview.style.display = 'block';
+                    this.profileLogotipoRemover.style.display = 'inline';
                     this.profile.logotipo = base64;
                     showToast('✅ Logotipo carregado!');
                 };
@@ -2695,21 +2838,30 @@ class TaskManager {
         // ----- Remover logotipo -----
         if (this.profileLogotipoRemover) {
             this.profileLogotipoRemover.addEventListener('click', () => {
-                document.getElementById('profileLogotipoImg').src = '';
-                document.getElementById('profileLogotipoPreview').style.display = 'none';
-                document.getElementById('profileLogotipoRemover').style.display = 'none';
+                this.profileLogotipoImg.src = '';
+                this.profileLogotipoPreview.style.display = 'none';
+                this.profileLogotipoRemover.style.display = 'none';
                 this.profile.logotipo = '';
                 this.profileLogotipo.value = '';
                 showToast('🖼️ Logotipo removido');
             });
         }
 
+        // ----- Busca de atividades (filtro em tempo real) -----
+        if (this.rdoAtividadeSearch) {
+            this.rdoAtividadeSearch.addEventListener('input', (e) => {
+                this.renderizarAtividades(e.target.value);
+            });
+        }
+
+        // ----- Header RDO -----
         if (this.headerRDO) {
             this.headerRDO.addEventListener('click', () => {
                 this.openRDOGenerator();
             });
         }
 
+        // ----- Tipo de atividade -----
         if (this.activityTypeBtns) {
             this.activityTypeBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -2721,13 +2873,12 @@ class TaskManager {
             });
         }
 
-        if (this.rdoAtividadeSelect) {
-            this.rdoAtividadeSelect.addEventListener('change', () => this.atualizarAtividade());
-        }
+        // ----- Campo "Outro" atualiza display -----
         if (this.rdoAtividadeOutro) {
             this.rdoAtividadeOutro.addEventListener('input', () => this.atualizarAtividade());
         }
 
+        // ----- Jornada -----
         const jornadaInicio = document.getElementById('profileJornadaInicio');
         const jornadaFim = document.getElementById('profileJornadaFim');
         if (jornadaInicio && jornadaFim) {
@@ -2735,7 +2886,7 @@ class TaskManager {
             jornadaFim.addEventListener('change', () => this.calcularDuracaoJornada());
         }
 
-        // ----- HEADER: WhatsApp -----
+        // ----- Header: WhatsApp -----
         if (this.headerWhatsApp) {
             this.headerWhatsApp.addEventListener('click', () => {
                 console.log('📱 WhatsApp clicado!');
@@ -2745,7 +2896,7 @@ class TaskManager {
             console.warn('⚠️ Elemento headerWhatsApp não encontrado!');
         }
 
-        // ----- HEADER: Email -----
+        // ----- Header: Email -----
         if (this.headerEmail) {
             this.headerEmail.addEventListener('click', () => {
                 console.log('📧 Email clicado!');
@@ -2755,7 +2906,7 @@ class TaskManager {
             console.warn('⚠️ Elemento headerEmail não encontrado!');
         }
 
-        // ----- HEADER: Mapa -----
+        // ----- Header: Mapa -----
         if (this.headerMap) {
             this.headerMap.addEventListener('click', () => {
                 console.log('🗺️ Mapa clicado!');
@@ -2765,6 +2916,7 @@ class TaskManager {
             console.warn('⚠️ Elemento headerMap não encontrado!');
         }
 
+        // ----- Sidebar -----
         if (this.menuToggle) {
             this.menuToggle.addEventListener('click', () => this.toggleSidebar());
         }
@@ -2772,10 +2924,12 @@ class TaskManager {
             this.sidebarOverlay.addEventListener('click', () => this.closeSidebar());
         }
 
+        // ----- Tema -----
         if (this.darkModeToggle) {
             this.darkModeToggle.addEventListener('click', () => this.toggleTheme());
         }
 
+        // ----- Menu -----
         document.querySelectorAll('.menu-item[data-page]').forEach(item => {
             item.addEventListener('click', () => {
                 const page = item.dataset.page;
@@ -2789,6 +2943,7 @@ class TaskManager {
             });
         });
 
+        // ----- Perfil -----
         if (this.profileAvatar) {
             this.profileAvatar.addEventListener('click', () => this.openProfileModal());
         }
@@ -2817,6 +2972,7 @@ class TaskManager {
             });
         }
 
+        // ----- Dados -----
         if (this.exportDataBtn) {
             this.exportDataBtn.addEventListener('click', () => this.exportData());
         }
@@ -2835,6 +2991,7 @@ class TaskManager {
             this.clearAllData.addEventListener('click', () => this.clearAllData());
         }
 
+        // ----- FAB -----
         if (this.fabAddTask) {
             this.fabAddTask.addEventListener('click', () => {
                 console.log('✅ FAB clicado!');
@@ -2842,6 +2999,7 @@ class TaskManager {
             });
         }
 
+        // ----- Modal Tarefa -----
         if (this.modalTaskClose) {
             this.modalTaskClose.addEventListener('click', () => this.closeTaskModal());
         }
@@ -2851,6 +3009,7 @@ class TaskManager {
             });
         }
 
+        // ----- Busca Endereço -----
         if (this.modalSearchBtn) {
             this.modalSearchBtn.addEventListener('click', () => {
                 this.buscarEndereco(this.modalAddressSearch.value);
@@ -2875,6 +3034,7 @@ class TaskManager {
             this.modalClearAddress.addEventListener('click', () => this.clearModalAddress());
         }
 
+        // ----- Formulário de Atividade -----
         if (this.taskForm) {
             this.taskForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -2891,6 +3051,7 @@ class TaskManager {
             });
         }
 
+        // ----- Concluir Tarefa -----
         if (this.taskList) {
             this.taskList.addEventListener('click', (e) => {
                 if (e.target.classList.contains('task-checkbox')) {
@@ -2902,6 +3063,7 @@ class TaskManager {
             });
         }
 
+        // ----- Menu Gerar RDO -----
         const menuGerarRDO = document.getElementById('menuGerarRDO');
         if (menuGerarRDO) {
             menuGerarRDO.addEventListener('click', () => {
@@ -2910,6 +3072,7 @@ class TaskManager {
             });
         }
 
+        // ----- Menu Meus RDOs -----
         const menuMeusRDOs = document.getElementById('menuMeusRDOs');
         if (menuMeusRDOs) {
             menuMeusRDOs.addEventListener('click', () => {
@@ -2918,22 +3081,26 @@ class TaskManager {
             });
         }
 
+        // ----- Fechar RDO Generator -----
         if (this.rdoGeneratorClose) {
             this.rdoGeneratorClose.addEventListener('click', () => {
                 if (this.rdoGeneratorModal) this.rdoGeneratorModal.classList.remove('active');
             });
         }
 
+        // ----- Submit RDO Generator -----
         if (this.rdoGeneratorForm) {
             this.rdoGeneratorForm.addEventListener('submit', (e) => this.salvarRDO(e));
         }
 
+        // ----- Adicionar Desvio -----
         if (this.rdoAddDesvioBtn) {
             this.rdoAddDesvioBtn.addEventListener('click', () => {
                 this.addDesvioRow('12:00', '13:00', '13');
             });
         }
 
+        // ----- Filtros -----
         this.filterBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 this.filterBtns.forEach(b => b.classList.remove('active'));
@@ -2943,6 +3110,7 @@ class TaskManager {
             });
         });
 
+        // ----- Gestão para fechar sidebar -----
         let touchStartX = 0;
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
@@ -2962,7 +3130,6 @@ class TaskManager {
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM carregado, iniciando app...');
-    const app = new TaskManager();
+    window.app = new TaskManager();
     console.log('✅ App organizado e inicializado!');
-    window.app = app;
 });

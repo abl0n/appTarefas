@@ -345,13 +345,18 @@
                 </div>
 
                 <!-- ATIVIDADE (MANUTENÇÃO - UX Otimizada para Mobile) -->
+                <!-- ===== ATIVIDADE (MANUTENÇÃO - CHECKBOXES COM BUSCA) ===== -->
                 <div class="rdo-section" id="manutencaoFields">
                     <div class="rdo-field full">
                         <label for="rdoAtividadeSearch">📝 Buscar / Selecionar atividades</label>
                         <input type="text" id="rdoAtividadeSearch" placeholder="Digite para filtrar opções...">
                         <div id="rdoAtividadeContainer" class="checkbox-group-container"
-                            style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-top: 6px;">
-                            <!-- Opções renderizadas dinamicamente via JS como checkboxes para otimizar no Mobile -->
+                            style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-top: 6px;">
+                            <!-- As opções serão renderizadas via JavaScript -->
+                        </div>
+                        <div id="rdoAtividadeEmpty"
+                            style="display:none; color:var(--text-muted); padding:8px; text-align:center;">
+                            Nenhuma atividade encontrada.
                         </div>
                     </div>
                     <div class="rdo-field full" style="margin-top:8px;">
@@ -363,6 +368,7 @@
                         <input type="text" id="rdoAtividadeDisplay" readonly
                             style="background: var(--bg-input); cursor: default;">
                     </div>
+                    <input type="hidden" id="rdoAtividadeHidden" value="">
                 </div>
 
                 <!-- ATIVIDADE (COMISSIONAMENTO) -->
