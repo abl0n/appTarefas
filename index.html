@@ -23,6 +23,9 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/rdo-selection.css">
+    <link rel="stylesheet" href="css/rdo-minimal.css">
+    <link rel="stylesheet" href="css/main-tasks-refinement.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -131,13 +134,16 @@
             <!-- FILTROS -->
             <div class="filter-section" role="group" aria-label="Filtros de Tarefas">
                 <button class="filter-btn active" data-filter="all">
-                    📋 Todas <span class="filter-count" id="countAll">0</span>
+                    <span class="filter-label"><span class="filter-icon" aria-hidden="true">📋</span> Todas</span>
+                    <span class="filter-count" id="countAll">0</span>
                 </button>
                 <button class="filter-btn" data-filter="pending">
-                    ⏳ Pendentes <span class="filter-count" id="countPending">0</span>
+                    <span class="filter-label"><span class="filter-icon" aria-hidden="true">⏳</span> Pendentes</span>
+                    <span class="filter-count" id="countPending">0</span>
                 </button>
                 <button class="filter-btn" data-filter="completed">
-                    ✅ Concluídas <span class="filter-count" id="countCompleted">0</span>
+                    <span class="filter-label"><span class="filter-icon" aria-hidden="true">✅</span> Concluídas</span>
+                    <span class="filter-count" id="countCompleted">0</span>
                 </button>
             </div>
 
@@ -537,14 +543,13 @@
                 <hr class="rdo-divider">
 
                 <!-- DESVIOS -->
-                <div class="rdo-section">
-                    <h3 class="rdo-section-title">⚠️ Desvios</h3>
+                <div class="rdo-section rdo-desvios-section">
+                    <button type="button" class="rdo-btn primary rdo-add-desvio-btn" id="rdoAddDesvioBtn">
+                        <span class="icon" aria-hidden="true">➕</span> Adicionar desvio
+                    </button>
                     <div id="rdoDesviosContainer">
                         <!-- Preenchido via JavaScript -->
                     </div>
-                    <button type="button" class="rdo-btn secondary" id="rdoAddDesvioBtn">
-                        <span class="icon" aria-hidden="true">➕</span> Adicionar Desvio
-                    </button>
                 </div>
 
                 <hr class="rdo-divider">

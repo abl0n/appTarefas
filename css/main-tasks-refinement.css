@@ -1,0 +1,240 @@
+/* Ajustes finais da tela de Tarefas — carregar por último. */
+
+/* A instalação permanece disponível apenas pelo menu lateral. */
+#installBanner,
+.install-banner {
+    display: none !important;
+}
+
+/* Mapa: fica acima do overlay e ocupa toda a tela. */
+#mapContainer {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg-body);
+}
+
+#mapContainer .leaflet-container {
+    width: 100%;
+    height: 100%;
+    font-family: inherit;
+}
+
+/* Modo escuro: superfícies de botão mais claras e com bordas visíveis. */
+body.dark-mode .menu-toggle,
+body.dark-mode .header-btn,
+body.dark-mode .filter-btn:not(.active),
+body.dark-mode .action-btn,
+body.dark-mode .priority-option,
+body.dark-mode .activity-type-btn,
+body.dark-mode .rdo-btn.secondary,
+body.dark-mode .modal-close {
+    background: #263449;
+    border-color: #3b4b63;
+    color: var(--text-primary);
+}
+
+body.dark-mode .menu-toggle:hover,
+body.dark-mode .header-btn:hover,
+body.dark-mode .filter-btn:not(.active):hover,
+body.dark-mode .action-btn:hover,
+body.dark-mode .priority-option:hover,
+body.dark-mode .activity-type-btn:hover,
+body.dark-mode .rdo-btn.secondary:hover,
+body.dark-mode .modal-close:hover {
+    background: #31415a;
+    border-color: #52647e;
+}
+
+body.dark-mode .filter-btn.active,
+body.dark-mode .rdo-btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Observação: botão à esquerda; fechada mostra uma linha, aberta mostra tudo. */
+.task-obs {
+    display: grid;
+    grid-template-columns: 24px auto minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 9px 10px;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.task-obs .obs-toggle {
+    display: grid;
+    grid-column: 1;
+    grid-row: 1;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 0;
+    border-radius: 6px;
+    font-size: .7rem;
+    line-height: 1;
+}
+
+.task-obs .obs-label {
+    grid-column: 2;
+    grid-row: 1;
+    padding-top: 3px;
+    color: var(--text-muted);
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.task-obs .obs-content {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+    padding-top: 2px;
+    font-size: .8rem;
+    line-height: 1.45;
+}
+
+.task-obs:not(.expanded) .obs-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-obs.expanded .obs-content {
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+body.dark-mode .task-obs .obs-toggle {
+    color: #b8f5cf;
+    background: #27473b;
+}
+
+/* Localização: três ações compactas, sem uma segunda linha de coordenadas. */
+.task-address {
+    padding-left: 0;
+    margin-top: 8px;
+}
+
+.task-address .address-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-address .address-text {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--address-text);
+    font-size: .78rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-address .address-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+}
+
+.task-address .address-link {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.task-address .address-link .icon-svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.task-address .address-link.google,
+.task-address .address-link.waze,
+.task-address .address-link.share-location {
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+}
+
+.task-address .address-link.google:hover { border-color: var(--google-color) !important; }
+.task-address .address-link.waze:hover { border-color: var(--waze-color) !important; }
+.task-address .address-link.share-location:hover { border-color: var(--primary) !important; background: var(--primary-light) !important; }
+
+body.dark-mode .task-address .address-link { background: #263449 !important; border-color: #3b4b63 !important; }
+
+/* Em tela pequena, título e ações ganham linhas próprias e nada transborda. */
+@media (max-width: 620px) {
+    header {
+        grid-template-columns: 40px minmax(0, 1fr);
+        gap: 8px;
+        padding-bottom: 12px;
+    }
+
+    .menu-toggle { min-width: 40px; min-height: 40px; }
+    .header-title h1 { font-size: 1.08rem; }
+    .header-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        width: 100%;
+    }
+    .header-btn { width: 100%; min-width: 0; min-height: 38px; }
+
+    .filter-section {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px;
+    }
+    .filter-btn {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        min-height: 40px;
+        padding: 4px;
+        gap: 4px;
+        font-size: .62rem;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+    .filter-label { display: inline-flex; align-items: center; min-width: 0; gap: 3px; }
+    .filter-icon { flex: 0 0 auto; font-size: .76rem; }
+    .filter-count { min-width: 18px; height: 18px; padding: 1px 5px; font-size: .58rem; }
+
+    .task-address .address-row { grid-template-columns: auto minmax(0, 1fr); }
+    .task-address .address-actions { grid-column: 2; justify-content: flex-start; }
+}
+
+@media (max-width: 380px) {
+    .task-obs { grid-template-columns: 22px auto minmax(0, 1fr); gap: 5px; padding: 8px; }
+    .task-obs .obs-toggle { width: 22px; height: 22px; }
+    .task-obs .obs-label, .task-obs .obs-content { font-size: .74rem; }
+    .filter-btn { font-size: .56rem; }
+    .filter-icon { font-size: .68rem; }
+    .header-actions { gap: 4px; }
+}

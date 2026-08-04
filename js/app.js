@@ -1,5 +1,5 @@
 // =============================================
-// APP.JS - TASK MANAGER (VERSÃO FINAL COMPLETA)
+// APP.JS - TASK MANAGER (VERSÃO FINAL COMPLETA + MELHORIAS)
 // =============================================
 
 // ===== CONSTANTE DE DESVIOS (GLOBAL) =====
@@ -118,12 +118,24 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE CARREGAMENTO
+    // MÉTODOS DE CARREGAMENTO (COM VALIDAÇÃO JSON)
     // =============================================
     loadTasks() {
         try {
             const saved = localStorage.getItem('tasks');
-            this.tasks = saved ? JSON.parse(saved) : [];
+            this.tasks = [];
+            if (saved) {
+                try {
+                    this.tasks = JSON.parse(saved);
+                    if (!Array.isArray(this.tasks)) {
+                        console.warn('⚠️ tasks não é um array, reiniciando.');
+                        this.tasks = [];
+                    }
+                } catch (e) {
+                    console.error('❌ JSON inválido em tasks:', e);
+                    this.tasks = [];
+                }
+            }
             console.log(`📋 ${this.tasks.length} atividades carregadas`);
         } catch (e) {
             console.error('❌ Erro ao carregar atividades:', e);
@@ -144,8 +156,13 @@ class TaskManager {
         try {
             const saved = localStorage.getItem('profile');
             if (saved) {
-                this.profile = JSON.parse(saved);
-                console.log('👤 Perfil carregado:', this.profile.name);
+                try {
+                    const parsed = JSON.parse(saved);
+                    this.profile = { ...this.profile, ...parsed };
+                    console.log('👤 Perfil carregado:', this.profile.name);
+                } catch (e) {
+                    console.error('❌ JSON inválido no profile:', e);
+                }
             }
         } catch (e) {
             console.error('❌ Erro ao carregar perfil:', e);
@@ -426,7 +443,8 @@ class TaskManager {
 
         this.taskList.innerHTML = filteredTasks.map((task, index) => {
             const dateStr = task.data ? task.data : (task.createdAt ? task.createdAt.split(',')[0] : '');
-            const titulo = task.text || 'Atividade sem título';
+            // MELHORIA: título já sanitizado
+            const titulo = task.text ? escapeHtml(task.text) : 'Atividade sem título';
             const priorityClass = task.completed ? '' : `priority-${task.priority || 'planned'}`;
             const ordemDisplayValue = task.ordem ? task.ordem : task.id;
 
@@ -434,9 +452,9 @@ class TaskManager {
             if (task.obs && task.obs.trim()) {
                 obsHtml = `
                     <div class="task-obs" data-expanded="false">
+                        <button type="button" class="obs-toggle" aria-label="Expandir observação" aria-expanded="false">▼</button>
                         <span class="obs-label">obs:</span>
                         <span class="obs-content">${escapeHtml(task.obs)}</span>
-                        <span class="obs-toggle">▼</span>
                     </div>
                 `;
             }
@@ -454,7 +472,7 @@ class TaskManager {
                         <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
                         <span class="task-title">
                             ${!task.completed ? `<span class="task-priority-badge ${task.priority || 'planned'}"></span>` : ''}
-                            ${escapeHtml(titulo)}
+                            ${titulo}
                         </span>
                         <div class="task-actions">
                             <button class="action-btn edit-btn" data-action="edit">✏️</button>
@@ -512,7 +530,8 @@ class TaskManager {
     }
 
     formatCoordinates(lat, lon) {
-        if (!lat || !lon) return '';
+        // CORREÇÃO: permite 0
+        if (lat === undefined || lon === undefined || lat === null || lon === null) return '';
         const latNum = parseFloat(lat);
         const lonNum = parseFloat(lon);
         if (isNaN(latNum) || isNaN(lonNum)) return '';
@@ -520,6 +539,7 @@ class TaskManager {
     }
 
     copyToClipboard(text) {
+        if (!text) return; // MELHORIA
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast('📋 Coordenadas copiadas!');
@@ -552,16 +572,17 @@ class TaskManager {
     // =============================================
     renderAddress(endereco) {
         const enderecoStr = this.formatAddressSimple(endereco);
-        const lat = endereco.lat || '';
-        const lon = endereco.lon || '';
+        const lat = endereco.lat ?? '';
+        const lon = endereco.lon ?? '';
         const coords = this.formatCoordinates(lat, lon);
         const query = encodeURIComponent(coords || enderecoStr);
+        const hasCoords = Boolean(coords);
 
-        const googleMapsUrl = lat && lon
+        const googleMapsUrl = hasCoords
             ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
             : `https://www.google.com/maps/search/?api=1&query=${query}`;
 
-        const wazeUrl = lat && lon
+        const wazeUrl = hasCoords
             ? `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`
             : `https://waze.com/ul?q=${query}&navigate=yes`;
 
@@ -575,23 +596,18 @@ class TaskManager {
         html += `<a href="${wazeUrl}" target="_blank" class="address-link waze" title="Abrir no Waze">`;
         html += `<img src="img/waze.svg" alt="Waze" class="icon-svg">`;
         html += `</a>`;
-        html += `</div></div>`;
-
-        if (coords) {
-            html += `
-                <div class="coord-container">
-                    <span class="coord-label">📍</span>
-                    <span class="coord-value" title="Clique para copiar">${coords}</span>
-                    <button class="coord-copy" data-coords="${coords}" title="Copiar coordenadas">Copiar</button>
-                </div>
-            `;
+        if (hasCoords) {
+            html += `<button type="button" class="address-link share-location" data-coords="${coords}" title="Copiar coordenadas" aria-label="Copiar coordenadas">`;
+            html += `<img src="img/share_location.svg" alt="Copiar localização" class="icon-svg">`;
+            html += `</button>`;
         }
+        html += `</div></div>`;
 
         return `<div class="task-address">${html}</div>`;
     }
 
     // =============================================
-    // MÉTODOS DE BUSCA DE ENDEREÇO
+    // MÉTODOS DE BUSCA DE ENDEREÇO (com tratamento de erro)
     // =============================================
     async buscarEndereco(query) {
         if (!query || query.trim().length < 3) {
@@ -1039,7 +1055,11 @@ class TaskManager {
         this.saveTasks();
         this.render();
         this.closeTaskModal();
-        showToast(endereco ? `✅ "${task.text}" com endereço!` : `✅ "${task.text}" adicionada!`);
+        // MELHORIA: mensagem mais clara
+        showToast(endereco
+            ? `✅ Atividade "${task.text}" com endereço!`
+            : `✅ Atividade "${task.text}" adicionada!`
+        );
         return true;
     }
 
@@ -1085,12 +1105,14 @@ class TaskManager {
 
     deleteTask(id) {
         const task = this.tasks.find(t => t.id === id);
-        if (task) {
-            this.tasks = this.tasks.filter(t => t.id !== id);
-            this.saveTasks();
-            this.render();
-            showToast(`🗑️ "${task.text}" removida`);
+        if (!task) {
+            showToast('⚠️ Atividade não encontrada');
+            return;
         }
+        this.tasks = this.tasks.filter(t => t.id !== id);
+        this.saveTasks();
+        this.render();
+        showToast(`🗑️ "${task.text}" removida`);
     }
 
     toggleTask(id) {
@@ -1247,7 +1269,6 @@ class TaskManager {
                 this.rdoObs.value = task.obs || '';
 
                 if (tipo === 'manutencao') {
-                    // Carregar atividades selecionadas nos checkboxes
                     const atividades = task.text ? task.text.split('; ').map(s => s.trim()) : [];
                     const checkboxes = this.rdoAtividadeContainer?.querySelectorAll('.atividade-checkbox');
                     if (checkboxes) {
@@ -1255,7 +1276,6 @@ class TaskManager {
                             cb.checked = atividades.includes(cb.value);
                         });
                     }
-                    // O que não estiver no checkbox, colocar no "Outro"
                     const noCheckbox = atividades.filter(item => !ATIVIDADES_MANUTENCAO.includes(item));
                     if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = noCheckbox.join('; ');
                     this.atualizarAtividade();
@@ -1324,7 +1344,7 @@ class TaskManager {
         this.modalSuggestions.classList.remove('active');
         this.editingTaskId = null;
         if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.value = '';
-        this.renderizarAtividades(); // reset da lista
+        this.renderizarAtividades();
     }
 
     openProfileModal() {
@@ -1484,7 +1504,7 @@ class TaskManager {
             });
         });
 
-        document.querySelectorAll('.coord-copy').forEach(btn => {
+        document.querySelectorAll('.share-location').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const coords = btn.dataset.coords;
@@ -1510,10 +1530,14 @@ class TaskManager {
                     this.classList.remove('expanded');
                     this.dataset.expanded = 'false';
                     toggle.textContent = '▼';
+                    toggle.setAttribute('aria-label', 'Expandir observação');
+                    toggle.setAttribute('aria-expanded', 'false');
                 } else {
                     this.classList.add('expanded');
                     this.dataset.expanded = 'true';
                     toggle.textContent = '▲';
+                    toggle.setAttribute('aria-label', 'Recolher observação');
+                    toggle.setAttribute('aria-expanded', 'true');
                 }
             });
         });
@@ -1634,7 +1658,11 @@ class TaskManager {
     async showMap() {
         console.log('🗺️ Executando showMap...');
         try {
-            const tasksWithAddress = this.tasks.filter(t => t.endereco && t.endereco.lat && t.endereco.lon);
+            const tasksWithAddress = this.tasks.filter(t => {
+                const lat = parseFloat(t.endereco?.lat);
+                const lon = parseFloat(t.endereco?.lon);
+                return Number.isFinite(lat) && Number.isFinite(lon);
+            });
             console.log(`📍 ${tasksWithAddress.length} tarefas com endereço`);
 
             if (tasksWithAddress.length === 0) {
@@ -1650,8 +1678,19 @@ class TaskManager {
                 return;
             }
 
+            if (!window.L) {
+                showToast('⚠️ Não foi possível carregar o mapa. Verifique sua conexão.');
+                return;
+            }
+
+            if (window.map) {
+                window.map.remove();
+                window.map = null;
+            }
+
             container.innerHTML = '';
             container.style.display = 'block';
+            container.setAttribute('aria-hidden', 'false');
 
             let overlay = document.getElementById('mapOverlay');
             if (!overlay) {
@@ -1727,6 +1766,7 @@ class TaskManager {
             closeBtn.onmouseout = () => { closeBtn.style.background = 'rgba(0,0,0,0.5)'; };
             closeBtn.onclick = () => {
                 container.style.display = 'none';
+                container.setAttribute('aria-hidden', 'true');
                 overlay.style.display = 'none';
                 if (window.map) {
                     window.map.remove();
@@ -1750,6 +1790,9 @@ class TaskManager {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap'
             }).addTo(map);
+
+            // O contêiner acabou de sair de display:none; atualiza o tamanho do Leaflet.
+            requestAnimationFrame(() => map.invalidateSize());
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -2066,16 +2109,23 @@ class TaskManager {
             return;
         }
 
-        container.innerHTML = this.tasks.map(task => `
-            <label class="rdo-task-item">
-                <input type="checkbox" value="${task.id}" class="rdo-task-checkbox material-checkbox">
-                <span class="task-info">
-                    <strong>${escapeHtml(task.text)}</strong>
-                    <small>Ordem: ${escapeHtml(task.ordem || '')} | Projeto: ${escapeHtml(task.projeto || '')}</small>
-                    <small>📍 ${escapeHtml(task.endereco ? this.formatAddressSimple(task.endereco) : 'Sem endereço')}</small>
-                </span>
-            </label>
-        `).join('');
+        container.innerHTML = this.tasks.map(task => {
+            const date = task.data || (task.createdAt ? String(task.createdAt).split(',')[0] : 'Sem data');
+            const order = task.ordem || 'Sem ordem';
+
+            return `
+                <label class="rdo-task-item">
+                    <input type="checkbox" value="${task.id}" class="rdo-task-checkbox material-checkbox">
+                    <span class="rdo-task-content">
+                        <span class="rdo-task-title">${escapeHtml(task.text || 'Atividade sem título')}</span>
+                        <span class="rdo-task-meta">
+                            <span class="rdo-task-chip">Ordem: ${escapeHtml(String(order))}</span>
+                            <span class="rdo-task-chip">Data: ${escapeHtml(String(date))}</span>
+                        </span>
+                    </span>
+                </label>
+            `;
+        }).join('');
     }
 
     clearDesvios() {
@@ -2091,15 +2141,15 @@ class TaskManager {
         row.className = 'rdo-desvio-row';
         row.innerHTML = `
             <div class="rdo-field rdo-desvio-horario">
-                <label>Início</label>
+                <label><span aria-hidden="true">◷</span> Início</label>
                 <input type="time" class="rdoDesvioInicio" value="${inicio}">
             </div>
             <div class="rdo-field rdo-desvio-horario">
-                <label>Fim</label>
+                <label><span aria-hidden="true">◷</span> Fim</label>
                 <input type="time" class="rdoDesvioFim" value="${fim}">
             </div>
             <div class="rdo-field rdo-desvio-codigo">
-                <label>Código</label>
+                <label><span aria-hidden="true">⌘</span> Código</label>
                 <select class="rdoDesvioCodigo">
                     ${CODIGOS_DESVIO.map(c => `
                         <option value="${c.codigo}" ${c.codigo === codigo ? 'selected' : ''}>
@@ -2114,7 +2164,6 @@ class TaskManager {
         `;
         container.appendChild(row);
 
-        // Evento para mostrar popup ao selecionar código
         const select = row.querySelector('.rdoDesvioCodigo');
         if (select) {
             select.addEventListener('change', function () {
@@ -2171,17 +2220,17 @@ class TaskManager {
             if (index !== -1) {
                 rdos[index] = {
                     ...rdos[index],
+                    updatedAt: new Date().toISOString(),
                     data: new Date().toISOString().slice(0, 10),
-                    equipe: profile.name || '',
+                    equipe: profile.equipe || profile.name || '',
                     veiculo: (profile.tipoVeiculo || '') + ' ' + (profile.prefixo || ''),
-                    tecnico1: profile.name || '',
-                    registro1: '',
-                    tecnico2: profile.usuarioSec || '',
-                    registro2: '',
+                    tecnico1: profile.tecnico1 || profile.name || '',
+                    registro1: profile.registro1 || '',
+                    tecnico2: profile.tecnico2 || '',
+                    registro2: profile.registro2 || '',
                     tarefas: tarefasIds,
                     desvios,
                     observacao,
-                    createdAt: new Date().toISOString()
                 };
                 showToast('✅ RDO atualizado!');
             } else {
@@ -2190,19 +2239,20 @@ class TaskManager {
             }
             this.editingRdoId = null;
         } else {
+            // NOVO RDO
             const rdo = {
                 id: Date.now(),
+                createdAt: new Date().toISOString(),
                 data: new Date().toISOString().slice(0, 10),
-                equipe: profile.name || '',
+                equipe: profile.equipe || profile.name || '',
                 veiculo: (profile.tipoVeiculo || '') + ' ' + (profile.prefixo || ''),
-                tecnico1: profile.name || '',
-                registro1: '',
-                tecnico2: profile.usuarioSec || '',
-                registro2: '',
+                tecnico1: profile.tecnico1 || profile.name || '',
+                registro1: profile.registro1 || '',
+                tecnico2: profile.tecnico2 || '',
+                registro2: profile.registro2 || '',
                 tarefas: tarefasIds,
                 desvios,
                 observacao,
-                createdAt: new Date().toISOString()
             };
             rdos.push(rdo);
             showToast('✅ RDO salvo com sucesso!');
@@ -2235,17 +2285,20 @@ class TaskManager {
                     <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
                 </div>
                 <div style="max-height: 400px; overflow-y: auto; padding: 8px 0;">
-                    ${rdos.map(r => `
-                        <div style="border-bottom: 1px solid var(--border-color, #eee); padding: 10px 0;">
-                            <strong>${r.data}</strong> - ${r.equipe} - ${(r.tarefas || []).length} atividades
-                            <br><small>${r.observacao || 'Sem observação'}</small>
-                            <div style="margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button class="rdo-btn secondary btn-editar-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">✏️ Editar</button>
-                                <button class="rdo-btn secondary btn-pdf-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">📄 Gerar PDF</button>
-                                <button class="rdo-btn secondary btn-excluir-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px; color: var(--danger, red);">🗑️ Excluir</button>
+                    ${rdos.map(r => {
+            const dataHora = r.createdAt ? new Date(r.createdAt).toLocaleString('pt-BR') : r.data;
+            return `
+                            <div style="border-bottom: 1px solid var(--border-color, #eee); padding: 10px 0;">
+                                <strong>${dataHora}</strong> - ${r.equipe} - ${(r.tarefas || []).length} atividades
+                                <br><small>${r.observacao || 'Sem observação'}</small>
+                                <div style="margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <button class="rdo-btn secondary btn-editar-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">✏️ Editar</button>
+                                    <button class="rdo-btn secondary btn-pdf-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">📄 Gerar PDF</button>
+                                    <button class="rdo-btn secondary btn-excluir-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px; color: var(--danger, red);">🗑️ Excluir</button>
+                                </div>
                             </div>
-                        </div>
-                    `).join('')}
+                        `;
+        }).join('')}
                 </div>
             </div>
         `;
@@ -2311,405 +2364,9 @@ class TaskManager {
         }, 200);
     }
 
-    gerarPDFRDO(id) {
-        const profile = this.profile || {};
-        const nomeEmpresa = profile.nomeEmpresa || 'EMPRESA DE GÁS';
-        const logotipo = profile.logotipo || null;
-
-        const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-        const rdo = rdos.find(r => r.id === id);
-        if (!rdo) {
-            showToast('⚠️ RDO não encontrado.');
-            return;
-        }
-
-        // Buscar tarefas com ordem e endereço
-        const tarefasComEndereco = (rdo.tarefas || []).map(taskId => {
-            const task = this.tasks ? this.tasks.find(t => t.id === taskId) : null;
-            return task ? {
-                text: task.text || '',
-                ordem: task.ordem || '',
-                endereco: task.endereco ? this.formatAddressSimple(task.endereco) : null
-            } : null;
-        }).filter(t => t !== null);
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-
-        // ===== CONFIGURAÇÕES DE GRID E MARGENS =====
-        const marginTop = 15;
-        const marginBottom = 15;
-        const marginLeft = 15;
-        const marginRight = 15;
-        const contentWidth = pageWidth - marginLeft - marginRight;
-
-        let y = marginTop;
-
-        // PALETA DE CORES (MODERNA / CORPORATIVA)
-        const primaryColor = [2, 132, 199];     // #0284c7 (Azul Operacional)
-        const darkNeutral = [15, 23, 42];       // #0f172a (Texto Principal)
-        const secondaryText = [100, 116, 139];  // #64748b (Rótulos)
-        const cardBg = [248, 250, 252];         // #f8fafc (Fundo de Seções)
-        const borderBg = [226, 232, 240];       // #e2e8f0 (Bordas)
-
-        const fontFamily = 'helvetica';
-
-        // ===== HELPER: DESENHAR CARTÃO DE FUNDO =====
-        const drawCard = (x, y, w, h) => {
-            doc.setFillColor(...cardBg);
-            doc.setDrawColor(...borderBg);
-            doc.setLineWidth(0.3);
-            doc.roundedRect(x, y, w, h, 3, 3, 'FD');
-        };
-
-        // ===== HELPER: SEÇÃO DE TÍTULO =====
-        const addSectionHeader = (title, currentY) => {
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(...primaryColor);
-            doc.text(title.toUpperCase(), marginLeft, currentY);
-
-            // Linha sutil de destaque
-            doc.setDrawColor(...primaryColor);
-            doc.setLineWidth(0.8);
-            doc.line(marginLeft, currentY + 2, marginLeft + 25, currentY + 2);
-
-            doc.setDrawColor(...borderBg);
-            doc.setLineWidth(0.3);
-            doc.line(marginLeft + 25, currentY + 2, pageWidth - marginRight, currentY + 2);
-
-            return currentY + 8;
-        };
-
-        // ============================================================
-        // 1. CABEÇALHO MODERNO (SEM SOBREPOSIÇÃO)
-        // ============================================================
-        const headerHeight = 28;
-        drawCard(marginLeft, y, contentWidth, headerHeight);
-
-        // Dimensões controladas do Logotipo
-        let logoWidth = 22;
-        let logoHeight = 22;
-        let logoX = marginLeft + 4;
-        let logoY = y + (headerHeight - logoHeight) / 2;
-
-        if (logotipo) {
-            try {
-                doc.addImage(logotipo, 'JPEG', logoX, logoY, logoWidth, logoHeight);
-            } catch (e) {
-                console.warn('Erro ao adicionar logotipo:', e);
-                // Fallback: Ícone/Placeholder limpo
-                doc.setFillColor(2, 132, 199);
-                doc.roundedRect(logoX, logoY, logoWidth, logoHeight, 2, 2, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(10);
-                doc.text('GÁS', logoX + logoWidth / 2, logoY + 13, { align: 'center' });
-            }
-        } else {
-            logoWidth = 0; // Se não houver logo, ajusta o recuo do texto
-        }
-
-        // Texto Central (Empresa + Título do Documento)
-        const textStartX = logotipo ? logoX + logoWidth + 6 : marginLeft + 6;
-
-        doc.setFont(fontFamily, 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(...darkNeutral);
-        doc.text(nomeEmpresa.toUpperCase(), textStartX, y + 11);
-
-        doc.setFont(fontFamily, 'bold');
-        doc.setFontSize(13);
-        doc.setTextColor(...primaryColor);
-        doc.text('RELATÓRIO DIÁRIO DE OPERAÇÕES', textStartX, y + 18);
-
-        // Bloco de Data (Alinhado à Direita)
-        const dataVal = rdo.data || new Date().toISOString().slice(0, 10);
-        const dataBoxWidth = 36;
-        const dataBoxX = pageWidth - marginRight - dataBoxWidth - 4;
-
-        doc.setFillColor(241, 245, 249);
-        doc.roundedRect(dataBoxX, y + 5, dataBoxWidth, 18, 2, 2, 'F');
-
-        doc.setFont(fontFamily, 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(...secondaryText);
-        doc.text('DATA DE EMISSÃO', dataBoxX + dataBoxWidth / 2, y + 10, { align: 'center' });
-
-        doc.setFontSize(9.5);
-        doc.setTextColor(...darkNeutral);
-        doc.text(dataVal, dataBoxX + dataBoxWidth / 2, y + 17, { align: 'center' });
-
-        y += headerHeight + 10;
-
-        // ============================================================
-        // 2. DADOS DA EQUIPE
-        // ============================================================
-        y = addSectionHeader('Dados da Equipe & Recursos', y);
-
-        const equipeHeight = 26;
-        drawCard(marginLeft, y, contentWidth, equipeHeight);
-
-        const col1X = marginLeft + 6;
-        const col2X = marginLeft + (contentWidth / 2) + 4;
-
-        const renderField = (label, val, x, fieldY) => {
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(7.5);
-            doc.setTextColor(...secondaryText);
-            doc.text(label.toUpperCase(), x, fieldY);
-
-            doc.setFont(fontFamily, 'normal');
-            doc.setFontSize(9.5);
-            doc.setTextColor(...darkNeutral);
-            doc.text(val || 'Não informado', x, fieldY + 5);
-        };
-
-        renderField('Equipe', rdo.equipe, col1X, y + 7);
-        renderField('Veículo', rdo.veiculo, col1X, y + 17);
-
-        const tec1 = (rdo.tecnico1 || 'N/A') + (rdo.registro1 ? ` (${rdo.registro1})` : '');
-        const tec2 = (rdo.tecnico2 || 'N/A') + (rdo.registro2 ? ` (${rdo.registro2})` : '');
-
-        renderField('Técnico Responsável (1)', tec1, col2X, y + 7);
-        renderField('Técnico Auxiliar (2)', tec2, col2X, y + 17);
-
-        y += equipeHeight + 10;
-
-        // ============================================================
-        // 3. ATIVIDADES EXECUTADAS
-        // ============================================================
-        y = addSectionHeader('Atividades Executadas', y);
-
-        if (tarefasComEndereco.length === 0) {
-            drawCard(marginLeft, y, contentWidth, 12);
-            doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(9);
-            doc.setTextColor(...secondaryText);
-            doc.text('Nenhuma atividade registrada para este período.', marginLeft + 6, y + 7.5);
-            y += 18;
-        } else {
-            tarefasComEndereco.forEach((item, index) => {
-                const num = (index + 1).toString().padStart(2, '0');
-                const hasOrdem = Boolean(item.ordem);
-                const hasEndereco = Boolean(item.endereco);
-
-                // Calcular altura dinâmica do item
-                const itemText = item.text;
-                const textWidth = contentWidth - 25;
-                const lines = doc.splitTextToSize(itemText, textWidth);
-                const itemH = Math.max(14, lines.length * 5 + (hasEndereco ? 8 : 4));
-
-                // Checar quebra de página
-                if (y + itemH > pageHeight - marginBottom) {
-                    doc.addPage();
-                    y = marginTop;
-                }
-
-                drawCard(marginLeft, y, contentWidth, itemH);
-
-                // Número / Badge
-                doc.setFont(fontFamily, 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(...primaryColor);
-                doc.text(num, marginLeft + 5, y + 8);
-
-                let currentX = marginLeft + 16;
-
-                // Badge de Ordem de Serviço (se houver)
-                if (hasOrdem) {
-                    const ordemStr = `OS #${item.ordem}`;
-                    doc.setFillColor(224, 242, 254);
-                    doc.roundedRect(currentX, y + 3.5, 20, 5.5, 1, 1, 'F');
-                    doc.setFontSize(7);
-                    doc.setFont(fontFamily, 'bold');
-                    doc.setTextColor(3, 105, 161);
-                    doc.text(ordemStr, currentX + 10, y + 7.5, { align: 'center' });
-                    currentX += 23;
-                }
-
-                // Descrição da Tarefa
-                doc.setFont(fontFamily, 'normal');
-                doc.setFontSize(9);
-                doc.setTextColor(...darkNeutral);
-                lines.forEach((line, lIdx) => {
-                    doc.text(line, currentX, y + 7 + (lIdx * 5));
-                });
-
-                // Endereço
-                if (hasEndereco) {
-                    const endY = y + 7 + (lines.length * 5);
-                    doc.setFontSize(8);
-                    doc.setTextColor(...secondaryText);
-                    doc.text(`Endereço: ${item.endereco}`, currentX, endY);
-                }
-
-                y += itemH + 3;
-            });
-            y += 5;
-        }
-
-        // ============================================================
-        // 4. OBSERVAÇÕES
-        // ============================================================
-        if (y + 25 > pageHeight - marginBottom) {
-            doc.addPage();
-            y = marginTop;
-        }
-
-        y = addSectionHeader('Observações de Campo', y);
-
-        const obsText = rdo.observacao || 'Sem observações adicionais.';
-        const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
-        const obsHeight = Math.max(14, obsLines.length * 5 + 8);
-
-        drawCard(marginLeft, y, contentWidth, obsHeight);
-
-        doc.setFont(fontFamily, 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(...darkNeutral);
-
-        let obsY = y + 7;
-        obsLines.forEach(line => {
-            doc.text(line, marginLeft + 6, obsY);
-            obsY += 5;
-        });
-
-        y += obsHeight + 10;
-
-        // ============================================================
-        // 5. DESVIOS (TABELA MODERNA)
-        // ============================================================
-        if (y + 30 > pageHeight - marginBottom) {
-            doc.addPage();
-            y = marginTop;
-        }
-
-        y = addSectionHeader('Registro de Desvios & Ocorrências', y);
-
-        if (!rdo.desvios || rdo.desvios.length === 0) {
-            drawCard(marginLeft, y, contentWidth, 12);
-            doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(9);
-            doc.setTextColor(...secondaryText);
-            doc.text('Nenhum desvio registrado no turno.', marginLeft + 6, y + 7.5);
-            y += 18;
-        } else {
-            // Larguras e Posições das Colunas
-            const cols = [
-                { name: 'Nº', x: marginLeft + 4, w: 10 },
-                { name: 'INÍCIO', x: marginLeft + 16, w: 18 },
-                { name: 'FIM', x: marginLeft + 36, w: 18 },
-                { name: 'CÓDIGO', x: marginLeft + 56, w: 25 },
-                { name: 'DESCRIÇÃO DA OCORRÊNCIA', x: marginLeft + 83, w: contentWidth - 87 }
-            ];
-
-            // Cabeçalho da Tabela
-            doc.setFillColor(241, 245, 249);
-            doc.rect(marginLeft, y, contentWidth, 8, 'F');
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(7.5);
-            doc.setTextColor(...secondaryText);
-
-            cols.forEach(c => doc.text(c.name, c.x, y + 5.5));
-            y += 8;
-
-            // Linhas da Tabela
-            rdo.desvios.forEach((d, i) => {
-                const num = (i + 1).toString().padStart(2, '0');
-                const descLines = doc.splitTextToSize(d.descricao || '-', cols[4].w);
-                const rowH = Math.max(10, descLines.length * 4.5 + 4);
-
-                if (y + rowH > pageHeight - marginBottom) {
-                    doc.addPage();
-                    y = marginTop;
-                }
-
-                // Zebra striping leve
-                if (i % 2 === 1) {
-                    doc.setFillColor(250, 250, 250);
-                    doc.rect(marginLeft, y, contentWidth, rowH, 'F');
-                }
-
-                doc.setFont(fontFamily, 'normal');
-                doc.setFontSize(8.5);
-                doc.setTextColor(...darkNeutral);
-
-                doc.text(num, cols[0].x, y + 6);
-                doc.text(d.horaInicio || '--:--', cols[1].x, y + 6);
-                doc.text(d.horaFim || '--:--', cols[2].x, y + 6);
-
-                // Badge para Código
-                if (d.codigo) {
-                    doc.setFillColor(254, 243, 199);
-                    doc.roundedRect(cols[3].x, y + 2, 20, 5, 1, 1, 'F');
-                    doc.setFont(fontFamily, 'bold');
-                    doc.setFontSize(7);
-                    doc.setTextColor(146, 64, 14);
-                    doc.text(d.codigo, cols[3].x + 10, y + 5.5, { align: 'center' });
-                } else {
-                    doc.text('--', cols[3].x, y + 6);
-                }
-
-                // Descrição
-                doc.setFont(fontFamily, 'normal');
-                doc.setFontSize(8.5);
-                doc.setTextColor(...darkNeutral);
-                descLines.forEach((l, lIdx) => {
-                    doc.text(l, cols[4].x, y + 5.5 + (lIdx * 4.5));
-                });
-
-                // Linha divisória inferior
-                doc.setDrawColor(...borderBg);
-                doc.setLineWidth(0.2);
-                doc.line(marginLeft, y + rowH, pageWidth - marginRight, y + rowH);
-
-                y += rowH;
-            });
-        }
-
-        // ============================================================
-        // 6. RODAPÉ FIXO EM TODAS AS PÁGINAS
-        // ============================================================
-        const pageCount = doc.internal.getNumberOfPages();
-        const dataGeracao = new Date().toLocaleString('pt-BR');
-
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(8);
-            doc.setTextColor(...secondaryText);
-
-            // Linha divisória do rodapé
-            doc.setDrawColor(...borderBg);
-            doc.setLineWidth(0.3);
-            doc.line(marginLeft, pageHeight - marginBottom + 2, pageWidth - marginRight, pageHeight - marginBottom + 2);
-
-            // Lado esquerdo e direito do rodapé
-            doc.text(`Gerado em: ${dataGeracao}`, marginLeft, pageHeight - marginBottom + 7);
-            doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, pageHeight - marginBottom + 7, { align: 'right' });
-        }
-
-        // ============================================================
-        // 7. SALVAR ARQUIVO
-        // ============================================================
-        const dataClean = (rdo.data || 'data').replace(/[/\\?%*:|"<>]/g, '-');
-        const equipeClean = (rdo.equipe || 'equipe').replace(/\s+/g, '_');
-        const nomeArquivo = `RDO_${dataClean}_${equipeClean}.pdf`;
-
-        doc.save(nomeArquivo);
-
-        if (typeof showToast === 'function') {
-            showToast('📄 PDF moderno gerado com sucesso!');
-        }
-
-        if (typeof this.exibirOpcoesCompartilhamento === 'function') {
-            this.exibirOpcoesCompartilhamento(id);
-        }
-    }
-
-    // ===== MÉTODOS DE COMPARTILHAMENTO =====
+    // =============================================
+    // MÉTODOS DE COMPARTILHAMENTO (movidos para fora)
+    // =============================================
     exibirOpcoesCompartilhamento(id) {
         const rdo = this.buscarRDO(id);
         if (!rdo) return;
@@ -3110,6 +2767,29 @@ class TaskManager {
             });
         });
 
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Impede o banner automático nativo do navegador
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Exibe o item dentro do menu lateral
+            const menuInstall = document.getElementById('installMenuItem');
+            if (menuInstall) menuInstall.style.display = 'flex';
+        });
+
+        document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+
+            if (outcome === 'accepted') {
+                document.getElementById('installMenuItem').style.display = 'none';
+            }
+            deferredPrompt = null;
+        });
+
         // ----- Gestão para fechar sidebar -----
         let touchStartX = 0;
         document.addEventListener('touchstart', (e) => {
@@ -3122,6 +2802,371 @@ class TaskManager {
         }, { passive: true });
 
         console.log('✅ Eventos vinculados');
+    }
+
+    // =============================================
+    // MÉTODO DE GERAÇÃO DE PDF (com timestamp)
+    // =============================================
+    gerarPDFRDO(id) {
+        const profile = this.profile || {};
+        const nomeEmpresa = profile.nomeEmpresa || 'EMPRESA DE GÁS';
+        const logotipo = profile.logotipo || null;
+
+        const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+        const rdo = rdos.find(r => r.id === id);
+        if (!rdo) {
+            showToast('⚠️ RDO não encontrado.');
+            return;
+        }
+
+        // Buscar tarefas com ordem e endereço
+        const tarefasComEndereco = (rdo.tarefas || []).map(taskId => {
+            const task = this.tasks ? this.tasks.find(t => t.id === taskId) : null;
+            return task ? {
+                text: task.text || '',
+                ordem: task.ordem || '',
+                endereco: task.endereco ? this.formatAddressSimple(task.endereco) : null
+            } : null;
+        }).filter(t => t !== null);
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        // ===== CONFIGURAÇÕES DE GRID E MARGENS =====
+        const marginTop = 15;
+        const marginBottom = 15;
+        const marginLeft = 15;
+        const marginRight = 15;
+        const contentWidth = pageWidth - marginLeft - marginRight;
+
+        let y = marginTop;
+
+        // PALETA DE CORES (MODERNA / CORPORATIVA)
+        const primaryColor = [2, 132, 199];     // #0284c7
+        const darkNeutral = [15, 23, 42];       // #0f172a
+        const secondaryText = [100, 116, 139];  // #64748b
+        const cardBg = [248, 250, 252];         // #f8fafc
+        const borderBg = [226, 232, 240];       // #e2e8f0
+
+        const fontFamily = 'helvetica';
+
+        const drawCard = (x, y, w, h) => {
+            doc.setFillColor(...cardBg);
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(x, y, w, h, 3, 3, 'FD');
+        };
+
+        const addSectionHeader = (title, currentY) => {
+            doc.setFont(fontFamily, 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(...primaryColor);
+            doc.text(title.toUpperCase(), marginLeft, currentY);
+            doc.setDrawColor(...primaryColor);
+            doc.setLineWidth(0.8);
+            doc.line(marginLeft, currentY + 2, marginLeft + 25, currentY + 2);
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.line(marginLeft + 25, currentY + 2, pageWidth - marginRight, currentY + 2);
+            return currentY + 8;
+        };
+
+        // ===== CABEÇALHO =====
+        const headerHeight = 28;
+        drawCard(marginLeft, y, contentWidth, headerHeight);
+
+        let logoWidth = 22;
+        let logoHeight = 22;
+        let logoX = marginLeft + 4;
+        let logoY = y + (headerHeight - logoHeight) / 2;
+
+        if (logotipo) {
+            try {
+                doc.addImage(logotipo, 'JPEG', logoX, logoY, logoWidth, logoHeight);
+            } catch (e) {
+                console.warn('Erro ao adicionar logotipo:', e);
+                doc.setFillColor(2, 132, 199);
+                doc.roundedRect(logoX, logoY, logoWidth, logoHeight, 2, 2, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.text('GÁS', logoX + logoWidth / 2, logoY + 13, { align: 'center' });
+            }
+        } else {
+            logoWidth = 0;
+        }
+
+        const textStartX = logotipo ? logoX + logoWidth + 6 : marginLeft + 6;
+
+        doc.setFont(fontFamily, 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...darkNeutral);
+        doc.text(nomeEmpresa.toUpperCase(), textStartX, y + 11);
+
+        doc.setFont(fontFamily, 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(...primaryColor);
+        doc.text('RELATÓRIO DIÁRIO DE OPERAÇÕES', textStartX, y + 18);
+
+        const dataVal = rdo.data || new Date().toISOString().slice(0, 10);
+        const dataBoxWidth = 36;
+        const dataBoxX = pageWidth - marginRight - dataBoxWidth - 4;
+
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(dataBoxX, y + 5, dataBoxWidth, 18, 2, 2, 'F');
+
+        doc.setFont(fontFamily, 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(...secondaryText);
+        doc.text('DATA DE EMISSÃO', dataBoxX + dataBoxWidth / 2, y + 10, { align: 'center' });
+
+        doc.setFontSize(9.5);
+        doc.setTextColor(...darkNeutral);
+        doc.text(dataVal, dataBoxX + dataBoxWidth / 2, y + 17, { align: 'center' });
+
+        y += headerHeight + 10;
+
+        // ===== DADOS DA EQUIPE =====
+        y = addSectionHeader('Dados da Equipe & Recursos', y);
+
+        const equipeHeight = 26;
+        drawCard(marginLeft, y, contentWidth, equipeHeight);
+
+        const col1X = marginLeft + 6;
+        const col2X = marginLeft + (contentWidth / 2) + 4;
+
+        const renderField = (label, val, x, fieldY) => {
+            doc.setFont(fontFamily, 'bold');
+            doc.setFontSize(7.5);
+            doc.setTextColor(...secondaryText);
+            doc.text(label.toUpperCase(), x, fieldY);
+            doc.setFont(fontFamily, 'normal');
+            doc.setFontSize(9.5);
+            doc.setTextColor(...darkNeutral);
+            doc.text(val || 'Não informado', x, fieldY + 5);
+        };
+
+        renderField('Equipe', rdo.equipe, col1X, y + 7);
+        renderField('Veículo', rdo.veiculo, col1X, y + 17);
+
+        const tec1 = (rdo.tecnico1 || 'N/A') + (rdo.registro1 ? ` (${rdo.registro1})` : '');
+        const tec2 = (rdo.tecnico2 || 'N/A') + (rdo.registro2 ? ` (${rdo.registro2})` : '');
+
+        renderField('Técnico Responsável (1)', tec1, col2X, y + 7);
+        renderField('Técnico Auxiliar (2)', tec2, col2X, y + 17);
+
+        y += equipeHeight + 10;
+
+        // ===== ATIVIDADES EXECUTADAS =====
+        y = addSectionHeader('Atividades Executadas', y);
+
+        if (tarefasComEndereco.length === 0) {
+            drawCard(marginLeft, y, contentWidth, 12);
+            doc.setFont(fontFamily, 'italic');
+            doc.setFontSize(9);
+            doc.setTextColor(...secondaryText);
+            doc.text('Nenhuma atividade registrada para este período.', marginLeft + 6, y + 7.5);
+            y += 18;
+        } else {
+            tarefasComEndereco.forEach((item, index) => {
+                const num = (index + 1).toString().padStart(2, '0');
+                const hasOrdem = Boolean(item.ordem);
+                const hasEndereco = Boolean(item.endereco);
+
+                const itemText = item.text;
+                const textWidth = contentWidth - 25;
+                const lines = doc.splitTextToSize(itemText, textWidth);
+                const itemH = Math.max(14, lines.length * 5 + (hasEndereco ? 8 : 4));
+
+                if (y + itemH > pageHeight - marginBottom) {
+                    doc.addPage();
+                    y = marginTop;
+                }
+
+                drawCard(marginLeft, y, contentWidth, itemH);
+
+                doc.setFont(fontFamily, 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(...primaryColor);
+                doc.text(num, marginLeft + 5, y + 8);
+
+                let currentX = marginLeft + 16;
+
+                if (hasOrdem) {
+                    const ordemStr = `OS #${item.ordem}`;
+                    doc.setFillColor(224, 242, 254);
+                    doc.roundedRect(currentX, y + 3.5, 20, 5.5, 1, 1, 'F');
+                    doc.setFontSize(7);
+                    doc.setFont(fontFamily, 'bold');
+                    doc.setTextColor(3, 105, 161);
+                    doc.text(ordemStr, currentX + 10, y + 7.5, { align: 'center' });
+                    currentX += 23;
+                }
+
+                doc.setFont(fontFamily, 'normal');
+                doc.setFontSize(9);
+                doc.setTextColor(...darkNeutral);
+                lines.forEach((line, lIdx) => {
+                    doc.text(line, currentX, y + 7 + (lIdx * 5));
+                });
+
+                if (hasEndereco) {
+                    const endY = y + 7 + (lines.length * 5);
+                    doc.setFontSize(8);
+                    doc.setTextColor(...secondaryText);
+                    doc.text(`Endereço: ${item.endereco}`, currentX, endY);
+                }
+
+                y += itemH + 3;
+            });
+            y += 5;
+        }
+
+        // ===== OBSERVAÇÕES =====
+        if (y + 25 > pageHeight - marginBottom) {
+            doc.addPage();
+            y = marginTop;
+        }
+
+        y = addSectionHeader('Observações de Campo', y);
+
+        const obsText = rdo.observacao || 'Sem observações adicionais.';
+        const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
+        const obsHeight = Math.max(14, obsLines.length * 5 + 8);
+
+        drawCard(marginLeft, y, contentWidth, obsHeight);
+
+        doc.setFont(fontFamily, 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...darkNeutral);
+
+        let obsY = y + 7;
+        obsLines.forEach(line => {
+            doc.text(line, marginLeft + 6, obsY);
+            obsY += 5;
+        });
+
+        y += obsHeight + 10;
+
+        // ===== DESVIOS =====
+        if (y + 30 > pageHeight - marginBottom) {
+            doc.addPage();
+            y = marginTop;
+        }
+
+        y = addSectionHeader('Registro de Desvios & Ocorrências', y);
+
+        if (!rdo.desvios || rdo.desvios.length === 0) {
+            drawCard(marginLeft, y, contentWidth, 12);
+            doc.setFont(fontFamily, 'italic');
+            doc.setFontSize(9);
+            doc.setTextColor(...secondaryText);
+            doc.text('Nenhum desvio registrado no turno.', marginLeft + 6, y + 7.5);
+            y += 18;
+        } else {
+            const cols = [
+                { name: 'Nº', x: marginLeft + 4, w: 10 },
+                { name: 'INÍCIO', x: marginLeft + 16, w: 18 },
+                { name: 'FIM', x: marginLeft + 36, w: 18 },
+                { name: 'CÓDIGO', x: marginLeft + 56, w: 25 },
+                { name: 'DESCRIÇÃO DA OCORRÊNCIA', x: marginLeft + 83, w: contentWidth - 87 }
+            ];
+
+            doc.setFillColor(241, 245, 249);
+            doc.rect(marginLeft, y, contentWidth, 8, 'F');
+            doc.setFont(fontFamily, 'bold');
+            doc.setFontSize(7.5);
+            doc.setTextColor(...secondaryText);
+
+            cols.forEach(c => doc.text(c.name, c.x, y + 5.5));
+            y += 8;
+
+            rdo.desvios.forEach((d, i) => {
+                const num = (i + 1).toString().padStart(2, '0');
+                const descLines = doc.splitTextToSize(d.descricao || '-', cols[4].w);
+                const rowH = Math.max(10, descLines.length * 4.5 + 4);
+
+                if (y + rowH > pageHeight - marginBottom) {
+                    doc.addPage();
+                    y = marginTop;
+                }
+
+                if (i % 2 === 1) {
+                    doc.setFillColor(250, 250, 250);
+                    doc.rect(marginLeft, y, contentWidth, rowH, 'F');
+                }
+
+                doc.setFont(fontFamily, 'normal');
+                doc.setFontSize(8.5);
+                doc.setTextColor(...darkNeutral);
+
+                doc.text(num, cols[0].x, y + 6);
+                doc.text(d.horaInicio || '--:--', cols[1].x, y + 6);
+                doc.text(d.horaFim || '--:--', cols[2].x, y + 6);
+
+                if (d.codigo) {
+                    doc.setFillColor(254, 243, 199);
+                    doc.roundedRect(cols[3].x, y + 2, 20, 5, 1, 1, 'F');
+                    doc.setFont(fontFamily, 'bold');
+                    doc.setFontSize(7);
+                    doc.setTextColor(146, 64, 14);
+                    doc.text(d.codigo, cols[3].x + 10, y + 5.5, { align: 'center' });
+                } else {
+                    doc.text('--', cols[3].x, y + 6);
+                }
+
+                doc.setFont(fontFamily, 'normal');
+                doc.setFontSize(8.5);
+                doc.setTextColor(...darkNeutral);
+                descLines.forEach((l, lIdx) => {
+                    doc.text(l, cols[4].x, y + 5.5 + (lIdx * 4.5));
+                });
+
+                doc.setDrawColor(...borderBg);
+                doc.setLineWidth(0.2);
+                doc.line(marginLeft, y + rowH, pageWidth - marginRight, y + rowH);
+
+                y += rowH;
+            });
+        }
+
+        // ===== RODAPÉ =====
+        const pageCount = doc.internal.getNumberOfPages();
+        const dataGeracao = new Date().toLocaleString('pt-BR');
+
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFont(fontFamily, 'italic');
+            doc.setFontSize(8);
+            doc.setTextColor(...secondaryText);
+
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.line(marginLeft, pageHeight - marginBottom + 2, pageWidth - marginRight, pageHeight - marginBottom + 2);
+
+            doc.text(`Gerado em: ${dataGeracao}`, marginLeft, pageHeight - marginBottom + 7);
+            doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, pageHeight - marginBottom + 7, { align: 'right' });
+        }
+
+        // ===== SALVAR ARQUIVO COM TIMESTAMP =====
+        const dataRDO = rdo.data || new Date().toISOString().slice(0, 10);
+        const dataClean = dataRDO.replace(/[/\\?%*:|"<>]/g, '-');
+        const equipeClean = (rdo.equipe || 'equipe').replace(/\s+/g, '_');
+        const createdAt = rdo.createdAt ? new Date(rdo.createdAt) : new Date();
+        const hora = String(createdAt.getHours()).padStart(2, '0');
+        const minuto = String(createdAt.getMinutes()).padStart(2, '0');
+        const timestamp = `${hora}${minuto}`;
+        const nomeArquivo = `RDO_${dataClean}_${equipeClean}_${timestamp}.pdf`;
+
+        doc.save(nomeArquivo);
+
+        if (typeof showToast === 'function') {
+            showToast(`📄 PDF gerado: ${nomeArquivo}`);
+        }
+
+        // Chama o método de compartilhamento
+        this.exibirOpcoesCompartilhamento(id);
     }
 }
 
