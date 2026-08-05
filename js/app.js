@@ -105,6 +105,7 @@ class TaskManager {
             jornadaFim: '17:00',
             jornadaDuracao: '09:00'
         };
+        this.historicoAtividades = this.carregarHistorico();
         this.loadTasks();
         this.loadProfile();
         this.initializeDOM();
@@ -115,6 +116,30 @@ class TaskManager {
         this.setupPWA();
         this.setupConnectionListeners();
         console.log(`✅ App inicializado com ${this.tasks.length} atividades!`);
+    }
+
+    // =============================================
+    // MÉTODOS DE HISTÓRICO DE ATIVIDADES
+    // =============================================
+    carregarHistorico() {
+        try {
+            const data = localStorage.getItem('historicoAtividades');
+            return data ? JSON.parse(data) : [];
+        } catch { return []; }
+    }
+
+    salvarHistorico(historico) {
+        localStorage.setItem('historicoAtividades', JSON.stringify(historico));
+    }
+
+    atualizarHistorico(atividade) {
+        if (!atividade || typeof atividade !== 'string') return;
+        let hist = this.carregarHistorico();
+        hist = hist.filter(item => item !== atividade);
+        hist.unshift(atividade);
+        if (hist.length > 5) hist = hist.slice(0, 5);
+        this.salvarHistorico(hist);
+        this.historicoAtividades = hist;
     }
 
     // =============================================
@@ -443,7 +468,6 @@ class TaskManager {
 
         this.taskList.innerHTML = filteredTasks.map((task, index) => {
             const dateStr = task.data ? task.data : (task.createdAt ? task.createdAt.split(',')[0] : '');
-            // MELHORIA: título já sanitizado
             const titulo = task.text ? escapeHtml(task.text) : 'Atividade sem título';
             const priorityClass = task.completed ? '' : `priority-${task.priority || 'planned'}`;
             const ordemDisplayValue = task.ordem ? task.ordem : task.id;
@@ -530,7 +554,6 @@ class TaskManager {
     }
 
     formatCoordinates(lat, lon) {
-        // CORREÇÃO: permite 0
         if (lat === undefined || lon === undefined || lat === null || lon === null) return '';
         const latNum = parseFloat(lat);
         const lonNum = parseFloat(lon);
@@ -539,7 +562,7 @@ class TaskManager {
     }
 
     copyToClipboard(text) {
-        if (!text) return; // MELHORIA
+        if (!text) return;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast('📋 Coordenadas copiadas!');
@@ -746,7 +769,7 @@ class TaskManager {
     renderSuggestions(data) {
         if (!data || data.length === 0) {
             this.modalSuggestions.innerHTML = `
-                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
+                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center; padding: 8px;">
                     Nenhum endereço encontrado
                 </div>
             `;
@@ -754,6 +777,7 @@ class TaskManager {
             return;
         }
 
+        // Remove duplicatas (mesma rua + número + bairro + cidade)
         const uniqueResults = [];
         const seen = new Set();
         data.forEach(item => {
@@ -768,11 +792,12 @@ class TaskManager {
             }
         });
 
+        // Limita a 6 resultados para não sobrecarregar
         const topResults = uniqueResults.slice(0, 6);
 
         if (topResults.length === 0) {
             this.modalSuggestions.innerHTML = `
-                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center;">
+                <div class="modal-suggestion-item" style="color: var(--text-muted); cursor: default; text-align: center; padding: 8px;">
                     Nenhum endereço único encontrado
                 </div>
             `;
@@ -780,36 +805,39 @@ class TaskManager {
             return;
         }
 
+        // Renderiza cada sugestão com apenas rua, bairro, município (e UF)
         this.modalSuggestions.innerHTML = topResults.map(item => {
-            const icon = this.getAddressIcon(item.type);
-            const coords = this.formatCoordinates(item.lat, item.lon);
             const road = item.address?.road || '';
             const houseNumber = item.address?.house_number || '';
             const suburb = item.address?.suburb || item.address?.neighbourhood || '';
             const city = item.address?.city || item.address?.town || item.address?.village || '';
             const state = item.address?.state || '';
+
+            // Monta a linha principal: Rua, Número - Bairro, Cidade - UF
             let addressLine = road;
             if (houseNumber) addressLine += `, ${houseNumber}`;
             if (suburb) addressLine += ` - ${suburb}`;
             if (city) addressLine += `, ${city}`;
             if (state) addressLine += ` - ${state}`;
-            const shortName = addressLine.length > 55 ? addressLine.substring(0, 55) + '...' : addressLine;
+
+            // Se ainda estiver muito longo, corta (opcional)
+            const shortName = addressLine.length > 60 ? addressLine.substring(0, 60) + '…' : addressLine;
 
             return `
                 <div class="modal-suggestion-item" data-address='${JSON.stringify(item)}'>
-                    <div class="suggestion-main">${icon} ${shortName}</div>
-                    <div class="suggestion-detail">
-                        ${coords ? '📍 ' + coords : ''}
-                        ${item.address?.postcode ? ' • CEP: ' + item.address.postcode : ''}
-                    </div>
+                    <span class="suggestion-icon">📍</span>
+                    <span class="suggestion-text">${shortName}</span>
                 </div>
             `;
         }).join('');
 
+        // Ativa o container e define altura com scroll
         this.modalSuggestions.classList.add('active');
-        const maxHeight = Math.min(topResults.length * 50 + 10, 200);
-        this.modalSuggestions.style.maxHeight = maxHeight + 'px';
+        // Altura fixa com scroll (ajuste conforme necessário)
+        this.modalSuggestions.style.maxHeight = '180px';
+        this.modalSuggestions.style.overflowY = 'auto';
 
+        // Evento de clique em cada item
         this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -954,19 +982,31 @@ class TaskManager {
         return active ? active.dataset.type : 'manutencao';
     }
 
-    // ===== MÉTODOS PARA CHECKBOXES DE ATIVIDADES =====
+    // ===== MÉTODOS PARA CHECKBOXES DE ATIVIDADES (COM HISTÓRICO) =====
     renderizarAtividades(filtro = '') {
         const container = this.rdoAtividadeContainer;
         const empty = this.rdoAtividadeEmpty;
         if (!container) return;
 
         const termo = filtro.toLowerCase().trim();
-        const atividades = ATIVIDADES_MANUTENCAO.filter(atv => {
-            if (!termo) return true;
-            return atv.toLowerCase().includes(termo);
+        let atividades = ATIVIDADES_MANUTENCAO;
+
+        if (termo) {
+            atividades = atividades.filter(atv => atv.toLowerCase().includes(termo));
+        }
+
+        // Ordenação por histórico
+        const historico = this.carregarHistorico();
+        const ordenadas = [...atividades].sort((a, b) => {
+            const idxA = historico.indexOf(a);
+            const idxB = historico.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
         });
 
-        if (atividades.length === 0) {
+        if (ordenadas.length === 0) {
             container.innerHTML = '';
             if (empty) empty.style.display = 'block';
             return;
@@ -975,16 +1015,24 @@ class TaskManager {
 
         const selecionados = this.getAtividadesSelecionadas();
 
-        container.innerHTML = atividades.map(atv => `
-            <label class="checkbox-item" data-value="${atv}">
-                <input type="checkbox" class="atividade-checkbox" value="${atv}" 
-                    ${selecionados.includes(atv) ? 'checked' : ''}>
-                <span>${atv}</span>
-            </label>
-        `).join('');
+        container.innerHTML = ordenadas.map(atv => {
+            const isRecente = historico.slice(0, 5).includes(atv);
+            return `
+                <label class="checkbox-item" data-value="${atv}" ${isRecente ? 'data-recente="true"' : ''}>
+                    <input type="checkbox" class="atividade-checkbox" value="${atv}" 
+                        ${selecionados.includes(atv) ? 'checked' : ''}>
+                    <span>${atv}</span>
+                </label>
+            `;
+        }).join('');
 
         container.querySelectorAll('.atividade-checkbox').forEach(cb => {
-            cb.addEventListener('change', () => this.atualizarAtividade());
+            cb.addEventListener('change', () => {
+                this.atualizarAtividade();
+                if (cb.checked) {
+                    this.atualizarHistorico(cb.value);
+                }
+            });
         });
     }
 
@@ -1029,6 +1077,8 @@ class TaskManager {
                 showToast('⚠️ Selecione ou digite uma atividade!');
                 return false;
             }
+            const lista = atividadeTexto.split('; ').map(s => s.trim()).filter(s => s);
+            lista.forEach(atv => this.atualizarHistorico(atv));
         }
 
         const priority = this.getSelectedPriority();
@@ -1055,7 +1105,6 @@ class TaskManager {
         this.saveTasks();
         this.render();
         this.closeTaskModal();
-        // MELHORIA: mensagem mais clara
         showToast(endereco
             ? `✅ Atividade "${task.text}" com endereço!`
             : `✅ Atividade "${task.text}" adicionada!`
@@ -1080,6 +1129,8 @@ class TaskManager {
                 showToast('⚠️ Selecione ou digite uma atividade!');
                 return false;
             }
+            const lista = atividadeTexto.split('; ').map(s => s.trim()).filter(s => s);
+            lista.forEach(atv => this.atualizarHistorico(atv));
         }
 
         const priority = this.getSelectedPriority();
@@ -1270,6 +1321,8 @@ class TaskManager {
 
                 if (tipo === 'manutencao') {
                     const atividades = task.text ? task.text.split('; ').map(s => s.trim()) : [];
+                    // Atualiza a lista com histórico antes de marcar
+                    this.renderizarAtividades(this.rdoAtividadeSearch?.value || '');
                     const checkboxes = this.rdoAtividadeContainer?.querySelectorAll('.atividade-checkbox');
                     if (checkboxes) {
                         checkboxes.forEach(cb => {
@@ -1329,6 +1382,8 @@ class TaskManager {
             });
             this.editTaskId.value = '';
             this.selectedAddress = null;
+            // Renderiza a lista com histórico
+            this.renderizarAtividades('');
         }
 
         this.taskModal.classList.add('active');
@@ -1362,7 +1417,6 @@ class TaskManager {
         document.getElementById('profileNomeEmpresa').value = this.profile.nomeEmpresa || '';
         document.getElementById('profileJornadaInicio').value = this.profile.jornadaInicio || '08:00';
         document.getElementById('profileJornadaFim').value = this.profile.jornadaFim || '17:00';
-        // Carregar logotipo
         const logotipo = this.profile.logotipo || '';
         if (logotipo) {
             document.getElementById('profileLogotipoImg').src = logotipo;
@@ -1791,7 +1845,6 @@ class TaskManager {
                 attribution: '© OpenStreetMap'
             }).addTo(map);
 
-            // O contêiner acabou de sair de display:none; atualiza o tamanho do Leaflet.
             requestAnimationFrame(() => map.invalidateSize());
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -2239,7 +2292,6 @@ class TaskManager {
             }
             this.editingRdoId = null;
         } else {
-            // NOVO RDO
             const rdo = {
                 id: Date.now(),
                 createdAt: new Date().toISOString(),
@@ -2365,7 +2417,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE COMPARTILHAMENTO (movidos para fora)
+    // MÉTODOS DE COMPARTILHAMENTO
     // =============================================
     exibirOpcoesCompartilhamento(id) {
         const rdo = this.buscarRDO(id);
@@ -2454,6 +2506,423 @@ class TaskManager {
             const minutos = totalMin % 60;
             duracao.value = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
         }
+    }
+
+    // =============================================
+    // MÉTODO DE GERAÇÃO DE PDF (com campos de comissionamento)
+    // =============================================
+    gerarPDFRDO(id) {
+        const profile = this.profile || {};
+        const nomeEmpresa = profile.nomeEmpresa || 'EMPRESA DE GÁS';
+        const logotipo = profile.logotipo || null;
+
+        const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+        const rdo = rdos.find(r => r.id === id);
+        if (!rdo) {
+            showToast('⚠️ RDO não encontrado.');
+            return;
+        }
+
+        // Buscar tarefas com todos os campos (incluindo comissionamento)
+        const tarefasCompletas = (rdo.tarefas || []).map(taskId => {
+            const task = this.tasks ? this.tasks.find(t => t.id === taskId) : null;
+            if (!task) return null;
+            return {
+                text: task.text || '',
+                ordem: task.ordem || '',
+                endereco: task.endereco ? this.formatAddressSimple(task.endereco) : null,
+                tipoAtividade: task.tipoAtividade || 'manutencao',
+                projeto: task.projeto || '',
+                pep: task.pep || '',
+                tu: task.tu || '',
+                pocc: task.pocc || ''
+            };
+        }).filter(t => t !== null);
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        const marginTop = 15;
+        const marginBottom = 15;
+        const marginLeft = 15;
+        const marginRight = 15;
+        const contentWidth = pageWidth - marginLeft - marginRight;
+
+        let y = marginTop;
+
+        const primaryColor = [2, 132, 199];
+        const darkNeutral = [15, 23, 42];
+        const secondaryText = [100, 116, 139];
+        const cardBg = [248, 250, 252];
+        const borderBg = [226, 232, 240];
+        const fontFamily = 'helvetica';
+
+        const drawCard = (x, y, w, h) => {
+            doc.setFillColor(...cardBg);
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(x, y, w, h, 3, 3, 'FD');
+        };
+
+        const addSectionHeader = (title, currentY) => {
+            doc.setFont(fontFamily, 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(...primaryColor);
+            doc.text(title.toUpperCase(), marginLeft, currentY);
+            doc.setDrawColor(...primaryColor);
+            doc.setLineWidth(0.8);
+            doc.line(marginLeft, currentY + 2, marginLeft + 25, currentY + 2);
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.line(marginLeft + 25, currentY + 2, pageWidth - marginRight, currentY + 2);
+            return currentY + 8;
+        };
+
+        // ===== CABEÇALHO =====
+        const headerHeight = 28;
+        drawCard(marginLeft, y, contentWidth, headerHeight);
+
+        let logoWidth = 22;
+        let logoHeight = 22;
+        let logoX = marginLeft + 4;
+        let logoY = y + (headerHeight - logoHeight) / 2;
+
+        if (logotipo) {
+            try {
+                doc.addImage(logotipo, 'JPEG', logoX, logoY, logoWidth, logoHeight);
+            } catch (e) {
+                console.warn('Erro ao adicionar logotipo:', e);
+                doc.setFillColor(2, 132, 199);
+                doc.roundedRect(logoX, logoY, logoWidth, logoHeight, 2, 2, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.text('GÁS', logoX + logoWidth / 2, logoY + 13, { align: 'center' });
+            }
+        } else {
+            logoWidth = 0;
+        }
+
+        const textStartX = logotipo ? logoX + logoWidth + 6 : marginLeft + 6;
+
+        doc.setFont(fontFamily, 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...darkNeutral);
+        doc.text(nomeEmpresa.toUpperCase(), textStartX, y + 11);
+
+        doc.setFont(fontFamily, 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(...primaryColor);
+        doc.text('RELATÓRIO DIÁRIO DE OPERAÇÕES', textStartX, y + 18);
+
+        const dataVal = rdo.data || new Date().toISOString().slice(0, 10);
+        const dataBoxWidth = 36;
+        const dataBoxX = pageWidth - marginRight - dataBoxWidth - 4;
+
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(dataBoxX, y + 5, dataBoxWidth, 18, 2, 2, 'F');
+
+        doc.setFont(fontFamily, 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(...secondaryText);
+        doc.text('DATA DE EMISSÃO', dataBoxX + dataBoxWidth / 2, y + 10, { align: 'center' });
+
+        doc.setFontSize(9.5);
+        doc.setTextColor(...darkNeutral);
+        doc.text(dataVal, dataBoxX + dataBoxWidth / 2, y + 17, { align: 'center' });
+
+        y += headerHeight + 10;
+
+        // ===== DADOS DA EQUIPE =====
+        y = addSectionHeader('Dados da Equipe & Recursos', y);
+
+        const equipeHeight = 26;
+        drawCard(marginLeft, y, contentWidth, equipeHeight);
+
+        const col1X = marginLeft + 6;
+        const col2X = marginLeft + (contentWidth / 2) + 4;
+
+        const renderField = (label, val, x, fieldY) => {
+            doc.setFont(fontFamily, 'bold');
+            doc.setFontSize(7.5);
+            doc.setTextColor(...secondaryText);
+            doc.text(label.toUpperCase(), x, fieldY);
+            doc.setFont(fontFamily, 'normal');
+            doc.setFontSize(9.5);
+            doc.setTextColor(...darkNeutral);
+            doc.text(val || 'Não informado', x, fieldY + 5);
+        };
+
+        renderField('Equipe', rdo.equipe, col1X, y + 7);
+        renderField('Veículo', rdo.veiculo, col1X, y + 17);
+
+        const tec1 = (rdo.tecnico1 || 'N/A') + (rdo.registro1 ? ` (${rdo.registro1})` : '');
+        const tec2 = (rdo.tecnico2 || 'N/A') + (rdo.registro2 ? ` (${rdo.registro2})` : '');
+
+        renderField('Técnico Responsável (1)', tec1, col2X, y + 7);
+        renderField('Técnico Auxiliar (2)', tec2, col2X, y + 17);
+
+        y += equipeHeight + 10;
+
+        // ===== ATIVIDADES EXECUTADAS =====
+        y = addSectionHeader('Atividades Executadas', y);
+
+        if (tarefasCompletas.length === 0) {
+            drawCard(marginLeft, y, contentWidth, 12);
+            doc.setFont(fontFamily, 'italic');
+            doc.setFontSize(9);
+            doc.setTextColor(...secondaryText);
+            doc.text('Nenhuma atividade registrada para este período.', marginLeft + 6, y + 7.5);
+            y += 18;
+        } else {
+            tarefasCompletas.forEach((item, index) => {
+                const num = (index + 1).toString().padStart(2, '0');
+                const hasOrdem = Boolean(item.ordem);
+                const hasEndereco = Boolean(item.endereco);
+
+                const itemText = item.text;
+                const textWidth = contentWidth - 25;
+                const lines = doc.splitTextToSize(itemText, textWidth);
+                let itemH = Math.max(14, lines.length * 5 + (hasEndereco ? 8 : 4));
+
+                // CORREÇÃO: verifica espaço para o card + campos de comissionamento
+                let extraHeight = 0;
+                if (item.tipoAtividade === 'comissionamento') {
+                    const campos = [];
+                    if (item.projeto) campos.push(`Projeto: ${item.projeto}`);
+                    if (item.pep) campos.push(`PEP: ${item.pep}`);
+                    if (item.tu) campos.push(`TU: ${item.tu}`);
+                    if (item.pocc) campos.push(`POCC/S: ${item.pocc}`);
+                    if (campos.length) extraHeight += 6;
+                }
+                if (hasEndereco) extraHeight += 5;
+                itemH += extraHeight;
+
+                if (y + itemH + 10 > pageHeight - marginBottom) {
+                    doc.addPage();
+                    y = marginTop;
+                }
+
+                drawCard(marginLeft, y, contentWidth, itemH);
+
+                doc.setFont(fontFamily, 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(...primaryColor);
+                doc.text(num, marginLeft + 5, y + 8);
+
+                let currentX = marginLeft + 16;
+
+                if (hasOrdem) {
+                    const ordemStr = `OS #${item.ordem}`;
+                    doc.setFillColor(224, 242, 254);
+                    doc.roundedRect(currentX, y + 3.5, 20, 5.5, 1, 1, 'F');
+                    doc.setFontSize(7);
+                    doc.setFont(fontFamily, 'bold');
+                    doc.setTextColor(3, 105, 161);
+                    doc.text(ordemStr, currentX + 10, y + 7.5, { align: 'center' });
+                    currentX += 23;
+                }
+
+                doc.setFont(fontFamily, 'normal');
+                doc.setFontSize(9);
+                doc.setTextColor(...darkNeutral);
+                lines.forEach((line, lIdx) => {
+                    doc.text(line, currentX, y + 7 + (lIdx * 5));
+                });
+
+                let endY = y + 7 + (lines.length * 5);
+
+                // Campos de comissionamento
+                if (item.tipoAtividade === 'comissionamento') {
+                    const campos = [];
+                    if (item.projeto) campos.push(`Projeto: ${item.projeto}`);
+                    if (item.pep) campos.push(`PEP: ${item.pep}`);
+                    if (item.tu) campos.push(`TU: ${item.tu}`);
+                    if (item.pocc) campos.push(`POCC/S: ${item.pocc}`);
+                    if (campos.length) {
+                        const campoStr = campos.join(' | ');
+                        doc.setFontSize(7);
+                        doc.setTextColor(...secondaryText);
+                        doc.text(campoStr, currentX, endY + 4);
+                        endY += 6;
+                    }
+                }
+
+                // CORREÇÃO: endereço sem emoji e com limpeza de espaços
+                if (hasEndereco) {
+                    const enderecoLimpo = item.endereco.replace(/\s+/g, ' ').trim(); // remove múltiplos espaços
+                    doc.setFontSize(7);
+                    doc.setTextColor(...secondaryText);
+                    doc.text(enderecoLimpo, currentX, endY + 4);
+                }
+
+                y += itemH + 3;
+            });
+            y += 5;
+        }
+
+        // ===== OBSERVAÇÕES =====
+        if (y + 25 > pageHeight - marginBottom) {
+            doc.addPage();
+            y = marginTop;
+        }
+
+        y = addSectionHeader('Observações de Campo', y);
+
+        const obsText = rdo.observacao || 'Sem observações adicionais.';
+        const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
+        const obsHeight = Math.max(14, obsLines.length * 5 + 8);
+
+        drawCard(marginLeft, y, contentWidth, obsHeight);
+
+        doc.setFont(fontFamily, 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...darkNeutral);
+
+        let obsY = y + 7;
+        obsLines.forEach(line => {
+            doc.text(line, marginLeft + 6, obsY);
+            obsY += 5;
+        });
+
+        y += obsHeight + 10;
+
+        // ===== DESVIOS =====
+        if (y + 30 > pageHeight - marginBottom) {
+            doc.addPage();
+            y = marginTop;
+        }
+
+        y = addSectionHeader('Registro de Desvios & Ocorrências', y);
+
+        if (!rdo.desvios || rdo.desvios.length === 0) {
+            drawCard(marginLeft, y, contentWidth, 12);
+            doc.setFont(fontFamily, 'italic');
+            doc.setFontSize(9);
+            doc.setTextColor(...secondaryText);
+            doc.text('Nenhum desvio registrado no turno.', marginLeft + 6, y + 7.5);
+            y += 18;
+        } else {
+            // CORREÇÃO: reposicionamento das colunas para melhor espaçamento
+            const col1 = marginLeft + 4;
+            const col2 = col1 + 14;
+            const col3 = col2 + 20;
+            const col4 = col3 + 22;
+            const col5 = col4 + 28;
+            const colWidths = [12, 18, 18, 24, contentWidth - (col5 - marginLeft) - 4];
+
+            // Cabeçalho
+            doc.setFillColor(241, 245, 249);
+            doc.rect(marginLeft, y, contentWidth, 8, 'F');
+            doc.setFont(fontFamily, 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor(...secondaryText);
+
+            const headers = ['Nº', 'INÍCIO', 'FIM', 'CÓDIGO', 'DESCRIÇÃO DA OCORRÊNCIA'];
+            const headerX = [col1, col2, col3, col4, col5];
+            headers.forEach((h, i) => {
+                doc.text(h, headerX[i], y + 5.5);
+            });
+
+            y += 8;
+
+            // Dados
+            rdo.desvios.forEach((d, i) => {
+                const num = (i + 1).toString().padStart(2, '0');
+                const descLines = doc.splitTextToSize(d.descricao || '-', colWidths[4] - 2);
+                const rowH = Math.max(10, descLines.length * 4.5 + 6);
+
+                if (y + rowH > pageHeight - marginBottom) {
+                    doc.addPage();
+                    y = marginTop;
+                    // redesenha cabeçalho na nova página
+                    doc.setFillColor(241, 245, 249);
+                    doc.rect(marginLeft, y, contentWidth, 8, 'F');
+                    doc.setFont(fontFamily, 'bold');
+                    doc.setFontSize(7);
+                    doc.setTextColor(...secondaryText);
+                    headers.forEach((h, idx) => {
+                        doc.text(h, headerX[idx], y + 5.5);
+                    });
+                    y += 8;
+                }
+
+                if (i % 2 === 1) {
+                    doc.setFillColor(250, 250, 250);
+                    doc.rect(marginLeft, y, contentWidth, rowH, 'F');
+                }
+
+                doc.setFont(fontFamily, 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(...darkNeutral);
+
+                doc.text(num, col1, y + 6);
+                doc.text(d.horaInicio || '--:--', col2, y + 6);
+                doc.text(d.horaFim || '--:--', col3, y + 6);
+
+                // Código com badge
+                if (d.codigo) {
+                    doc.setFillColor(254, 243, 199);
+                    doc.roundedRect(col4, y + 2, 18, 5.5, 1, 1, 'F');
+                    doc.setFont(fontFamily, 'bold');
+                    doc.setFontSize(7);
+                    doc.setTextColor(146, 64, 14);
+                    doc.text(d.codigo, col4 + 9, y + 5.5, { align: 'center' });
+                } else {
+                    doc.text('--', col4, y + 6);
+                }
+
+                doc.setFont(fontFamily, 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(...darkNeutral);
+                descLines.forEach((l, lIdx) => {
+                    doc.text(l, col5, y + 5.5 + (lIdx * 4.5));
+                });
+
+                doc.setDrawColor(...borderBg);
+                doc.setLineWidth(0.2);
+                doc.line(marginLeft, y + rowH, pageWidth - marginRight, y + rowH);
+
+                y += rowH;
+            });
+        }
+
+        // ===== RODAPÉ =====
+        const pageCount = doc.internal.getNumberOfPages();
+        const dataGeracao = new Date().toLocaleString('pt-BR');
+
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFont(fontFamily, 'italic');
+            doc.setFontSize(8);
+            doc.setTextColor(...secondaryText);
+
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.line(marginLeft, pageHeight - marginBottom + 2, pageWidth - marginRight, pageHeight - marginBottom + 2);
+
+            doc.text(`Gerado em: ${dataGeracao}`, marginLeft, pageHeight - marginBottom + 7);
+            doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, pageHeight - marginBottom + 7, { align: 'right' });
+        }
+
+        // Salvar
+        const dataRDO = rdo.data || new Date().toISOString().slice(0, 10);
+        const dataClean = dataRDO.replace(/[/\\?%*:|"<>]/g, '-');
+        const equipeClean = (rdo.equipe || 'equipe').replace(/\s+/g, '_');
+        const createdAt = rdo.createdAt ? new Date(rdo.createdAt) : new Date();
+        const hora = String(createdAt.getHours()).padStart(2, '0');
+        const minuto = String(createdAt.getMinutes()).padStart(2, '0');
+        const timestamp = `${hora}${minuto}`;
+        const nomeArquivo = `RDO_${dataClean}_${equipeClean}_${timestamp}.pdf`;
+
+        doc.save(nomeArquivo);
+
+        if (typeof showToast === 'function') {
+            showToast(`📄 PDF gerado: ${nomeArquivo}`);
+        }
+
+        this.exibirOpcoesCompartilhamento(id);
     }
 
     // =============================================
@@ -2767,14 +3236,11 @@ class TaskManager {
             });
         });
 
+        // ----- Instalação (PWA) -----
         let deferredPrompt;
-
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Impede o banner automático nativo do navegador
             e.preventDefault();
             deferredPrompt = e;
-
-            // Exibe o item dentro do menu lateral
             const menuInstall = document.getElementById('installMenuItem');
             if (menuInstall) menuInstall.style.display = 'flex';
         });
@@ -2783,7 +3249,6 @@ class TaskManager {
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-
             if (outcome === 'accepted') {
                 document.getElementById('installMenuItem').style.display = 'none';
             }
@@ -2802,371 +3267,6 @@ class TaskManager {
         }, { passive: true });
 
         console.log('✅ Eventos vinculados');
-    }
-
-    // =============================================
-    // MÉTODO DE GERAÇÃO DE PDF (com timestamp)
-    // =============================================
-    gerarPDFRDO(id) {
-        const profile = this.profile || {};
-        const nomeEmpresa = profile.nomeEmpresa || 'EMPRESA DE GÁS';
-        const logotipo = profile.logotipo || null;
-
-        const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-        const rdo = rdos.find(r => r.id === id);
-        if (!rdo) {
-            showToast('⚠️ RDO não encontrado.');
-            return;
-        }
-
-        // Buscar tarefas com ordem e endereço
-        const tarefasComEndereco = (rdo.tarefas || []).map(taskId => {
-            const task = this.tasks ? this.tasks.find(t => t.id === taskId) : null;
-            return task ? {
-                text: task.text || '',
-                ordem: task.ordem || '',
-                endereco: task.endereco ? this.formatAddressSimple(task.endereco) : null
-            } : null;
-        }).filter(t => t !== null);
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-
-        // ===== CONFIGURAÇÕES DE GRID E MARGENS =====
-        const marginTop = 15;
-        const marginBottom = 15;
-        const marginLeft = 15;
-        const marginRight = 15;
-        const contentWidth = pageWidth - marginLeft - marginRight;
-
-        let y = marginTop;
-
-        // PALETA DE CORES (MODERNA / CORPORATIVA)
-        const primaryColor = [2, 132, 199];     // #0284c7
-        const darkNeutral = [15, 23, 42];       // #0f172a
-        const secondaryText = [100, 116, 139];  // #64748b
-        const cardBg = [248, 250, 252];         // #f8fafc
-        const borderBg = [226, 232, 240];       // #e2e8f0
-
-        const fontFamily = 'helvetica';
-
-        const drawCard = (x, y, w, h) => {
-            doc.setFillColor(...cardBg);
-            doc.setDrawColor(...borderBg);
-            doc.setLineWidth(0.3);
-            doc.roundedRect(x, y, w, h, 3, 3, 'FD');
-        };
-
-        const addSectionHeader = (title, currentY) => {
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(...primaryColor);
-            doc.text(title.toUpperCase(), marginLeft, currentY);
-            doc.setDrawColor(...primaryColor);
-            doc.setLineWidth(0.8);
-            doc.line(marginLeft, currentY + 2, marginLeft + 25, currentY + 2);
-            doc.setDrawColor(...borderBg);
-            doc.setLineWidth(0.3);
-            doc.line(marginLeft + 25, currentY + 2, pageWidth - marginRight, currentY + 2);
-            return currentY + 8;
-        };
-
-        // ===== CABEÇALHO =====
-        const headerHeight = 28;
-        drawCard(marginLeft, y, contentWidth, headerHeight);
-
-        let logoWidth = 22;
-        let logoHeight = 22;
-        let logoX = marginLeft + 4;
-        let logoY = y + (headerHeight - logoHeight) / 2;
-
-        if (logotipo) {
-            try {
-                doc.addImage(logotipo, 'JPEG', logoX, logoY, logoWidth, logoHeight);
-            } catch (e) {
-                console.warn('Erro ao adicionar logotipo:', e);
-                doc.setFillColor(2, 132, 199);
-                doc.roundedRect(logoX, logoY, logoWidth, logoHeight, 2, 2, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(10);
-                doc.text('GÁS', logoX + logoWidth / 2, logoY + 13, { align: 'center' });
-            }
-        } else {
-            logoWidth = 0;
-        }
-
-        const textStartX = logotipo ? logoX + logoWidth + 6 : marginLeft + 6;
-
-        doc.setFont(fontFamily, 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(...darkNeutral);
-        doc.text(nomeEmpresa.toUpperCase(), textStartX, y + 11);
-
-        doc.setFont(fontFamily, 'bold');
-        doc.setFontSize(13);
-        doc.setTextColor(...primaryColor);
-        doc.text('RELATÓRIO DIÁRIO DE OPERAÇÕES', textStartX, y + 18);
-
-        const dataVal = rdo.data || new Date().toISOString().slice(0, 10);
-        const dataBoxWidth = 36;
-        const dataBoxX = pageWidth - marginRight - dataBoxWidth - 4;
-
-        doc.setFillColor(241, 245, 249);
-        doc.roundedRect(dataBoxX, y + 5, dataBoxWidth, 18, 2, 2, 'F');
-
-        doc.setFont(fontFamily, 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(...secondaryText);
-        doc.text('DATA DE EMISSÃO', dataBoxX + dataBoxWidth / 2, y + 10, { align: 'center' });
-
-        doc.setFontSize(9.5);
-        doc.setTextColor(...darkNeutral);
-        doc.text(dataVal, dataBoxX + dataBoxWidth / 2, y + 17, { align: 'center' });
-
-        y += headerHeight + 10;
-
-        // ===== DADOS DA EQUIPE =====
-        y = addSectionHeader('Dados da Equipe & Recursos', y);
-
-        const equipeHeight = 26;
-        drawCard(marginLeft, y, contentWidth, equipeHeight);
-
-        const col1X = marginLeft + 6;
-        const col2X = marginLeft + (contentWidth / 2) + 4;
-
-        const renderField = (label, val, x, fieldY) => {
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(7.5);
-            doc.setTextColor(...secondaryText);
-            doc.text(label.toUpperCase(), x, fieldY);
-            doc.setFont(fontFamily, 'normal');
-            doc.setFontSize(9.5);
-            doc.setTextColor(...darkNeutral);
-            doc.text(val || 'Não informado', x, fieldY + 5);
-        };
-
-        renderField('Equipe', rdo.equipe, col1X, y + 7);
-        renderField('Veículo', rdo.veiculo, col1X, y + 17);
-
-        const tec1 = (rdo.tecnico1 || 'N/A') + (rdo.registro1 ? ` (${rdo.registro1})` : '');
-        const tec2 = (rdo.tecnico2 || 'N/A') + (rdo.registro2 ? ` (${rdo.registro2})` : '');
-
-        renderField('Técnico Responsável (1)', tec1, col2X, y + 7);
-        renderField('Técnico Auxiliar (2)', tec2, col2X, y + 17);
-
-        y += equipeHeight + 10;
-
-        // ===== ATIVIDADES EXECUTADAS =====
-        y = addSectionHeader('Atividades Executadas', y);
-
-        if (tarefasComEndereco.length === 0) {
-            drawCard(marginLeft, y, contentWidth, 12);
-            doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(9);
-            doc.setTextColor(...secondaryText);
-            doc.text('Nenhuma atividade registrada para este período.', marginLeft + 6, y + 7.5);
-            y += 18;
-        } else {
-            tarefasComEndereco.forEach((item, index) => {
-                const num = (index + 1).toString().padStart(2, '0');
-                const hasOrdem = Boolean(item.ordem);
-                const hasEndereco = Boolean(item.endereco);
-
-                const itemText = item.text;
-                const textWidth = contentWidth - 25;
-                const lines = doc.splitTextToSize(itemText, textWidth);
-                const itemH = Math.max(14, lines.length * 5 + (hasEndereco ? 8 : 4));
-
-                if (y + itemH > pageHeight - marginBottom) {
-                    doc.addPage();
-                    y = marginTop;
-                }
-
-                drawCard(marginLeft, y, contentWidth, itemH);
-
-                doc.setFont(fontFamily, 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(...primaryColor);
-                doc.text(num, marginLeft + 5, y + 8);
-
-                let currentX = marginLeft + 16;
-
-                if (hasOrdem) {
-                    const ordemStr = `OS #${item.ordem}`;
-                    doc.setFillColor(224, 242, 254);
-                    doc.roundedRect(currentX, y + 3.5, 20, 5.5, 1, 1, 'F');
-                    doc.setFontSize(7);
-                    doc.setFont(fontFamily, 'bold');
-                    doc.setTextColor(3, 105, 161);
-                    doc.text(ordemStr, currentX + 10, y + 7.5, { align: 'center' });
-                    currentX += 23;
-                }
-
-                doc.setFont(fontFamily, 'normal');
-                doc.setFontSize(9);
-                doc.setTextColor(...darkNeutral);
-                lines.forEach((line, lIdx) => {
-                    doc.text(line, currentX, y + 7 + (lIdx * 5));
-                });
-
-                if (hasEndereco) {
-                    const endY = y + 7 + (lines.length * 5);
-                    doc.setFontSize(8);
-                    doc.setTextColor(...secondaryText);
-                    doc.text(`Endereço: ${item.endereco}`, currentX, endY);
-                }
-
-                y += itemH + 3;
-            });
-            y += 5;
-        }
-
-        // ===== OBSERVAÇÕES =====
-        if (y + 25 > pageHeight - marginBottom) {
-            doc.addPage();
-            y = marginTop;
-        }
-
-        y = addSectionHeader('Observações de Campo', y);
-
-        const obsText = rdo.observacao || 'Sem observações adicionais.';
-        const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
-        const obsHeight = Math.max(14, obsLines.length * 5 + 8);
-
-        drawCard(marginLeft, y, contentWidth, obsHeight);
-
-        doc.setFont(fontFamily, 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(...darkNeutral);
-
-        let obsY = y + 7;
-        obsLines.forEach(line => {
-            doc.text(line, marginLeft + 6, obsY);
-            obsY += 5;
-        });
-
-        y += obsHeight + 10;
-
-        // ===== DESVIOS =====
-        if (y + 30 > pageHeight - marginBottom) {
-            doc.addPage();
-            y = marginTop;
-        }
-
-        y = addSectionHeader('Registro de Desvios & Ocorrências', y);
-
-        if (!rdo.desvios || rdo.desvios.length === 0) {
-            drawCard(marginLeft, y, contentWidth, 12);
-            doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(9);
-            doc.setTextColor(...secondaryText);
-            doc.text('Nenhum desvio registrado no turno.', marginLeft + 6, y + 7.5);
-            y += 18;
-        } else {
-            const cols = [
-                { name: 'Nº', x: marginLeft + 4, w: 10 },
-                { name: 'INÍCIO', x: marginLeft + 16, w: 18 },
-                { name: 'FIM', x: marginLeft + 36, w: 18 },
-                { name: 'CÓDIGO', x: marginLeft + 56, w: 25 },
-                { name: 'DESCRIÇÃO DA OCORRÊNCIA', x: marginLeft + 83, w: contentWidth - 87 }
-            ];
-
-            doc.setFillColor(241, 245, 249);
-            doc.rect(marginLeft, y, contentWidth, 8, 'F');
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(7.5);
-            doc.setTextColor(...secondaryText);
-
-            cols.forEach(c => doc.text(c.name, c.x, y + 5.5));
-            y += 8;
-
-            rdo.desvios.forEach((d, i) => {
-                const num = (i + 1).toString().padStart(2, '0');
-                const descLines = doc.splitTextToSize(d.descricao || '-', cols[4].w);
-                const rowH = Math.max(10, descLines.length * 4.5 + 4);
-
-                if (y + rowH > pageHeight - marginBottom) {
-                    doc.addPage();
-                    y = marginTop;
-                }
-
-                if (i % 2 === 1) {
-                    doc.setFillColor(250, 250, 250);
-                    doc.rect(marginLeft, y, contentWidth, rowH, 'F');
-                }
-
-                doc.setFont(fontFamily, 'normal');
-                doc.setFontSize(8.5);
-                doc.setTextColor(...darkNeutral);
-
-                doc.text(num, cols[0].x, y + 6);
-                doc.text(d.horaInicio || '--:--', cols[1].x, y + 6);
-                doc.text(d.horaFim || '--:--', cols[2].x, y + 6);
-
-                if (d.codigo) {
-                    doc.setFillColor(254, 243, 199);
-                    doc.roundedRect(cols[3].x, y + 2, 20, 5, 1, 1, 'F');
-                    doc.setFont(fontFamily, 'bold');
-                    doc.setFontSize(7);
-                    doc.setTextColor(146, 64, 14);
-                    doc.text(d.codigo, cols[3].x + 10, y + 5.5, { align: 'center' });
-                } else {
-                    doc.text('--', cols[3].x, y + 6);
-                }
-
-                doc.setFont(fontFamily, 'normal');
-                doc.setFontSize(8.5);
-                doc.setTextColor(...darkNeutral);
-                descLines.forEach((l, lIdx) => {
-                    doc.text(l, cols[4].x, y + 5.5 + (lIdx * 4.5));
-                });
-
-                doc.setDrawColor(...borderBg);
-                doc.setLineWidth(0.2);
-                doc.line(marginLeft, y + rowH, pageWidth - marginRight, y + rowH);
-
-                y += rowH;
-            });
-        }
-
-        // ===== RODAPÉ =====
-        const pageCount = doc.internal.getNumberOfPages();
-        const dataGeracao = new Date().toLocaleString('pt-BR');
-
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(8);
-            doc.setTextColor(...secondaryText);
-
-            doc.setDrawColor(...borderBg);
-            doc.setLineWidth(0.3);
-            doc.line(marginLeft, pageHeight - marginBottom + 2, pageWidth - marginRight, pageHeight - marginBottom + 2);
-
-            doc.text(`Gerado em: ${dataGeracao}`, marginLeft, pageHeight - marginBottom + 7);
-            doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, pageHeight - marginBottom + 7, { align: 'right' });
-        }
-
-        // ===== SALVAR ARQUIVO COM TIMESTAMP =====
-        const dataRDO = rdo.data || new Date().toISOString().slice(0, 10);
-        const dataClean = dataRDO.replace(/[/\\?%*:|"<>]/g, '-');
-        const equipeClean = (rdo.equipe || 'equipe').replace(/\s+/g, '_');
-        const createdAt = rdo.createdAt ? new Date(rdo.createdAt) : new Date();
-        const hora = String(createdAt.getHours()).padStart(2, '0');
-        const minuto = String(createdAt.getMinutes()).padStart(2, '0');
-        const timestamp = `${hora}${minuto}`;
-        const nomeArquivo = `RDO_${dataClean}_${equipeClean}_${timestamp}.pdf`;
-
-        doc.save(nomeArquivo);
-
-        if (typeof showToast === 'function') {
-            showToast(`📄 PDF gerado: ${nomeArquivo}`);
-        }
-
-        // Chama o método de compartilhamento
-        this.exibirOpcoesCompartilhamento(id);
     }
 }
 

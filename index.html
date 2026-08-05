@@ -29,6 +29,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+
     <title>✅ Minhas Tarefas</title>
 </head>
 
@@ -75,7 +76,6 @@
             </button>
 
             <div class="menu-divider" role="separator"></div>
-
 
             <label class="import-label" id="importDataLabel" for="importFileInput">
                 <span class="menu-icon" aria-hidden="true">📥</span> Importar Dados
@@ -200,8 +200,6 @@
 
                 <hr class="rdo-divider">
 
-                <hr class="rdo-divider">
-
                 <!-- DADOS DA EMPRESA -->
                 <div class="rdo-section">
                     <h3 class="rdo-section-title">🏢 Dados da Empresa</h3>
@@ -227,6 +225,7 @@
                     </div>
                 </div>
 
+                <hr class="rdo-divider">
 
                 <!-- EQUIPE -->
                 <div class="rdo-section">
@@ -268,7 +267,6 @@
                             <input type="text" id="profileRegistro2" placeholder="Ex: TR0YYYYY">
                         </div>
                     </div>
-
                 </div>
 
                 <hr class="rdo-divider">
@@ -350,8 +348,7 @@
                     </div>
                 </div>
 
-                <!-- ATIVIDADE (MANUTENÇÃO - UX Otimizada para Mobile) -->
-                <!-- ===== ATIVIDADE (MANUTENÇÃO - CHECKBOXES COM BUSCA) ===== -->
+                <!-- ATIVIDADE (MANUTENÇÃO - CHECKBOXES COM BUSCA) -->
                 <div class="rdo-section" id="manutencaoFields">
                     <div class="rdo-field full">
                         <label for="rdoAtividadeSearch">📝 Buscar / Selecionar atividades</label>
@@ -438,13 +435,12 @@
                                 <input type="text" id="modalAddressSearch"
                                     placeholder="Digite endereço, CEP ou coordenada..." aria-label="Buscar endereço">
                                 <button type="button" id="modalSearchBtn">🔍 Buscar</button>
+                                <button type="button" id="modalClearAddress" class="clear-address-btn"
+                                    title="Limpar endereço">✖</button>
                             </div>
                             <div id="modalSuggestions" class="modal-suggestions"></div>
                             <div id="modalSelectedAddress" class="modal-selected-address">
                                 <div id="modalSelectedText"></div>
-                                <div class="address-actions">
-                                    <button type="button" id="modalClearAddress">✖ Limpar</button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -540,8 +536,6 @@
 
                 <hr class="rdo-divider">
 
-                <hr class="rdo-divider">
-
                 <!-- DESVIOS -->
                 <div class="rdo-section rdo-desvios-section">
                     <button type="button" class="rdo-btn primary rdo-add-desvio-btn" id="rdoAddDesvioBtn">
@@ -551,8 +545,6 @@
                         <!-- Preenchido via JavaScript -->
                     </div>
                 </div>
-
-                <hr class="rdo-divider">
 
                 <hr class="rdo-divider">
 
