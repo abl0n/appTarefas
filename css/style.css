@@ -247,9 +247,12 @@ header {
 }
 
 .header-actions {
-    display: flex;
-    align-items: center;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* antes era 4 */
     gap: 6px;
+    width: 100%;
 }
 
 .header-btn {
@@ -1292,6 +1295,7 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 /* AJUSTES PARA IMPRESSÃO E IMPRESSÃO EM PDF   */
 /* ============================================ */
 @media print {
+
     .pdf-activity-card,
     .rdo-pdf-card,
     .rdo-activity-item {
@@ -1311,4 +1315,13 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
         word-break: break-word !important;
         margin-top: 6px !important;
     }
+}
+
+.header-icon {
+    width: 28px;
+    height: 28px;
+    vertical-align: middle;
+    margin-right: 6px;
+    border-radius: 16%;
+    /* Deixa redondo */
 }

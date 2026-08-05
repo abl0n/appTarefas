@@ -1,6 +1,6 @@
 {
-    "name": "Minhas Tarefas",
-    "short_name": "Tarefas",
+    "name": "gasControl",
+    "short_name": "gasControl",
     "description": "Aplicativo para gerenciar tarefas de campo",
     "start_url": ".",
     "display": "standalone",

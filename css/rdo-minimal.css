@@ -45,14 +45,14 @@
 
 /* Desvios: o botão assume a função de título e de ação principal. */
 #rdoGeneratorModal .rdo-desvios-section {
-    gap: 10px;
+    gap: 18px;
 }
 
 #rdoGeneratorModal .rdo-add-desvio-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 16px;
     width: 100%;
     min-height: 46px;
     margin: 0;

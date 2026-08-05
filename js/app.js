@@ -359,8 +359,7 @@ class TaskManager {
         this.installClose = document.getElementById('installClose');
 
         // Header
-        this.headerWhatsApp = document.getElementById('headerWhatsApp');
-        this.headerEmail = document.getElementById('headerEmail');
+
         this.headerMap = document.getElementById('headerMap');
         this.headerRDO = document.getElementById('headerRDO');
 
@@ -2218,6 +2217,7 @@ class TaskManager {
         `;
         container.appendChild(row);
 
+        // Evento para mostrar descrição do código
         const select = row.querySelector('.rdoDesvioCodigo');
         if (select) {
             select.addEventListener('change', function () {
@@ -2231,13 +2231,59 @@ class TaskManager {
             });
         }
 
+        // Remover desvio
         row.querySelector('.rdo-btn-remove-desvio').addEventListener('click', () => {
             if (container.children.length > 1) {
                 row.remove();
+                // Atualiza os horários dos desvios restantes (opcional, mas pode ser útil)
+                this.renumerarDesvios();
             } else {
                 showToast('⚠️ Mantenha pelo menos um desvio.');
             }
         });
+
+        // Disparar evento para atualizar os horários quando algum campo for alterado
+        const inputs = row.querySelectorAll('input[type="time"]');
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                // Após alteração manual, não reajustamos automaticamente, mas podemos
+                // chamar uma função para reorganizar se desejar.
+            });
+        });
+    }
+
+    renumerarDesvios() {
+        const container = this.rdoDesviosContainer;
+        if (!container) return;
+        const rows = container.querySelectorAll('.rdo-desvio-row');
+        if (rows.length === 0) return;
+
+        // Define o primeiro início como 08:00
+        const firstInicio = rows[0].querySelector('.rdoDesvioInicio');
+        if (firstInicio) firstInicio.value = '08:00';
+
+        // Para cada par, ajusta o fim do anterior para o início do próximo
+        for (let i = 0; i < rows.length - 1; i++) {
+            const currentFim = rows[i].querySelector('.rdoDesvioFim');
+            const nextInicio = rows[i + 1].querySelector('.rdoDesvioInicio');
+            if (currentFim && nextInicio) {
+                nextInicio.value = currentFim.value;
+            }
+        }
+
+        // Define o fim do último como +1 hora do seu início (ou mantém)
+        const lastRow = rows[rows.length - 1];
+        const lastInicio = lastRow.querySelector('.rdoDesvioInicio');
+        const lastFim = lastRow.querySelector('.rdoDesvioFim');
+        if (lastInicio && lastFim) {
+            // Se o fim estiver vazio ou igual ao início, adiciona 1 hora
+            if (!lastFim.value || lastFim.value === lastInicio.value) {
+                const [h, m] = lastInicio.value.split(':').map(Number);
+                let newH = h + 1;
+                if (newH >= 24) newH = 0;
+                lastFim.value = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+        }
     }
 
     salvarRDO(event) {
@@ -3013,25 +3059,7 @@ class TaskManager {
             jornadaFim.addEventListener('change', () => this.calcularDuracaoJornada());
         }
 
-        // ----- Header: WhatsApp -----
-        if (this.headerWhatsApp) {
-            this.headerWhatsApp.addEventListener('click', () => {
-                console.log('📱 WhatsApp clicado!');
-                this.shareWhatsApp();
-            });
-        } else {
-            console.warn('⚠️ Elemento headerWhatsApp não encontrado!');
-        }
 
-        // ----- Header: Email -----
-        if (this.headerEmail) {
-            this.headerEmail.addEventListener('click', () => {
-                console.log('📧 Email clicado!');
-                this.shareEmail();
-            });
-        } else {
-            console.warn('⚠️ Elemento headerEmail não encontrado!');
-        }
 
         // ----- Header: Mapa -----
         if (this.headerMap) {
@@ -3198,6 +3226,25 @@ class TaskManager {
                 this.closeSidebar();
             });
         }
+        // ----- Menu WhatsApp -----
+        const menuWhatsApp = document.getElementById('menuWhatsApp');
+        if (menuWhatsApp) {
+            menuWhatsApp.addEventListener('click', () => {
+                this.shareWhatsApp();
+                this.closeSidebar();
+            });
+        }
+
+        // ----- Menu Email -----
+        const menuEmail = document.getElementById('menuEmail');
+        if (menuEmail) {
+            menuEmail.addEventListener('click', () => {
+                this.shareEmail();
+                this.closeSidebar();
+            });
+        }
+
+
 
         // ----- Menu Meus RDOs -----
         const menuMeusRDOs = document.getElementById('menuMeusRDOs');
@@ -3223,7 +3270,31 @@ class TaskManager {
         // ----- Adicionar Desvio -----
         if (this.rdoAddDesvioBtn) {
             this.rdoAddDesvioBtn.addEventListener('click', () => {
-                this.addDesvioRow('12:00', '13:00', '13');
+                const container = this.rdoDesviosContainer;
+                if (!container) return;
+                const rows = container.querySelectorAll('.rdo-desvio-row');
+                let novoInicio = '12:00';
+                let novoFim = '13:00';
+                let codigo = '00';
+
+                if (rows.length > 0) {
+                    // Pega o último desvio
+                    const lastRow = rows[rows.length - 1];
+                    const lastFim = lastRow.querySelector('.rdoDesvioFim');
+                    if (lastFim && lastFim.value) {
+                        novoInicio = lastFim.value;
+                        // Define o fim como +1 hora
+                        const [h, m] = novoInicio.split(':').map(Number);
+                        let newH = h + 1;
+                        if (newH >= 24) newH = 0;
+                        novoFim = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    }
+                    // Pega o código do último (opcional)
+                    const lastCodigo = lastRow.querySelector('.rdoDesvioCodigo');
+                    if (lastCodigo) codigo = lastCodigo.value;
+                }
+
+                this.addDesvioRow(novoInicio, novoFim, codigo);
             });
         }
 

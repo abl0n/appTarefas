@@ -10,9 +10,8 @@
     <meta name="version" content="3.0">
 
     <!-- FAVICON -->
-    <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+    <link rel="icon" type="image/svg+xml" href="icon/gasControl.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/gasControl.svg">
     <link rel="manifest" href="site.webmanifest">
 
     <!-- LEAFLET (MAPAS) COM ATRIBUTOS DE SEGURANÇA -->
@@ -67,6 +66,13 @@
                 <span class="menu-icon" aria-hidden="true">📊</span> Estatísticas
             </button>
 
+            <button class="menu-item" id="menuWhatsApp">
+                <span class="menu-icon" aria-hidden="true">📱</span> Compartilhar WhatsApp
+            </button>
+            <button class="menu-item" id="menuEmail">
+                <span class="menu-icon" aria-hidden="true">📧</span> Enviar por Email
+            </button>
+
             <div class="menu-divider" role="separator"></div>
 
             <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Alternar Modo Escuro">
@@ -110,23 +116,18 @@
             <header>
                 <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu de navegação">☰</button>
                 <div class="header-title">
-                    <h1>📋 Tarefas</h1>
+                    <h1>
+                        <img src="icon/apple-touch-icon.png" alt="gasControl" class="header-icon">
+                        gasControl
+                    </h1>
                 </div>
                 <div class="header-actions">
                     <button class="header-btn rdo" id="headerRDO" title="Gerar RDO" aria-label="Gerar RDO">
                         <img src="img/rdo.svg" alt="" class="icon-svg" aria-hidden="true">
                     </button>
-                    <button class="header-btn whatsapp" id="headerWhatsApp" title="Compartilhar no WhatsApp"
-                        aria-label="Compartilhar no WhatsApp">
-                        <img src="img/whatsapp.svg" alt="" class="icon-svg" aria-hidden="true">
-                    </button>
                     <button class="header-btn map" id="headerMap" title="Ver Mapa de Tarefas"
                         aria-label="Ver Mapa de Tarefas">
                         <img src="img/map.svg" alt="" class="icon-svg" aria-hidden="true">
-                    </button>
-                    <button class="header-btn email" id="headerEmail" title="Enviar por Email"
-                        aria-label="Enviar por Email">
-                        <img src="img/email.svg" alt="" class="icon-svg" aria-hidden="true">
                     </button>
                 </div>
             </header>
@@ -134,7 +135,7 @@
             <!-- FILTROS -->
             <div class="filter-section" role="group" aria-label="Filtros de Tarefas">
 
-                <button class="filter-btn" data-filter="pending">
+                <button class="filter-btn active" data-filter="pending"> <!-- ativo por padrão -->
                     <span class="filter-label"><span class="filter-icon" aria-hidden="true">⏳</span> Pendentes</span>
                     <span class="filter-count" id="countPending">0</span>
                 </button>
@@ -142,7 +143,7 @@
                     <span class="filter-label"><span class="filter-icon" aria-hidden="true">✅</span> Concluídas</span>
                     <span class="filter-count" id="countCompleted">0</span>
                 </button>
-                <button class="filter-btn active" data-filter="all">
+                <button class="filter-btn" data-filter="all">
                     <span class="filter-label"><span class="filter-icon" aria-hidden="true">📋</span> Todas</span>
                     <span class="filter-count" id="countAll">0</span>
                 </button>
