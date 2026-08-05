@@ -526,9 +526,10 @@ class TaskManager {
 
     renderEmpty() {
         const messages = {
-            'all': { icon: '📝', text: 'Nenhuma atividade cadastrada', sub: 'Toque no botão ✚ para adicionar' },
+
             'pending': { icon: '🎉', text: 'Todas as atividades foram concluídas!', sub: 'Parabéns! Você está em dia' },
-            'completed': { icon: '📌', text: 'Nenhuma atividade concluída', sub: 'Marque as atividades como concluídas' }
+            'completed': { icon: '📌', text: 'Nenhuma atividade concluída', sub: 'Marque as atividades como concluídas' },
+            'all': { icon: '📝', text: 'Nenhuma atividade cadastrada', sub: 'Toque no botão ✚ para adicionar' }
         };
         const msg = messages[this.currentFilter] || messages.all;
         this.taskList.innerHTML = `
