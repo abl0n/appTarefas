@@ -32,8 +32,8 @@ body.dark-mode .priority-option,
 body.dark-mode .activity-type-btn,
 body.dark-mode .rdo-btn.secondary,
 body.dark-mode .modal-close {
-    background: #263449;
-    border-color: #3b4b63;
+    background: #44475a;
+    border-color: #6272a4;
     color: var(--text-primary);
 }
 
@@ -45,8 +45,8 @@ body.dark-mode .priority-option:hover,
 body.dark-mode .activity-type-btn:hover,
 body.dark-mode .rdo-btn.secondary:hover,
 body.dark-mode .modal-close:hover {
-    background: #31415a;
-    border-color: #52647e;
+    background: #6272a4;
+    border-color: #8be9fd;
 }
 
 body.dark-mode .filter-btn.active,
