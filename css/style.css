@@ -1,13 +1,12 @@
 /* ==========================================================================
    gasControl - Tema Moderno com Dracula (Escuro) e Azul (Claro)
-   Refatorado com Variáveis Semânticas, CSS Moderno e Suporte Nativo
+   Versão Final - Sem duplicações, com painel de detalhes e sidebar fixa no desktop
    ========================================================================== */
 
 /* ============================================ */
-/* 1. VARIÁVEIS GLOBAIS & TEMAS               */
+/* 1. VARIÁVEIS GLOBAIS & TEMAS                */
 /* ============================================ */
 :root {
-    /* Dimensões & Geometria Touch-First */
     --touch-target: 52px;
     --touch-target-min: 48px;
     --card-radius: 16px;
@@ -18,87 +17,67 @@
     --fab-size: 56px;
     --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Cores de Marcas de Terceiros */
     --google-color: #EA4335;
     --waze-color: #33CCFF;
     --whatsapp-color: #25D366;
 }
 
-/* --- Tema Claro (Padrão) --- */
+/* --- Tema Claro --- */
 body:not(.dark-mode) {
     color-scheme: light;
-
     --bg-body: #F4F7FC;
     --bg-container: #FFFFFF;
     --bg-sidebar: #FFFFFF;
     --bg-card: #FFFFFF;
     --bg-input: #F8FAFC;
     --bg-hover: #E6F0FF;
-
     --text-primary: #0F172A;
     --text-secondary: #475569;
     --text-muted: #94A3B8;
-
     --border-color: #E2E8F0;
     --shadow-color: rgba(0, 82, 204, 0.06);
     --shadow-hover: rgba(0, 82, 204, 0.12);
-
     --primary: #0052CC;
     --primary-dark: #003D99;
     --primary-light: #E6F0FF;
     --badge-text: #FFFFFF;
-
     --success: #00C853;
     --danger: #FF3B30;
     --warning: #FF9500;
     --info: #0288D1;
-
     --sidebar-profile-bg: linear-gradient(135deg, #0052CC 0%, #003D99 100%);
-
-    /* ===== TOAST (NOVO) ===== */
     --toast-bg: #0F172A;
     --toast-text: #FFFFFF;
     --toast-border: rgba(255, 255, 255, 0.12);
 }
 
-/* --- Tema Escuro (Dracula Modernizado) --- */
+/* --- Tema Escuro (Dracula) --- */
 body.dark-mode {
     color-scheme: dark;
-
     --bg-body: #0a0a0a;
     --bg-container: #0d0d0d;
     --bg-sidebar: #0d0d0d;
     --bg-card: #1a1a1a;
     --bg-input: #1e1e1e;
     --bg-hover: #2a2a2a;
-
     --text-primary: #f8f8f2;
     --text-secondary: #cccccc;
     --text-muted: #888888;
-
     --border-color: #333333;
     --shadow-color: rgba(0, 0, 0, 0.8);
     --shadow-hover: rgba(189, 147, 249, 0.2);
-
     --primary: #bd93f9;
     --primary-dark: #8b6ed9;
     --primary-light: rgba(189, 147, 249, 0.18);
     --badge-text: #0a0a0a;
-
     --success: #50fa7b;
     --danger: #ff5555;
     --warning: #f1fa8c;
     --info: #8be9fd;
-
     --sidebar-profile-bg: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-
-    /* ===== TOAST (NOVO) ===== */
     --toast-bg: #2a2a2a;
-    /* fundo mais claro que o container */
     --toast-text: #f8f8f2;
-    /* texto claro */
     --toast-border: rgba(189, 147, 249, 0.25);
-    /* borda com tom do primário */
 }
 
 /* ============================================ */
@@ -125,7 +104,6 @@ body {
     transition: background var(--transition), color var(--transition);
 }
 
-/* Scrollbar Customizada */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -185,20 +163,6 @@ a:hover {
     transition: background var(--transition);
 }
 
-@media (min-width: 641px) {
-    .main-content {
-        padding: var(--spacing);
-    }
-
-    .container {
-        border-radius: var(--radius);
-        height: 92vh;
-        height: 92dvh;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 20px 40px var(--shadow-color);
-    }
-}
-
 /* ============================================ */
 /* 4. HEADER                                   */
 /* ============================================ */
@@ -225,6 +189,11 @@ header {
     color: var(--text-primary);
     border-radius: var(--radius-sm);
     transition: all 0.2s ease;
+}
+
+.menu-toggle:active {
+    transform: scale(0.92);
+    background: var(--bg-hover);
 }
 
 .header-title {
@@ -281,42 +250,196 @@ header {
     transform: scale(0.9);
 }
 
-/* Remove qualquer fundo residual no modo escuro */
-body.dark-mode .header-btn {
-    background: transparent !important;
-    border: none !important;
+/* -------------------- BOTÕES DO HEADER (tema claro) -------------------- */
+body:not(.dark-mode) .menu-toggle,
+body:not(.dark-mode) .header-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
 }
 
-/* Responsivo para telas pequenas */
-@media (max-width: 480px) {
-    header {
-        gap: 4px;
-        padding: 6px 0 10px;
+body:not(.dark-mode) .menu-toggle:hover,
+body:not(.dark-mode) .header-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+}
+
+body:not(.dark-mode) .menu-toggle:active,
+body:not(.dark-mode) .header-btn:active {
+    transform: scale(0.92);
+}
+
+/* Tema escuro: já definido no bloco .dark-mode, mas garantindo */
+body.dark-mode .menu-toggle,
+body.dark-mode .header-btn {
+    background: #44475a !important;
+    border: 1px solid #6272a4 !important;
+    border-radius: 8px;
+}
+
+body.dark-mode .menu-toggle:hover,
+body.dark-mode .header-btn:hover {
+    background: #6272a4 !important;
+    border-color: #8be9fd !important;
+}
+
+/* ============================================ */
+/* DESKTOP (>= 1024px) - TRÊS COLUNAS          */
+/* ============================================ */
+@media (min-width: 1024px) {
+    body {
+        display: flex;
+        flex-direction: row;
+        overflow: hidden;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    /* Sidebar fixa à esquerda */
+    .sidebar {
+        position: relative !important;
+        left: 0 !important;
+        width: 280px !important;
+        max-width: 280px !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-color);
+        box-shadow: 4px 0 20px var(--shadow-color);
+        transition: none !important;
+        z-index: 100;
+    }
+
+    .sidebar-overlay {
+        display: none !important;
     }
 
     .menu-toggle {
-        min-height: 36px;
-        min-width: 36px;
-        font-size: 1rem;
+        display: none !important;
+    }
+
+    /* Container principal ocupa o restante */
+    .main-content {
+        flex: 1;
+        padding: 0;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .container {
+        max-width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 16px 20px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+        background: var(--bg-container);
+    }
+
+    /* Header e filtros dentro do container */
+    header {
+        flex-shrink: 0;
+        padding: 12px 0 16px 0;
+        gap: 16px;
     }
 
     .header-title h1 {
-        font-size: 1rem;
+        font-size: 1.4rem;
     }
 
     .header-title .header-icon {
-        width: 22px;
-        height: 22px;
+        width: 32px;
+        height: 32px;
     }
 
-    .header-btn {
+    .header-actions .header-btn {
+        min-height: 40px;
+        min-width: 40px;
+    }
+
+    .header-actions .header-btn .icon-svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .filter-section {
+        flex-shrink: 0;
+        gap: 12px;
+        margin: 8px 0 16px 0;
+        justify-content: flex-start;
+    }
+
+    .filter-btn {
+        min-width: 120px;
+        max-width: 160px;
+        font-size: 0.85rem;
+        padding: 6px 16px;
         min-height: 34px;
-        min-width: 34px;
     }
 
-    .header-btn .icon-svg {
-        width: 16px;
-        height: 16px;
+    /* Wrapper: lista + painel de detalhes (lado a lado) */
+    .list-detail-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        overflow: hidden;
+        min-height: 0;
+        gap: 16px;
+    }
+
+    #taskList {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 4px 16px 0;
+        gap: 12px;
+        display: flex;
+        flex-direction: column;
+        align-content: flex-start;
+        min-width: 0;
+    }
+
+    /* Painel de detalhes à direita */
+    .task-detail-panel {
+        flex: 0 0 320px !important;
+        max-width: 320px !important;
+        display: flex !important;
+        flex-direction: column;
+        background: var(--bg-card);
+        border-left: 1px solid var(--border-color);
+        padding: 16px 16px 20px 16px;
+        overflow-y: auto;
+        border-radius: var(--radius-sm);
+        box-shadow: inset 0 0 0 1px var(--border-color);
+        height: 100%;
+    }
+
+    .detail-close {
+        display: none !important;
+    }
+
+    /* FAB ajustado */
+    .fab {
+        right: 360px;
+        bottom: max(32px, env(safe-area-inset-bottom));
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+    }
+
+    /* Rodapé */
+    .footer {
+        flex-shrink: 0;
+        padding: 12px 0 4px 0;
+        border-top: 1px solid var(--border-color);
+        margin-top: auto;
     }
 }
 
@@ -439,8 +562,54 @@ body.dark-mode .header-btn {
     display: none !important;
 }
 
+/* Dark mode toggle (alinhado à esquerda) */
+.dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    width: 100%;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.dark-mode-toggle .toggle-switch {
+    margin-left: auto;
+    width: 44px;
+    height: 24px;
+    background: var(--border-color);
+    border-radius: 8px;
+    position: relative;
+    transition: background 0.3s ease;
+}
+
+body.dark-mode .dark-mode-toggle .toggle-switch {
+    background: var(--primary);
+}
+
+.dark-mode-toggle .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: #FFFFFF;
+    border-radius: 8%;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.dark-mode .dark-mode-toggle .toggle-switch::after {
+    transform: translateX(20px);
+}
+
 /* ============================================ */
-/* FILTROS - ESTILO BADGES COMPACTOS            */
+/* 6. FILTROS (badges)                         */
 /* ============================================ */
 .filter-section {
     flex-shrink: 0;
@@ -469,7 +638,6 @@ body.dark-mode .header-btn {
 
 .filter-btn .filter-icon {
     display: none;
-    /* esconde ícones */
 }
 
 .filter-btn .filter-label {
@@ -497,7 +665,6 @@ body.dark-mode .header-btn {
     color: #fff;
 }
 
-/* Responsivo */
 @media (max-width: 480px) {
     .filter-section {
         gap: 4px;
@@ -541,6 +708,7 @@ body.dark-mode .header-btn {
     box-shadow: 0 2px 8px var(--shadow-color);
     position: relative;
     border-left: 5px solid var(--primary);
+    cursor: pointer;
 }
 
 .task-item:hover {
@@ -549,6 +717,16 @@ body.dark-mode .header-btn {
 
 .task-item:active {
     transform: scale(0.99);
+}
+
+.task-item.completed {
+    opacity: 0.7;
+    border-left-color: var(--success) !important;
+}
+
+.task-item.completed .task-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
 }
 
 .task-item.priority-planned {
@@ -561,16 +739,6 @@ body.dark-mode .header-btn {
 
 .task-item.priority-critical {
     border-left-color: var(--danger);
-}
-
-.task-item.completed {
-    opacity: 0.7;
-    border-left-color: var(--success) !important;
-}
-
-.task-item.completed .task-title {
-    text-decoration: line-through;
-    color: var(--text-muted);
 }
 
 .task-main {
@@ -715,7 +883,7 @@ body.dark-mode .header-btn {
 }
 
 /* ============================================ */
-/* 8. FAB (BOTÃO FLUTUANTE)                    */
+/* 8. FAB (botão flutuante)                    */
 /* ============================================ */
 .fab {
     position: absolute;
@@ -747,7 +915,7 @@ body.dark-mode .header-btn {
 }
 
 /* ============================================ */
-/* 9. MODAIS & FORMULÁRIOS                      */
+/* 9. MODAIS (bottom sheet)                    */
 /* ============================================ */
 .modal-overlay {
     position: fixed;
@@ -967,7 +1135,7 @@ body.dark-mode .header-btn {
 }
 
 /* ============================================ */
-/* 11. LISTAS DE CHECKBOX                      */
+/* 11. CHECKBOXES (atividades)                 */
 /* ============================================ */
 .checkbox-group-container,
 .rdo-task-list {
@@ -1176,58 +1344,7 @@ label.checkbox-item {
 }
 
 /* ============================================ */
-/* 13. DARK MODE TOGGLE                         */
-/* ============================================ */
-.dark-mode-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    /* Alinha os itens à esquerda */
-    gap: 12px;
-    /* Espaço entre ícone, texto e switch */
-    padding: 12px 16px;
-    background: none;
-    border: none;
-    width: 100%;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.dark-mode-toggle .toggle-switch {
-    margin-left: auto;
-    /* Empurra o switch para a direita */
-    width: 44px;
-    height: 24px;
-    background: var(--border-color);
-    border-radius: 8px;
-    position: relative;
-    transition: background 0.3s ease;
-}
-
-body.dark-mode .dark-mode-toggle .toggle-switch {
-    background: var(--primary);
-}
-
-.dark-mode-toggle .toggle-switch::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 20px;
-    height: 20px;
-    background: #FFFFFF;
-    border-radius: 8%;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-body.dark-mode .dark-mode-toggle .toggle-switch::after {
-    transform: translateX(20px);
-}
-
-/* ============================================ */
-/* 14. TOAST & NOTIFICAÇÕES                     */
+/* 13. TOAST & CONNECTION                       */
 /* ============================================ */
 .connection-status {
     position: fixed;
@@ -1264,7 +1381,6 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
     opacity: 0;
     transition: all 0.3s ease;
     z-index: 2500;
-    white-space: nowrap;
     max-width: 90%;
     text-align: center;
 }
@@ -1275,7 +1391,7 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 }
 
 /* ============================================ */
-/* FOOTER – SIMPLIFICADO                        */
+/* 14. FOOTER                                  */
 /* ============================================ */
 .footer {
     padding: 10px 0 6px;
@@ -1311,7 +1427,46 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 }
 
 /* ============================================ */
-/* 16. RESPONSIVIDADE E SAFE AREA              */
+/* 15. ASSINATURA (canvas)                     */
+/* ============================================ */
+#rdoAssinaturaContainer canvas {
+    display: block;
+    width: 100%;
+    height: 120px;
+    background: white;
+    border-radius: 8px;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+/* ============================================ */
+/* 16. IMPRESSÃO                               */
+/* ============================================ */
+@media print {
+
+    .pdf-activity-card,
+    .rdo-pdf-card,
+    .rdo-activity-item {
+        height: auto !important;
+        min-height: auto !important;
+        padding-bottom: 12px !important;
+        margin-bottom: 16px !important;
+        overflow: visible !important;
+        page-break-inside: avoid;
+    }
+
+    .pdf-activity-meta,
+    .rdo-pdf-meta {
+        position: relative !important;
+        display: block !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        margin-top: 6px !important;
+    }
+}
+
+/* ============================================ */
+/* 17. RESPONSIVO E SAFE AREA                   */
 /* ============================================ */
 @media (max-width: 620px) {
     .modal-address-section .search-header {
@@ -1353,59 +1508,215 @@ body.dark-mode .dark-mode-toggle .toggle-switch::after {
 }
 
 /* ============================================ */
-/* 17. IMPRESSÃO                               */
+/* 18. PAINEL DE DETALHES                      */
 /* ============================================ */
-@media print {
-
-    .pdf-activity-card,
-    .rdo-pdf-card,
-    .rdo-activity-item {
-        height: auto !important;
-        min-height: auto !important;
-        padding-bottom: 12px !important;
-        margin-bottom: 16px !important;
-        overflow: visible !important;
-        page-break-inside: avoid;
-    }
-
-    .pdf-activity-meta,
-    .rdo-pdf-meta {
-        position: relative !important;
-        display: block !important;
-        white-space: normal !important;
-        word-break: break-word !important;
-        margin-top: 6px !important;
-    }
+.task-detail-panel {
+    display: none;
+    flex-direction: column;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border-color);
+    padding: 16px;
+    width: 320px;
+    min-width: 280px;
+    max-width: 380px;
+    height: 100%;
+    overflow-y: auto;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
-/* Assinatura */
-#rdoAssinaturaContainer canvas {
-    display: block;
-    width: 100%;
-    height: 120px;
-    background: white;
-    border-radius: 8px;
-    touch-action: none;
-    cursor: crosshair;
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
 }
 
-/* ===== BOTÕES DO HEADER NO TEMA CLARO ===== */
-body:not(.dark-mode) .menu-toggle,
-body:not(.dark-mode) .header-btn {
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+.detail-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
     color: var(--text-primary);
-    transition: all 0.2s ease;
+    margin: 0;
 }
 
-body:not(.dark-mode) .menu-toggle:hover,
-body:not(.dark-mode) .header-btn:hover {
-    background: var(--bg-hover);
-    border-color: var(--primary);
+.detail-close {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: none;
 }
 
-body:not(.dark-mode) .menu-toggle:active,
-body:not(.dark-mode) .header-btn:active {
-    transform: scale(0.92);
+.detail-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 20px;
+}
+
+.detail-empty .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+}
+
+.detail-empty p {
+    font-size: 0.9rem;
+}
+
+.detail-item {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+.detail-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.detail-value .status-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.detail-value .status-badge.completed {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.detail-value .status-badge.pending {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.detail-address-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.detail-address-actions .address-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #FFFFFF !important;
+    text-decoration: none;
+}
+
+/* ============================================ */
+/* 20. MOBILE (painel de detalhes)             */
+/* ============================================ */
+@media (max-width: 1023px) {
+    .task-detail-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 70vh;
+        width: 100%;
+        max-width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        background: var(--bg-container);
+        border-radius: var(--radius) var(--radius) 0 0;
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 1500;
+        padding: 20px 20px 32px;
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .task-detail-panel.open {
+        transform: translateY(0);
+    }
+
+    .detail-close {
+        display: block !important;
+    }
+
+    .detail-header {
+        padding-right: 8px;
+    }
+}
+
+/* Wrapper para lista + painel de detalhes */
+.list-detail-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    min-height: 0;
+}
+
+#taskList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px 80px 8px;
+    gap: 10px;
+    min-width: 0;
+}
+
+.task-detail-panel {
+    flex: 0 0 320px;
+    max-width: 320px;
+    border-left: 1px solid var(--border-color);
+    background: var(--bg-card);
+    padding: 16px;
+    overflow-y: auto;
+    display: none;
+    /* oculto no mobile, visível no desktop */
+}
+
+@media (min-width: 1024px) {
+    .task-detail-panel {
+        display: flex !important;
+        flex-direction: column;
+    }
+
+    .container {
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 0 !important;
+    }
+
+    .list-detail-wrapper {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .fab {
+        right: 340px;
+    }
 }

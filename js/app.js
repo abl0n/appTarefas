@@ -1703,6 +1703,150 @@ class TaskManager {
     }
 
     // =============================================
+    // MÉTODO PARA EXIBIR DETALHES DA ATIVIDADE
+    // =============================================
+    showTaskDetails(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) {
+            this.clearTaskDetails();
+            return;
+        }
+
+        const panel = document.getElementById('taskDetailPanel');
+        const content = document.getElementById('detailContent');
+
+        if (!panel || !content) return;
+
+        // Abrir no mobile
+        if (window.innerWidth < 1024) {
+            panel.classList.add('open');
+        }
+
+        const status = task.completed ? 'EXECUTADO' : 'PENDENTE';
+        const statusClass = task.completed ? 'completed' : 'pending';
+        const statusIcon = task.completed ? '✅' : '⏳';
+        const priorityMap = {
+            'planned': '📌 Planejado',
+            'attention': '⚠️ Atenção',
+            'critical': '🚨 Crítico'
+        };
+        const priorityLabel = priorityMap[task.priority] || '📌 Planejado';
+
+        let html = `
+        <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value">
+                <span class="status-badge ${statusClass}">${statusIcon} ${status}</span>
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Atividade</div>
+            <div class="detail-value">${escapeHtml(task.text)}</div>
+        </div>
+    `;
+
+        if (task.ordem) {
+            html += `
+            <div class="detail-item">
+                <div class="detail-label">Nº Ordem</div>
+                <div class="detail-value">${escapeHtml(task.ordem)}</div>
+            </div>
+        `;
+        }
+
+        if (task.data) {
+            html += `
+            <div class="detail-item">
+                <div class="detail-label">Data</div>
+                <div class="detail-value">${escapeHtml(task.data)}</div>
+            </div>
+        `;
+        }
+
+        html += `
+        <div class="detail-item">
+            <div class="detail-label">Prioridade</div>
+            <div class="detail-value">${priorityLabel}</div>
+        </div>
+    `;
+
+        if (task.obs) {
+            html += `
+            <div class="detail-item">
+                <div class="detail-label">Observação</div>
+                <div class="detail-value">${escapeHtml(task.obs)}</div>
+            </div>
+        `;
+        }
+
+        if (task.endereco) {
+            const enderecoStr = this.formatAddressSimple(task.endereco);
+            const lat = task.endereco.lat || '';
+            const lon = task.endereco.lon || '';
+            const hasCoords = lat && lon;
+            const googleUrl = hasCoords
+                ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoStr)}`;
+            const wazeUrl = hasCoords
+                ? `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`
+                : `https://waze.com/ul?q=${encodeURIComponent(enderecoStr)}&navigate=yes`;
+
+            html += `
+            <div class="detail-item">
+                <div class="detail-label">📍 Endereço</div>
+                <div class="detail-value">${escapeHtml(enderecoStr)}</div>
+                <div class="detail-address-actions">
+                    <a href="${googleUrl}" target="_blank" class="address-link" style="background:var(--google-color);">Google Maps</a>
+                    <a href="${wazeUrl}" target="_blank" class="address-link" style="background:var(--waze-color);">Waze</a>
+                    ${hasCoords ? `<button class="address-link" style="background:var(--primary);color:#fff;border:none;cursor:pointer;" onclick="navigator.clipboard.writeText('${lat}, ${lon}').then(()=>showToast('📋 Coordenadas copiadas!'))">📋 Copiar</button>` : ''}
+                </div>
+            </div>
+        `;
+        }
+
+        if (task.tipoAtividade === 'comissionamento') {
+            const campos = [];
+            if (task.projeto) campos.push(`Projeto: ${task.projeto}`);
+            if (task.pep) campos.push(`PEP: ${task.pep}`);
+            if (task.tu) campos.push(`TU: ${task.tu}`);
+            if (task.pocc) campos.push(`POCC/S: ${task.pocc}`);
+            if (campos.length) {
+                html += `
+                <div class="detail-item">
+                    <div class="detail-label">📋 Comissionamento</div>
+                    <div class="detail-value">${campos.join('<br>')}</div>
+                </div>
+            `;
+            }
+        }
+
+        if (task.createdAt) {
+            html += `
+            <div class="detail-item">
+                <div class="detail-label">Criado em</div>
+                <div class="detail-value">${escapeHtml(task.createdAt)}</div>
+            </div>
+        `;
+        }
+
+        content.innerHTML = html;
+    }
+
+    clearTaskDetails() {
+        const content = document.getElementById('detailContent');
+        if (content) {
+            content.innerHTML = `
+            <div class="detail-empty">
+                <span class="empty-icon">👆</span>
+                <p>Selecione uma atividade para ver os detalhes</p>
+            </div>
+        `;
+        }
+        const panel = document.getElementById('taskDetailPanel');
+        if (panel) panel.classList.remove('open');
+    }
+
+    // =============================================
     // MÉTODOS DE MAPA E ROTA
     // =============================================
     async showMap() {
@@ -3438,6 +3582,20 @@ class TaskManager {
             });
         }
 
+        // Clique na tarefa
+        this.taskList.addEventListener('click', (e) => {
+            const taskItem = e.target.closest('.task-item');
+            if (taskItem && !e.target.closest('.action-btn') && !e.target.closest('.task-checkbox')) {
+                const taskId = parseInt(taskItem.dataset.id);
+                if (!isNaN(taskId)) this.showTaskDetails(taskId);
+            }
+        });
+
+        // Fechar detalhes
+        document.getElementById('detailClose')?.addEventListener('click', () => {
+            this.clearTaskDetails();
+        });
+
         // ----- Menu Gerar RDO -----
         const menuGerarRDO = document.getElementById('menuGerarRDO');
         if (menuGerarRDO) {
@@ -3560,6 +3718,39 @@ class TaskManager {
                 this.closeSidebar();
             }
         }, { passive: true });
+
+        // ----- Clique na tarefa para exibir detalhes -----
+        if (this.taskList) {
+            this.taskList.addEventListener('click', (e) => {
+                const taskItem = e.target.closest('.task-item');
+                // Ignora se clicou em botão de ação (editar/excluir) ou checkbox
+                if (taskItem && !e.target.closest('.action-btn') && !e.target.closest('.task-checkbox')) {
+                    const taskId = parseInt(taskItem.dataset.id);
+                    if (!isNaN(taskId)) {
+                        this.showTaskDetails(taskId);
+                    }
+                }
+            });
+        }
+
+        // ----- Fechar detalhes (mobile) -----
+        const detailClose = document.getElementById('detailClose');
+        if (detailClose) {
+            detailClose.addEventListener('click', () => {
+                this.clearTaskDetails();
+            });
+        }
+
+        // ----- Fechar detalhes ao clicar fora (mobile) -----
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('taskDetailPanel');
+            if (panel && panel.classList.contains('open')) {
+                // Se o clique não foi dentro do painel e não foi em uma tarefa
+                if (!e.target.closest('.task-detail-panel') && !e.target.closest('.task-item')) {
+                    this.clearTaskDetails();
+                }
+            }
+        });
 
         console.log('✅ Eventos vinculados');
     }

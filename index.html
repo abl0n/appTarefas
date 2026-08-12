@@ -121,8 +121,9 @@
     <main class="main-content">
         <div class="container">
 
+            <!-- HEADER -->
             <header>
-                <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu de navegação">☰</button>
+                <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
                 <div class="header-title">
                     <img src="icon/apple-touch-icon.png" alt="gasControl" class="header-icon">
                     <h1>gasControl</h1>
@@ -153,8 +154,25 @@
                 </button>
             </div>
 
-            <!-- LISTA DE TAREFAS -->
-            <ul id="taskList" aria-live="polite"></ul>
+            <!-- WRAPPER: LISTA (centro) + PAINEL DE DETALHES (direita) -->
+            <div class="list-detail-wrapper">
+                <!-- LISTA DE TAREFAS -->
+                <ul id="taskList" aria-live="polite"></ul>
+
+                <!-- PAINEL DE DETALHES -->
+                <div id="taskDetailPanel" class="task-detail-panel">
+                    <div class="detail-header">
+                        <h3>📋 Detalhes da Atividade</h3>
+                        <button class="detail-close" id="detailClose" aria-label="Fechar detalhes">✕</button>
+                    </div>
+                    <div id="detailContent" class="detail-content">
+                        <div class="detail-empty">
+                            <span class="empty-icon">👆</span>
+                            <p>Selecione uma atividade para ver os detalhes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- BOTÃO FLUTUANTE -->
             <button class="fab" id="fabAddTask" aria-label="Adicionar Nova Atividade">✚</button>
@@ -170,286 +188,290 @@
                 </div>
             </footer>
         </div>
-    </main>
 
-    <!-- MODAL PERFIL -->
-    <div class="modal-overlay modal-profile" id="profileModal" role="dialog" aria-modal="true">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>👤 Meu Perfil</h2>
-                <button class="modal-close" id="modalProfileClose">✕</button>
-            </div>
-            <form id="profileForm">
-                <div style="text-align:center;">
-                    <div class="modal-avatar" id="modalAvatar">👤</div>
-                </div>
 
-                <div class="rdo-field">
-                    <label for="modalName">📛 Nome</label>
-                    <input type="text" id="modalName" required>
-                </div>
-                <div class="rdo-field">
-                    <label for="modalEmail">📧 Email</label>
-                    <input type="email" id="modalEmail" required>
-                </div>
 
-                <div class="rdo-field">
-                    <label for="profileNomeEmpresa">Empresa</label>
-                    <input type="text" id="profileNomeEmpresa">
+        <!-- MODAL PERFIL -->
+        <div class="modal-overlay modal-profile" id="profileModal" role="dialog" aria-modal="true">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>👤 Meu Perfil</h2>
+                    <button class="modal-close" id="modalProfileClose">✕</button>
                 </div>
-                <div class="rdo-field">
-                    <label for="profileLogotipo">Logotipo</label>
-                    <input type="file" id="profileLogotipo" accept="image/*">
-                    <div id="profileLogotipoPreview" style="display:none; margin-top:8px;">
-                        <img id="profileLogotipoImg" src="" alt="Preview" style="max-width:100px;">
+                <form id="profileForm">
+                    <div style="text-align:center;">
+                        <div class="modal-avatar" id="modalAvatar">👤</div>
                     </div>
-                    <button type="button" id="profileLogotipoRemover"
-                        style="display:none; color:var(--danger); background:none; border:none; margin-top:4px;">Remover</button>
-                </div>
 
-                <div class="rdo-field">
-                    <label for="profileEquipe">Equipe</label>
-                    <input type="text" id="profileEquipe">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileEscala">Escala</label>
-                    <input type="text" id="profileEscala">
-                </div>
-
-                <div class="rdo-field">
-                    <label for="profileTecnico1">Técnico 1</label>
-                    <input type="text" id="profileTecnico1">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileRegistro1">Registro 1</label>
-                    <input type="text" id="profileRegistro1">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileTecnico2">Técnico 2</label>
-                    <input type="text" id="profileTecnico2">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileRegistro2">Registro 2</label>
-                    <input type="text" id="profileRegistro2">
-                </div>
-
-                <div class="rdo-field">
-                    <label for="profilePrefixo">Prefixo Veículo</label>
-                    <input type="text" id="profilePrefixo">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileTipoVeiculo">Tipo Veículo</label>
-                    <input type="text" id="profileTipoVeiculo">
-                </div>
-
-                <div class="rdo-field">
-                    <label for="profileJornadaInicio">Início Jornada</label>
-                    <input type="time" id="profileJornadaInicio" value="08:00">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileJornadaFim">Fim Jornada</label>
-                    <input type="time" id="profileJornadaFim" value="17:00">
-                </div>
-                <div class="rdo-field">
-                    <label for="profileJornadaDuracao">Duração</label>
-                    <input type="text" id="profileJornadaDuracao" value="09:00" readonly>
-                </div>
-
-                <button type="submit" class="rdo-btn primary">💾 Salvar Perfil</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL ATIVIDADE -->
-    <div class="modal-overlay" id="taskModal" role="dialog" aria-modal="true">
-        <div class="modal">
-            <div class="modal-handle"></div>
-            <div class="modal-header">
-                <h2 id="modalTitle">📋 Atividade</h2>
-                <button class="modal-close" id="modalTaskClose">✕</button>
-            </div>
-
-            <form id="taskForm" class="rdo-form">
-                <input type="hidden" id="editTaskId">
-
-                <div class="activity-type-selector">
-                    <button type="button" class="activity-type-btn active" data-type="manutencao">🔧 Manutenção</button>
-                    <button type="button" class="activity-type-btn" data-type="comissionamento">📋
-                        Comissionamento</button>
-                </div>
-
-                <div id="manutencaoFields">
                     <div class="rdo-field">
-                        <label for="rdoAtividadeSearch">📝 Buscar / Selecionar atividades</label>
-                        <input type="text" id="rdoAtividadeSearch" placeholder="Filtrar opções...">
-                        <div id="rdoAtividadeContainer" class="checkbox-group-container"></div>
-                        <div id="rdoAtividadeEmpty"
-                            style="display:none; color:var(--text-muted); text-align:center; padding:8px;">Nenhuma
-                            atividade encontrada.</div>
+                        <label for="modalName">📛 Nome</label>
+                        <input type="text" id="modalName" required>
                     </div>
                     <div class="rdo-field">
-                        <label for="rdoAtividadeOutro">Personalizada (opcional)</label>
-                        <input type="text" id="rdoAtividadeOutro">
+                        <label for="modalEmail">📧 Email</label>
+                        <input type="email" id="modalEmail" required>
                     </div>
-                    <div class="rdo-field">
-                        <label for="rdoAtividadeDisplay">Selecionadas:</label>
-                        <input type="text" id="rdoAtividadeDisplay" readonly>
-                    </div>
-                    <input type="hidden" id="rdoAtividadeHidden" value="">
-                </div>
 
-                <div id="comissionamentoFields" style="display:none;">
                     <div class="rdo-field">
-                        <label for="rdoAtividadeComiss">Atividade</label>
-                        <input type="text" id="rdoAtividadeComiss" value="Comissionamento" readonly>
+                        <label for="profileNomeEmpresa">Empresa</label>
+                        <input type="text" id="profileNomeEmpresa">
                     </div>
                     <div class="rdo-field">
-                        <label for="rdoProjeto">Projeto</label>
-                        <input type="text" id="rdoProjeto">
-                    </div>
-                    <div class="rdo-field">
-                        <label for="rdoPep">PEP</label>
-                        <input type="text" id="rdoPep">
-                    </div>
-                    <div class="rdo-field">
-                        <label for="rdoTu">TU</label>
-                        <input type="text" id="rdoTu">
-                    </div>
-                    <div class="rdo-field">
-                        <label for="rdoPocc">POCC/S</label>
-                        <input type="text" id="rdoPocc">
-                    </div>
-                </div>
-
-                <div class="rdo-field">
-                    <label for="rdoOrdem">🔢 Nº Ordem</label>
-                    <input type="text" id="rdoOrdem">
-                </div>
-                <div class="rdo-field">
-                    <label for="rdoDataAtividade">📅 Data</label>
-                    <input type="date" id="rdoDataAtividade">
-                </div>
-                <div class="rdo-field">
-                    <label for="rdoObs">📝 Observação</label>
-                    <textarea id="rdoObs" rows="3"></textarea>
-                </div>
-
-                <div class="rdo-field">
-                    <label for="modalAddressSearch">📍 Endereço</label>
-                    <div class="modal-address-section">
-                        <div class="search-header">
-                            <input type="text" id="modalAddressSearch" placeholder="Endereço, CEP ou coordenada...">
-                            <button type="button" id="modalSearchBtn">🔍 Buscar</button>
-                            <button type="button" id="modalClearAddress" class="clear-address-btn">✖</button>
+                        <label for="profileLogotipo">Logotipo</label>
+                        <input type="file" id="profileLogotipo" accept="image/*">
+                        <div id="profileLogotipoPreview" style="display:none; margin-top:8px;">
+                            <img id="profileLogotipoImg" src="" alt="Preview" style="max-width:100px;">
                         </div>
-                        <div id="modalSuggestions" class="modal-suggestions"></div>
-                        <div id="modalSelectedAddress" class="modal-selected-address">
-                            <div id="modalSelectedText"></div>
+                        <button type="button" id="profileLogotipoRemover"
+                            style="display:none; color:var(--danger); background:none; border:none; margin-top:4px;">Remover</button>
+                    </div>
+
+                    <div class="rdo-field">
+                        <label for="profileEquipe">Equipe</label>
+                        <input type="text" id="profileEquipe">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileEscala">Escala</label>
+                        <input type="text" id="profileEscala">
+                    </div>
+
+                    <div class="rdo-field">
+                        <label for="profileTecnico1">Técnico 1</label>
+                        <input type="text" id="profileTecnico1">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileRegistro1">Registro 1</label>
+                        <input type="text" id="profileRegistro1">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileTecnico2">Técnico 2</label>
+                        <input type="text" id="profileTecnico2">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileRegistro2">Registro 2</label>
+                        <input type="text" id="profileRegistro2">
+                    </div>
+
+                    <div class="rdo-field">
+                        <label for="profilePrefixo">Prefixo Veículo</label>
+                        <input type="text" id="profilePrefixo">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileTipoVeiculo">Tipo Veículo</label>
+                        <input type="text" id="profileTipoVeiculo">
+                    </div>
+
+                    <div class="rdo-field">
+                        <label for="profileJornadaInicio">Início Jornada</label>
+                        <input type="time" id="profileJornadaInicio" value="08:00">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileJornadaFim">Fim Jornada</label>
+                        <input type="time" id="profileJornadaFim" value="17:00">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="profileJornadaDuracao">Duração</label>
+                        <input type="text" id="profileJornadaDuracao" value="09:00" readonly>
+                    </div>
+
+                    <button type="submit" class="rdo-btn primary">💾 Salvar Perfil</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL ATIVIDADE -->
+        <div class="modal-overlay" id="taskModal" role="dialog" aria-modal="true">
+            <div class="modal">
+                <div class="modal-handle"></div>
+                <div class="modal-header">
+                    <h2 id="modalTitle">📋 Atividade</h2>
+                    <button class="modal-close" id="modalTaskClose">✕</button>
+                </div>
+
+                <form id="taskForm" class="rdo-form">
+                    <input type="hidden" id="editTaskId">
+
+                    <div class="activity-type-selector">
+                        <button type="button" class="activity-type-btn active" data-type="manutencao">🔧
+                            Manutenção</button>
+                        <button type="button" class="activity-type-btn" data-type="comissionamento">📋
+                            Comissionamento</button>
+                    </div>
+
+                    <div id="manutencaoFields">
+                        <div class="rdo-field">
+                            <label for="rdoAtividadeSearch">📝 Buscar / Selecionar atividades</label>
+                            <input type="text" id="rdoAtividadeSearch" placeholder="Filtrar opções...">
+                            <div id="rdoAtividadeContainer" class="checkbox-group-container"></div>
+                            <div id="rdoAtividadeEmpty"
+                                style="display:none; color:var(--text-muted); text-align:center; padding:8px;">Nenhuma
+                                atividade encontrada.</div>
+                        </div>
+                        <div class="rdo-field">
+                            <label for="rdoAtividadeOutro">Personalizada (opcional)</label>
+                            <input type="text" id="rdoAtividadeOutro">
+                        </div>
+                        <div class="rdo-field">
+                            <label for="rdoAtividadeDisplay">Selecionadas:</label>
+                            <input type="text" id="rdoAtividadeDisplay" readonly>
+                        </div>
+                        <input type="hidden" id="rdoAtividadeHidden" value="">
+                    </div>
+
+                    <div id="comissionamentoFields" style="display:none;">
+                        <div class="rdo-field">
+                            <label for="rdoAtividadeComiss">Atividade</label>
+                            <input type="text" id="rdoAtividadeComiss" value="Comissionamento" readonly>
+                        </div>
+                        <div class="rdo-field">
+                            <label for="rdoProjeto">Projeto</label>
+                            <input type="text" id="rdoProjeto">
+                        </div>
+                        <div class="rdo-field">
+                            <label for="rdoPep">PEP</label>
+                            <input type="text" id="rdoPep">
+                        </div>
+                        <div class="rdo-field">
+                            <label for="rdoTu">TU</label>
+                            <input type="text" id="rdoTu">
+                        </div>
+                        <div class="rdo-field">
+                            <label for="rdoPocc">POCC/S</label>
+                            <input type="text" id="rdoPocc">
                         </div>
                     </div>
-                </div>
 
-                <div class="rdo-field">
-                    <label>🚩 Prioridade</label>
-                    <div class="priority-selector" id="prioritySelector">
-                        <label class="priority-option" data-value="planned">
-                            <input type="radio" name="taskPriority" value="planned" checked> Planejado
-                        </label>
-                        <label class="priority-option" data-value="attention">
-                            <input type="radio" name="taskPriority" value="attention"> Atenção
-                        </label>
-                        <label class="priority-option" data-value="critical">
-                            <input type="radio" name="taskPriority" value="critical"> Crítico
-                        </label>
+                    <div class="rdo-field">
+                        <label for="rdoOrdem">🔢 Nº Ordem</label>
+                        <input type="text" id="rdoOrdem">
                     </div>
-                </div>
+                    <div class="rdo-field">
+                        <label for="rdoDataAtividade">📅 Data</label>
+                        <input type="date" id="rdoDataAtividade">
+                    </div>
+                    <div class="rdo-field">
+                        <label for="rdoObs">📝 Observação</label>
+                        <textarea id="rdoObs" rows="3"></textarea>
+                    </div>
 
-                <button type="submit" class="rdo-btn primary" id="modalSubmitBtn">✅ Adicionar Atividade</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL GERAR RDO -->
-    <div class="modal-overlay" id="rdoGeneratorModal" role="dialog" aria-modal="true">
-        <div class="modal">
-            <div class="modal-handle"></div>
-            <div class="modal-header">
-                <h2>📋 Gerar RDO</h2>
-                <button class="modal-close" id="rdoGeneratorClose">✕</button>
-            </div>
-
-            <form id="rdoGeneratorForm" class="rdo-form">
-                <div class="rdo-field">
-                    <label for="rdoDisplayEquipe">Equipe</label>
-                    <input type="text" id="rdoDisplayEquipe" readonly>
-                </div>
-                <div class="rdo-field">
-                    <label for="rdoDisplayVeiculo">Veículo</label>
-                    <input type="text" id="rdoDisplayVeiculo" readonly>
-                </div>
-                <div class="rdo-field">
-                    <label for="rdoDisplayUsuario1">Técnico 1</label>
-                    <input type="text" id="rdoDisplayUsuario1" readonly>
-                </div>
-                <div class="rdo-field">
-                    <label for="rdoDisplayUsuario2">Técnico 2</label>
-                    <input type="text" id="rdoDisplayUsuario2" readonly>
-                </div>
-
-                <div class="rdo-field">
-                    <label>📋 Selecionar Atividades</label>
-                    <div id="rdoTaskList" class="rdo-task-list"></div>
-                </div>
-
-                <div class="rdo-section">
-                    <button type="button" class="rdo-btn primary" id="rdoAddDesvioBtn">➕ Adicionar desvio</button>
-                    <div id="rdoDesviosContainer"></div>
-                </div>
-
-                <div class="rdo-field">
-                    <label for="rdoObservacao">📝 Observação</label>
-                    <textarea id="rdoObservacao" rows="3"></textarea>
-                </div>
-
-                <div class="rdo-field">
-                    <label for="rdoAssinatura">✍️ Assinatura do Responsável</label>
-                    <div id="rdoAssinaturaContainer">
-                        <canvas id="rdoAssinaturaCanvas" width="400" height="120"></canvas>
-                        <div style="display:flex; gap:8px; margin-top:8px;">
-                            <button type="button" id="rdoAssinaturaLimpar" class="rdo-btn secondary" style="flex:1;">🗑️
-                                Limpar</button>
-                            <button type="button" id="rdoAssinaturaSalvar" class="rdo-btn primary" style="flex:1;">💾
-                                Salvar</button>
+                    <div class="rdo-field">
+                        <label for="modalAddressSearch">📍 Endereço</label>
+                        <div class="modal-address-section">
+                            <div class="search-header">
+                                <input type="text" id="modalAddressSearch" placeholder="Endereço, CEP ou coordenada...">
+                                <button type="button" id="modalSearchBtn">🔍 Buscar</button>
+                                <button type="button" id="modalClearAddress" class="clear-address-btn">✖</button>
+                            </div>
+                            <div id="modalSuggestions" class="modal-suggestions"></div>
+                            <div id="modalSelectedAddress" class="modal-selected-address">
+                                <div id="modalSelectedText"></div>
+                            </div>
                         </div>
-                        <input type="hidden" id="rdoAssinaturaData" value="">
                     </div>
-                </div>
 
-                <button type="submit" class="rdo-btn primary" id="rdoGeneratorSubmit">💾 Salvar RDO</button>
-            </form>
-        </div>
-    </div>
+                    <div class="rdo-field">
+                        <label>🚩 Prioridade</label>
+                        <div class="priority-selector" id="prioritySelector">
+                            <label class="priority-option" data-value="planned">
+                                <input type="radio" name="taskPriority" value="planned" checked> Planejado
+                            </label>
+                            <label class="priority-option" data-value="attention">
+                                <input type="radio" name="taskPriority" value="attention"> Atenção
+                            </label>
+                            <label class="priority-option" data-value="critical">
+                                <input type="radio" name="taskPriority" value="critical"> Crítico
+                            </label>
+                        </div>
+                    </div>
 
-    <div id="mapContainer" style="display:none;"></div>
-
-    <div class="install-banner" id="installBanner">
-        <div class="install-info">
-            <span class="install-icon">📱</span>
-            <div class="install-text">
-                <strong>Instale o App</strong>
-                <span>Adicione à tela inicial</span>
+                    <button type="submit" class="rdo-btn primary" id="modalSubmitBtn">✅ Adicionar Atividade</button>
+                </form>
             </div>
         </div>
-        <div class="install-actions">
-            <button class="install-btn" id="installBtn">📲 Instalar</button>
-            <button class="install-close" id="installClose">✕</button>
+
+        <!-- MODAL GERAR RDO -->
+        <div class="modal-overlay" id="rdoGeneratorModal" role="dialog" aria-modal="true">
+            <div class="modal">
+                <div class="modal-handle"></div>
+                <div class="modal-header">
+                    <h2>📋 Gerar RDO</h2>
+                    <button class="modal-close" id="rdoGeneratorClose">✕</button>
+                </div>
+
+                <form id="rdoGeneratorForm" class="rdo-form">
+                    <div class="rdo-field">
+                        <label for="rdoDisplayEquipe">Equipe</label>
+                        <input type="text" id="rdoDisplayEquipe" readonly>
+                    </div>
+                    <div class="rdo-field">
+                        <label for="rdoDisplayVeiculo">Veículo</label>
+                        <input type="text" id="rdoDisplayVeiculo" readonly>
+                    </div>
+                    <div class="rdo-field">
+                        <label for="rdoDisplayUsuario1">Técnico 1</label>
+                        <input type="text" id="rdoDisplayUsuario1" readonly>
+                    </div>
+                    <div class="rdo-field">
+                        <label for="rdoDisplayUsuario2">Técnico 2</label>
+                        <input type="text" id="rdoDisplayUsuario2" readonly>
+                    </div>
+
+                    <div class="rdo-field">
+                        <label>📋 Selecionar Atividades</label>
+                        <div id="rdoTaskList" class="rdo-task-list"></div>
+                    </div>
+
+                    <div class="rdo-section">
+                        <button type="button" class="rdo-btn primary" id="rdoAddDesvioBtn">➕ Adicionar desvio</button>
+                        <div id="rdoDesviosContainer"></div>
+                    </div>
+
+                    <div class="rdo-field">
+                        <label for="rdoObservacao">📝 Observação</label>
+                        <textarea id="rdoObservacao" rows="3"></textarea>
+                    </div>
+
+                    <div class="rdo-field">
+                        <label for="rdoAssinatura">✍️ Assinatura do Responsável</label>
+                        <div id="rdoAssinaturaContainer">
+                            <canvas id="rdoAssinaturaCanvas" width="400" height="120"></canvas>
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button type="button" id="rdoAssinaturaLimpar" class="rdo-btn secondary"
+                                    style="flex:1;">🗑️
+                                    Limpar</button>
+                                <button type="button" id="rdoAssinaturaSalvar" class="rdo-btn primary"
+                                    style="flex:1;">💾
+                                    Salvar</button>
+                            </div>
+                            <input type="hidden" id="rdoAssinaturaData" value="">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="rdo-btn primary" id="rdoGeneratorSubmit">💾 Salvar RDO</button>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <div id="toast" class="toast"></div>
+        <div id="mapContainer" style="display:none;"></div>
 
-    <script src="js/utils.js" defer></script>
-    <script src="js/app.js" defer></script>
+        <div class="install-banner" id="installBanner">
+            <div class="install-info">
+                <span class="install-icon">📱</span>
+                <div class="install-text">
+                    <strong>Instale o App</strong>
+                    <span>Adicione à tela inicial</span>
+                </div>
+            </div>
+            <div class="install-actions">
+                <button class="install-btn" id="installBtn">📲 Instalar</button>
+                <button class="install-close" id="installClose">✕</button>
+            </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+
+        <script src="js/utils.js" defer></script>
+        <script src="js/app.js" defer></script>
 
 </body>
 
