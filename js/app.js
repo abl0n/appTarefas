@@ -2304,6 +2304,18 @@ class TaskManager {
         const observacao = this.rdoObservacao ? this.rdoObservacao.value.trim() : '';
         const profile = this.profile;
 
+        // ===== CAPTURA A ASSINATURA =====
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
+        let assinatura = '';
+        if (canvas) {
+            try {
+                assinatura = canvas.toDataURL('image/png');
+                console.log('Assinatura capturada, tamanho:', assinatura.length);
+            } catch (e) {
+                console.warn('Erro ao capturar assinatura:', e);
+            }
+        }
+
         if (tarefasIds.length === 0) {
             showToast('⚠️ Selecione pelo menos uma atividade.');
             return;
@@ -2331,6 +2343,7 @@ class TaskManager {
                     tarefas: tarefasIds,
                     desvios,
                     observacao,
+                    assinatura: assinatura // <--- ADICIONADO
                 };
                 showToast('✅ RDO atualizado!');
             } else {
@@ -2352,6 +2365,7 @@ class TaskManager {
                 tarefas: tarefasIds,
                 desvios,
                 observacao,
+                assinatura: assinatura // <--- ADICIONADO
             };
             rdos.push(rdo);
             showToast('✅ RDO salvo com sucesso!');
@@ -2359,6 +2373,7 @@ class TaskManager {
 
         localStorage.setItem('rdos', JSON.stringify(rdos));
 
+        // Limpeza do formulário
         document.querySelectorAll('.rdo-task-checkbox').forEach(cb => cb.checked = false);
         this.clearDesvios();
         this.addDesvioRow();
@@ -2366,6 +2381,13 @@ class TaskManager {
         if (this.rdoGeneratorModal) this.rdoGeneratorModal.classList.remove('active');
         const submitBtn = document.getElementById('rdoGeneratorSubmit');
         if (submitBtn) submitBtn.textContent = '💾 Salvar RDO';
+
+        // Limpa o canvas
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('rdoAssinaturaData').value = '';
+        }
     }
 
     listarRDOs() {
@@ -2461,6 +2483,24 @@ class TaskManager {
             console.log('✅ RDO carregado para edição:', rdo);
             showToast('✏️ Editando RDO...');
         }, 200);
+        // ===== CARREGA A ASSINATURA =====
+        if (rdo.assinatura) {
+            const canvas = document.getElementById('rdoAssinaturaCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    document.getElementById('rdoAssinaturaData').value = rdo.assinatura;
+                };
+                img.onerror = () => {
+                    console.warn('Erro ao carregar assinatura para edição');
+                    document.getElementById('rdoAssinaturaData').value = '';
+                };
+                img.src = rdo.assinatura;
+            }
+        }
     }
 
     // =============================================
@@ -2556,7 +2596,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODO DE GERAÇÃO DE PDF (com campos de comissionamento)
+    // MÉTODO DE GERAÇÃO DE PDF (Otimizado e Corrigido)
     // =============================================
     gerarPDFRDO(id) {
         const profile = this.profile || {};
@@ -2566,7 +2606,7 @@ class TaskManager {
         const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
         const rdo = rdos.find(r => r.id === id);
         if (!rdo) {
-            showToast('⚠️ RDO não encontrado.');
+            if (typeof showToast === 'function') showToast('⚠️ RDO não encontrado.');
             return;
         }
 
@@ -2610,21 +2650,33 @@ class TaskManager {
             doc.setFillColor(...cardBg);
             doc.setDrawColor(...borderBg);
             doc.setLineWidth(0.3);
-            doc.roundedRect(x, y, w, h, 3, 3, 'FD');
+            doc.roundedRect(x, y, w, h, 2.5, 2.5, 'FD');
+        };
+
+        const checkPageBreak = (neededHeight) => {
+            if (y + neededHeight > pageHeight - marginBottom) {
+                doc.addPage();
+                y = marginTop;
+                return true;
+            }
+            return false;
         };
 
         const addSectionHeader = (title, currentY) => {
             doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(10);
+            doc.setFontSize(9.5);
             doc.setTextColor(...primaryColor);
             doc.text(title.toUpperCase(), marginLeft, currentY);
+
             doc.setDrawColor(...primaryColor);
             doc.setLineWidth(0.8);
-            doc.line(marginLeft, currentY + 2, marginLeft + 25, currentY + 2);
+            doc.line(marginLeft, currentY + 2, marginLeft + 22, currentY + 2);
+
             doc.setDrawColor(...borderBg);
             doc.setLineWidth(0.3);
-            doc.line(marginLeft + 25, currentY + 2, pageWidth - marginRight, currentY + 2);
-            return currentY + 8;
+            doc.line(marginLeft + 22, currentY + 2, pageWidth - marginRight, currentY + 2);
+
+            return currentY + 7;
         };
 
         // ===== CABEÇALHO =====
@@ -2679,9 +2731,10 @@ class TaskManager {
         doc.setTextColor(...darkNeutral);
         doc.text(dataVal, dataBoxX + dataBoxWidth / 2, y + 17, { align: 'center' });
 
-        y += headerHeight + 10;
+        y += headerHeight + 8;
 
         // ===== DADOS DA EQUIPE =====
+        checkPageBreak(35);
         y = addSectionHeader('Dados da Equipe & Recursos', y);
 
         const equipeHeight = 26;
@@ -2696,7 +2749,7 @@ class TaskManager {
             doc.setTextColor(...secondaryText);
             doc.text(label.toUpperCase(), x, fieldY);
             doc.setFont(fontFamily, 'normal');
-            doc.setFontSize(9.5);
+            doc.setFontSize(9);
             doc.setTextColor(...darkNeutral);
             doc.text(val || 'Não informado', x, fieldY + 5);
         };
@@ -2710,9 +2763,10 @@ class TaskManager {
         renderField('Técnico Responsável (1)', tec1, col2X, y + 7);
         renderField('Técnico Auxiliar (2)', tec2, col2X, y + 17);
 
-        y += equipeHeight + 10;
+        y += equipeHeight + 8;
 
         // ===== ATIVIDADES EXECUTADAS =====
+        checkPageBreak(25);
         y = addSectionHeader('Atividades Executadas', y);
 
         if (tarefasCompletas.length === 0) {
@@ -2733,7 +2787,6 @@ class TaskManager {
                 const lines = doc.splitTextToSize(itemText, textWidth);
                 let itemH = Math.max(14, lines.length * 5 + (hasEndereco ? 8 : 4));
 
-                // CORREÇÃO: verifica espaço para o card + campos de comissionamento
                 let extraHeight = 0;
                 if (item.tipoAtividade === 'comissionamento') {
                     const campos = [];
@@ -2746,10 +2799,7 @@ class TaskManager {
                 if (hasEndereco) extraHeight += 5;
                 itemH += extraHeight;
 
-                if (y + itemH + 10 > pageHeight - marginBottom) {
-                    doc.addPage();
-                    y = marginTop;
-                }
+                checkPageBreak(itemH + 5);
 
                 drawCard(marginLeft, y, contentWidth, itemH);
 
@@ -2780,7 +2830,6 @@ class TaskManager {
 
                 let endY = y + 7 + (lines.length * 5);
 
-                // Campos de comissionamento
                 if (item.tipoAtividade === 'comissionamento') {
                     const campos = [];
                     if (item.projeto) campos.push(`Projeto: ${item.projeto}`);
@@ -2789,37 +2838,34 @@ class TaskManager {
                     if (item.pocc) campos.push(`POCC/S: ${item.pocc}`);
                     if (campos.length) {
                         const campoStr = campos.join(' | ');
-                        doc.setFontSize(7);
+                        doc.setFontSize(7.5);
                         doc.setTextColor(...secondaryText);
                         doc.text(campoStr, currentX, endY + 4);
                         endY += 6;
                     }
                 }
 
-                // CORREÇÃO: endereço sem emoji e com limpeza de espaços
                 if (hasEndereco) {
-                    const enderecoLimpo = item.endereco.replace(/\s+/g, ' ').trim(); // remove múltiplos espaços
-                    doc.setFontSize(7);
+                    const enderecoLimpo = item.endereco.replace(/\s+/g, ' ').trim();
+                    doc.setFontSize(7.5);
                     doc.setTextColor(...secondaryText);
                     doc.text(enderecoLimpo, currentX, endY + 4);
                 }
 
-                y += itemH + 3;
+                y += itemH + 3.5;
             });
-            y += 5;
+            y += 4;
         }
 
         // ===== OBSERVAÇÕES =====
-        if (y + 25 > pageHeight - marginBottom) {
-            doc.addPage();
-            y = marginTop;
-        }
-
+        checkPageBreak(30);
         y = addSectionHeader('Observações de Campo', y);
 
         const obsText = rdo.observacao || 'Sem observações adicionais.';
         const obsLines = doc.splitTextToSize(obsText, contentWidth - 12);
         const obsHeight = Math.max(14, obsLines.length * 5 + 8);
+
+        checkPageBreak(obsHeight + 5);
 
         drawCard(marginLeft, y, contentWidth, obsHeight);
 
@@ -2833,14 +2879,10 @@ class TaskManager {
             obsY += 5;
         });
 
-        y += obsHeight + 10;
+        y += obsHeight + 8;
 
         // ===== DESVIOS =====
-        if (y + 30 > pageHeight - marginBottom) {
-            doc.addPage();
-            y = marginTop;
-        }
-
+        checkPageBreak(30);
         y = addSectionHeader('Registro de Desvios & Ocorrências', y);
 
         if (!rdo.desvios || rdo.desvios.length === 0) {
@@ -2851,47 +2893,39 @@ class TaskManager {
             doc.text('Nenhum desvio registrado no turno.', marginLeft + 6, y + 7.5);
             y += 18;
         } else {
-            // CORREÇÃO: reposicionamento das colunas para melhor espaçamento
             const col1 = marginLeft + 4;
             const col2 = col1 + 14;
             const col3 = col2 + 20;
             const col4 = col3 + 22;
             const col5 = col4 + 28;
-            const colWidths = [12, 18, 18, 24, contentWidth - (col5 - marginLeft) - 4];
+            const descWidth = contentWidth - (col5 - marginLeft) - 4;
 
-            // Cabeçalho
-            doc.setFillColor(241, 245, 249);
-            doc.rect(marginLeft, y, contentWidth, 8, 'F');
-            doc.setFont(fontFamily, 'bold');
-            doc.setFontSize(7);
-            doc.setTextColor(...secondaryText);
+            const drawTableHeader = (headerY) => {
+                doc.setFillColor(241, 245, 249);
+                doc.rect(marginLeft, headerY, contentWidth, 8, 'F');
+                doc.setFont(fontFamily, 'bold');
+                doc.setFontSize(7);
+                doc.setTextColor(...secondaryText);
 
-            const headers = ['Nº', 'INÍCIO', 'FIM', 'CÓDIGO', 'DESCRIÇÃO DA OCORRÊNCIA'];
-            const headerX = [col1, col2, col3, col4, col5];
-            headers.forEach((h, i) => {
-                doc.text(h, headerX[i], y + 5.5);
-            });
+                const headers = ['Nº', 'INÍCIO', 'FIM', 'CÓDIGO', 'DESCRIÇÃO DA OCORRÊNCIA'];
+                const headerX = [col1, col2, col3, col4, col5];
+                headers.forEach((h, i) => {
+                    doc.text(h, headerX[i], headerY + 5.5);
+                });
+            };
 
+            drawTableHeader(y);
             y += 8;
 
-            // Dados
             rdo.desvios.forEach((d, i) => {
                 const num = (i + 1).toString().padStart(2, '0');
-                const descLines = doc.splitTextToSize(d.descricao || '-', colWidths[4] - 2);
+                const descLines = doc.splitTextToSize(d.descricao || '-', descWidth - 2);
                 const rowH = Math.max(10, descLines.length * 4.5 + 6);
 
                 if (y + rowH > pageHeight - marginBottom) {
                     doc.addPage();
                     y = marginTop;
-                    // redesenha cabeçalho na nova página
-                    doc.setFillColor(241, 245, 249);
-                    doc.rect(marginLeft, y, contentWidth, 8, 'F');
-                    doc.setFont(fontFamily, 'bold');
-                    doc.setFontSize(7);
-                    doc.setTextColor(...secondaryText);
-                    headers.forEach((h, idx) => {
-                        doc.text(h, headerX[idx], y + 5.5);
-                    });
+                    drawTableHeader(y);
                     y += 8;
                 }
 
@@ -2908,14 +2942,13 @@ class TaskManager {
                 doc.text(d.horaInicio || '--:--', col2, y + 6);
                 doc.text(d.horaFim || '--:--', col3, y + 6);
 
-                // Código com badge
                 if (d.codigo) {
                     doc.setFillColor(254, 243, 199);
                     doc.roundedRect(col4, y + 2, 18, 5.5, 1, 1, 'F');
                     doc.setFont(fontFamily, 'bold');
                     doc.setFontSize(7);
                     doc.setTextColor(146, 64, 14);
-                    doc.text(d.codigo, col4 + 9, y + 5.5, { align: 'center' });
+                    doc.text(String(d.codigo), col4 + 9, y + 5.5, { align: 'center' });
                 } else {
                     doc.text('--', col4, y + 6);
                 }
@@ -2933,43 +2966,109 @@ class TaskManager {
 
                 y += rowH;
             });
+
+            y += 8;
+        }
+
+        // ===== ASSINATURA =====
+        try {
+            const assinaturaAltura = 45;
+            if (y + assinaturaAltura + 15 > pageHeight - marginBottom) {
+                doc.addPage();
+                y = marginTop;
+            }
+
+            y = addSectionHeader('Assinatura do Responsável', y);
+            drawCard(marginLeft, y, contentWidth, assinaturaAltura);
+
+            // Verifica se a assinatura existe e tem tamanho razoável
+            if (rdo.assinatura && rdo.assinatura.length > 100) {
+                try {
+                    // Se a string já começa com 'data:image', usamos direto, senão adicionamos o prefixo
+                    let imgData = rdo.assinatura;
+                    if (!imgData.startsWith('data:image/png;base64,')) {
+                        imgData = 'data:image/png;base64,' + imgData;
+                    }
+
+                    const imgWidth = 100;
+                    const imgHeight = 32;
+                    const imgX = marginLeft + (contentWidth - imgWidth) / 2;
+                    const imgY = y + 6;
+
+                    doc.addImage(imgData, 'PNG', imgX, imgY, imgWidth, imgHeight);
+                } catch (e) {
+                    console.warn('Erro ao adicionar assinatura:', e);
+                    doc.setFontSize(9);
+                    doc.setTextColor(...secondaryText);
+                    doc.text('✍️ Assinatura não pôde ser carregada', marginLeft + 6, y + 20);
+                }
+            } else {
+                doc.setFontSize(9);
+                doc.setTextColor(...secondaryText);
+                doc.text('✍️ Sem assinatura registrada', marginLeft + 6, y + 20);
+            }
+
+            doc.setDrawColor(...borderBg);
+            doc.setLineWidth(0.3);
+            doc.line(marginLeft + 20, y + assinaturaAltura - 4, pageWidth - marginRight - 20, y + assinaturaAltura - 4);
+            doc.setFontSize(7);
+            doc.setTextColor(...secondaryText);
+            doc.text('Assinatura do Responsável', marginLeft + (contentWidth / 2), y + assinaturaAltura - 1, { align: 'center' });
+
+            y += assinaturaAltura + 12;
+
+        } catch (error) {
+            console.error('Erro na seção de assinatura:', error);
+            y += 20;
         }
 
         // ===== RODAPÉ =====
-        const pageCount = doc.internal.getNumberOfPages();
+        const pageCount = doc.internal.getNumberOfPages(); // Declarado APENAS UMA VEZ
         const dataGeracao = new Date().toLocaleString('pt-BR');
+        const footerY = pageHeight - marginBottom + 7;
 
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
+
             doc.setFont(fontFamily, 'italic');
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setTextColor(...secondaryText);
 
             doc.setDrawColor(...borderBg);
             doc.setLineWidth(0.3);
-            doc.line(marginLeft, pageHeight - marginBottom + 2, pageWidth - marginRight, pageHeight - marginBottom + 2);
 
-            doc.text(`Gerado em: ${dataGeracao}`, marginLeft, pageHeight - marginBottom + 7);
-            doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, pageHeight - marginBottom + 7, { align: 'right' });
+            doc.line(
+                marginLeft,
+                pageHeight - marginBottom + 2,
+                pageWidth - marginRight,
+                pageHeight - marginBottom + 2
+            );
+
+            doc.text(`Gerado em: ${dataGeracao}`, marginLeft, footerY);
+            doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, footerY, { align: 'right' });
         }
 
-        // Salvar
+        // ===== SALVAR =====
         const dataRDO = rdo.data || new Date().toISOString().slice(0, 10);
         const dataClean = dataRDO.replace(/[/\\?%*:|"<>]/g, '-');
         const equipeClean = (rdo.equipe || 'equipe').replace(/\s+/g, '_');
+
         const createdAt = rdo.createdAt ? new Date(rdo.createdAt) : new Date();
         const hora = String(createdAt.getHours()).padStart(2, '0');
         const minuto = String(createdAt.getMinutes()).padStart(2, '0');
         const timestamp = `${hora}${minuto}`;
+
         const nomeArquivo = `RDO_${dataClean}_${equipeClean}_${timestamp}.pdf`;
 
         doc.save(nomeArquivo);
 
+        // ===== FEEDBACK =====
         if (typeof showToast === 'function') {
             showToast(`📄 PDF gerado: ${nomeArquivo}`);
         }
 
-        this.exibirOpcoesCompartilhamento(id);
+        // Compartilhamento removido (conforme solicitado)
+        // this.exibirOpcoesCompartilhamento(id);
     }
 
     // =============================================
@@ -3146,6 +3245,131 @@ class TaskManager {
             this.clearAllData.addEventListener('click', () => this.clearAllData());
         }
 
+        // No construtor ou como propriedades da classe
+        this.assinaturaCanvas = null;
+        this.assinaturaCtx = null;
+        this.isDrawing = false;
+        this.lastX = 0;
+        this.lastY = 0;
+
+
+        // === ASSINATURA MANUAL ===
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
+        const container = document.getElementById('rdoAssinaturaContainer');
+        const limparBtn = document.getElementById('rdoAssinaturaLimpar');
+        const salvarBtn = document.getElementById('rdoAssinaturaSalvar');
+        const hiddenInput = document.getElementById('rdoAssinaturaData');
+
+        if (canvas && container) {
+            const ctx = canvas.getContext('2d');
+            this.assinaturaCanvas = canvas;
+            this.assinaturaCtx = ctx;
+
+            // Configuração inicial
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000000';
+
+            // Função para redimensionar o canvas (mantém proporção)
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                // O canvas já tem 400x120, mas o CSS pode esticar, ajustamos o tamanho real
+                // Para evitar distorção, usamos a largura real e mantemos proporção
+                const ratio = 120 / 400;
+                const width = rect.width;
+                const height = width * ratio;
+                canvas.width = width * 0.9; // pequena margem
+                canvas.height = canvas.width * ratio;
+                // Restaurar contexto
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000000';
+                // Se já houver uma assinatura salva, redesenhar
+                const saved = hiddenInput.value;
+                if (saved) {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                    img.src = saved;
+                }
+            }
+
+            // Desenho
+            function getPosition(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            }
+
+            function startDrawing(e) {
+                e.preventDefault();
+                this.isDrawing = true;
+                const pos = getPosition(e);
+                this.lastX = pos.x;
+                this.lastY = pos.y;
+            }
+
+            function draw(e) {
+                e.preventDefault();
+                if (!this.isDrawing) return;
+                const pos = getPosition(e);
+                ctx.beginPath();
+                ctx.moveTo(this.lastX, this.lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                this.lastX = pos.x;
+                this.lastY = pos.y;
+            }
+
+            function stopDrawing(e) {
+                e.preventDefault();
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    // Atualiza o hidden com a imagem
+                    const dataUrl = canvas.toDataURL('image/png');
+                    hiddenInput.value = dataUrl;
+                }
+            }
+
+            // Eventos para mouse e toque
+            canvas.addEventListener('mousedown', startDrawing.bind(this));
+            canvas.addEventListener('mousemove', draw.bind(this));
+            canvas.addEventListener('mouseup', stopDrawing.bind(this));
+            canvas.addEventListener('mouseleave', stopDrawing.bind(this));
+
+            canvas.addEventListener('touchstart', startDrawing.bind(this), { passive: false });
+            canvas.addEventListener('touchmove', draw.bind(this), { passive: false });
+            canvas.addEventListener('touchend', stopDrawing.bind(this), { passive: false });
+
+            // Limpar
+            limparBtn.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                hiddenInput.value = '';
+            });
+
+            // Salvar (já é salvo automaticamente ao soltar, mas mantemos o botão)
+            salvarBtn.addEventListener('click', () => {
+                const dataUrl = canvas.toDataURL('image/png');
+                hiddenInput.value = dataUrl;
+                showToast('✅ Assinatura salva!');
+            });
+
+            // Redimensionar
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Quando abrir o modal, carregar assinatura salva (se houver)
+            // Será chamado no openRDOGenerator
+        }
+
+
         // ----- FAB -----
         if (this.fabAddTask) {
             this.fabAddTask.addEventListener('click', () => {
@@ -3226,6 +3450,9 @@ class TaskManager {
                 this.closeSidebar();
             });
         }
+
+
+
         // ----- Menu WhatsApp -----
         const menuWhatsApp = document.getElementById('menuWhatsApp');
         if (menuWhatsApp) {

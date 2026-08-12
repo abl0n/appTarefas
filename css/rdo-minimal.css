@@ -142,3 +142,14 @@
         width: 28px;
     }
 }
+
+/* Assinatura */
+#rdoAssinaturaContainer canvas {
+    display: block;
+    width: 100%;
+    height: 120px;
+    background: white;
+    border-radius: 6px;
+    touch-action: none;
+    cursor: crosshair;
+}

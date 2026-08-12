@@ -25,7 +25,6 @@
 
 /* Modo escuro: superfícies de botão mais claras e com bordas visíveis. */
 body.dark-mode .menu-toggle,
-body.dark-mode .header-btn,
 body.dark-mode .filter-btn:not(.active),
 body.dark-mode .action-btn,
 body.dark-mode .priority-option,
@@ -38,7 +37,6 @@ body.dark-mode .modal-close {
 }
 
 body.dark-mode .menu-toggle:hover,
-body.dark-mode .header-btn:hover,
 body.dark-mode .filter-btn:not(.active):hover,
 body.dark-mode .action-btn:hover,
 body.dark-mode .priority-option:hover,
@@ -197,74 +195,51 @@ body.dark-mode .task-address .address-link {
     border-color: #3b4b63 !important;
 }
 
-/* Em tela pequena, título e ações ganham linhas próprias e nada transborda. */
+/* ===== HISTÓRICO – DESTAQUE DAS ÚLTIMAS 5 ===== */
+.checkbox-item[data-recente="true"] {
+    background: var(--primary-light);
+    border-left: 3px solid var(--primary);
+    font-weight: 500;
+}
+
+/* ===== BOTÃO LIMPAR ENDEREÇO (ICONE) ===== */
+.modal-address-section .search-header .clear-address-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 8px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.modal-address-section .search-header .clear-address-btn:hover {
+    color: var(--danger);
+}
+
+/* ===== RESPONSIVO GERAL ===== */
 @media (max-width: 620px) {
-    header {
-        grid-template-columns: 40px minmax(0, 1fr);
-        gap: 8px;
-        padding-bottom: 12px;
+    .modal-address-section .search-header {
+        flex-wrap: wrap;
     }
 
-    .menu-toggle {
-        min-width: 40px;
-        min-height: 40px;
+    .modal-address-section .search-header input {
+        flex: 1 1 100%;
+        min-height: 44px;
     }
 
-    .header-title h1 {
-        font-size: 1.08rem;
-    }
-
-    .header-actions {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 6px;
-        width: 100%;
-    }
-
-    .header-btn {
-        width: 100%;
-        min-width: 0;
-        min-height: 38px;
-    }
-
-    .filter-section {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px;
-        padding: 4px;
-    }
-
-    .filter-btn {
-        flex-direction: row;
-        align-items: center;
+    .modal-address-section .search-header button {
+        flex: 1;
+        min-height: 44px;
         justify-content: center;
-        min-width: 0;
-        min-height: 40px;
-        padding: 4px;
-        gap: 4px;
-        font-size: .62rem;
-        line-height: 1.1;
-        white-space: nowrap;
     }
 
-    .filter-label {
-        display: inline-flex;
-        align-items: center;
-        min-width: 0;
-        gap: 3px;
-    }
-
-    .filter-icon {
-        flex: 0 0 auto;
-        font-size: .76rem;
-    }
-
-    .filter-count {
-        min-width: 18px;
-        height: 18px;
-        padding: 1px 5px;
-        font-size: .58rem;
+    .modal-selected-address {
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .task-address .address-row {
@@ -292,65 +267,5 @@ body.dark-mode .task-address .address-link {
     .task-obs .obs-label,
     .task-obs .obs-content {
         font-size: .74rem;
-    }
-
-    .filter-btn {
-        font-size: .56rem;
-    }
-
-    .filter-icon {
-        font-size: .68rem;
-    }
-
-    .header-actions {
-        gap: 4px;
-    }
-}
-
-/* ===== HISTÓRICO – DESTAQUE DAS ÚLTIMAS 5 ===== */
-.checkbox-item[data-recente="true"] {
-    background: var(--primary-light);
-    border-left: 3px solid var(--primary);
-    font-weight: 500;
-}
-
-/* ===== BOTÃO LIMPAR ENDEREÇO (ICONE) ===== */
-.modal-address-section .search-header .clear-address-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0 8px;
-    min-height: 48px;
-    display: flex;
-    align-items: center;
-    transition: color 0.2s;
-}
-
-.modal-address-section .search-header .clear-address-btn:hover {
-    color: var(--danger);
-}
-
-/* ===== RESPONSIVO ===== */
-@media (max-width: 620px) {
-    .modal-address-section .search-header {
-        flex-wrap: wrap;
-    }
-
-    .modal-address-section .search-header input {
-        flex: 1 1 100%;
-        min-height: 44px;
-    }
-
-    .modal-address-section .search-header button {
-        flex: 1;
-        min-height: 44px;
-        justify-content: center;
-    }
-
-    .modal-selected-address {
-        flex-wrap: wrap;
-        gap: 8px;
     }
 }
