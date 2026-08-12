@@ -269,3 +269,24 @@ body.dark-mode .task-address .address-link {
         font-size: .74rem;
     }
 }
+
+/* ===== BOTÕES DO HEADER NO TEMA ESCURO ===== */
+body.dark-mode .menu-toggle,
+body.dark-mode .header-btn {
+    background: #44475a !important;
+    border: 1px solid #6272a4 !important;
+    border-radius: 8px;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+body.dark-mode .menu-toggle:hover,
+body.dark-mode .header-btn:hover {
+    background: #6272a4 !important;
+    border-color: #8be9fd !important;
+}
+
+body.dark-mode .menu-toggle:active,
+body.dark-mode .header-btn:active {
+    transform: scale(0.92);
+}
