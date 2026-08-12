@@ -43,39 +43,77 @@
             <p id="profileEmail">usuario@email.com</p>
         </div>
         <nav class="sidebar-menu">
-            <button class="menu-item" id="menuGerarRDO"><span class="menu-icon">📄</span> Gerar RDO</button>
-            <button class="menu-item" id="menuMeusRDOs"><span class="menu-icon">📂</span> Meus RDOs</button>
-            <button class="menu-item active" data-page="tasks">
-                <span class="menu-icon">📋</span> Minhas Tarefas
-                <span class="menu-badge" id="taskCount">0</span>
+            <!-- 1. Meu Perfil -->
+            <button class="menu-item" data-page="profile">
+                <span class="menu-icon" aria-hidden="true">👤</span> Meu Perfil
             </button>
-            <button class="menu-item" data-page="profile"><span class="menu-icon">👤</span> Meu Perfil</button>
-            <button class="menu-item" data-page="stats"><span class="menu-icon">📊</span> Estatísticas</button>
-            <button class="menu-item" id="menuWhatsApp"><span class="menu-icon">📱</span> Compartilhar WhatsApp</button>
-            <button class="menu-item" id="menuEmail"><span class="menu-icon">📧</span> Enviar por Email</button>
 
-            <div class="menu-divider"></div>
-
+            <!-- 2. Tema (Light/Dark) -->
             <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Alternar Modo Escuro">
-                <span class="toggle-icon" id="darkModeIcon">🌙</span>
+                <span class="toggle-icon" id="darkModeIcon" aria-hidden="true">🌙</span>
                 <span class="toggle-label" id="darkModeLabel">Modo Escuro</span>
                 <span class="toggle-switch"></span>
             </button>
 
-            <div class="menu-divider"></div>
+            <div class="menu-divider" role="separator"></div>
 
-            <label class="import-label menu-item" id="importDataLabel" for="importFileInput">
-                <span class="menu-icon">📥</span> Importar Dados
+            <!-- 3. Meus RDOs -->
+            <button class="menu-item" id="menuMeusRDOs">
+                <span class="menu-icon" aria-hidden="true">📂</span> Meus RDOs
+            </button>
+
+            <div class="menu-divider" role="separator"></div>
+
+            <!-- 4. Minhas Atividades -->
+            <button class="menu-item active" data-page="tasks">
+                <span class="menu-icon" aria-hidden="true">📋</span> Minhas Tarefas
+                <span class="menu-badge" id="taskCount">0</span>
+            </button>
+
+            <!-- 5. Compartilhar WhatsApp -->
+            <button class="menu-item" id="menuWhatsApp">
+                <span class="menu-icon" aria-hidden="true">📱</span> Enviar atividade por WhatsApp
+            </button>
+
+            <!-- 6. Compartilhar Email -->
+            <button class="menu-item" id="menuEmail">
+                <span class="menu-icon" aria-hidden="true">📧</span> Enviar atividade por Email
+            </button>
+
+            <!-- 7. Importar Dados -->
+            <label class="menu-item" id="importDataLabel" for="importFileInput" style="cursor:pointer;">
+                <span class="menu-icon" aria-hidden="true">📥</span> Importar Atividades
                 <input type="file" id="importFileInput" class="hidden-input" accept=".json" style="display:none;">
             </label>
-            <button class="menu-item" id="archiveTasksBtn"><span class="menu-icon">📦</span> Arquivar
-                Concluídas</button>
-            <button class="menu-item" id="resetAppBtn"><span class="menu-icon">🔄</span> Reset App</button>
-            <button class="menu-item" id="clearAllData"><span class="menu-icon">🗑️</span> Limpar Dados</button>
 
-            <div class="menu-divider"></div>
+            <!-- 8. Exportar Dados -->
+            <button class="menu-item" id="exportDataBtn">
+                <span class="menu-icon" aria-hidden="true">📤</span> Exportar Atividades
+            </button>
 
-            <button class="menu-item" id="logoutBtn"><span class="menu-icon">🚪</span> Sair</button>
+            <!-- 9. Arquivar Concluídas -->
+            <button class="menu-item" id="archiveTasksBtn">
+                <span class="menu-icon" aria-hidden="true">📦</span> Arquivar Atividades Concluídas
+            </button>
+
+            <div class="menu-divider" role="separator"></div>
+
+            <!-- 10. Reset App -->
+            <button class="menu-item" id="resetAppBtn">
+                <span class="menu-icon" aria-hidden="true">🔄</span> Reset App
+            </button>
+
+            <!-- 11. Limpar Dados -->
+            <button class="menu-item" id="clearAllData">
+                <span class="menu-icon" aria-hidden="true">🗑️</span> Limpar Dados
+            </button>
+
+            <div class="menu-divider" role="separator"></div>
+
+            <!-- 12. Sair -->
+            <button class="menu-item" id="logoutBtn">
+                <span class="menu-icon" aria-hidden="true">🚪</span> Sair
+            </button>
         </nav>
     </aside>
 

@@ -1,6 +1,5 @@
 /* Ajustes finais da tela de Tarefas — carregar por último. */
 
-/* A instalação permanece disponível apenas pelo menu lateral. */
 #installBanner,
 .install-banner {
     display: none !important;
@@ -23,34 +22,39 @@
     font-family: inherit;
 }
 
-/* Modo escuro: superfícies de botão mais claras e com bordas visíveis. */
+/* ===== BOTÕES DO HEADER (tema claro e escuro) ===== */
+.menu-toggle,
+.header-btn {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease;
+}
+
+.menu-toggle:hover,
+.header-btn:hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--primary) !important;
+}
+
+.menu-toggle:active,
+.header-btn:active {
+    transform: scale(0.92);
+}
+
+/* Modo escuro: mantém o fundo e borda já definidos, mas com cores Dracula */
 body.dark-mode .menu-toggle,
-body.dark-mode .filter-btn:not(.active),
-body.dark-mode .action-btn,
-body.dark-mode .priority-option,
-body.dark-mode .activity-type-btn,
-body.dark-mode .rdo-btn.secondary,
-body.dark-mode .modal-close {
-    background: #44475a;
-    border-color: #6272a4;
+body.dark-mode .header-btn {
+    background: #44475a !important;
+    border: 1px solid #6272a4 !important;
+    border-radius: 8px !important;
     color: var(--text-primary);
 }
 
 body.dark-mode .menu-toggle:hover,
-body.dark-mode .filter-btn:not(.active):hover,
-body.dark-mode .action-btn:hover,
-body.dark-mode .priority-option:hover,
-body.dark-mode .activity-type-btn:hover,
-body.dark-mode .rdo-btn.secondary:hover,
-body.dark-mode .modal-close:hover {
-    background: #6272a4;
-    border-color: #8be9fd;
-}
-
-body.dark-mode .filter-btn.active,
-body.dark-mode .rdo-btn.primary {
-    background: var(--primary);
-    border-color: var(--primary);
+body.dark-mode .header-btn:hover {
+    background: #6272a4 !important;
+    border-color: #8be9fd !important;
 }
 
 /* Observação: botão à esquerda; fechada mostra uma linha, aberta mostra tudo. */
@@ -195,6 +199,34 @@ body.dark-mode .task-address .address-link {
     border-color: #3b4b63 !important;
 }
 
+/* ===== FILTROS: MESMO TAMANHO E RESPONSIVO ===== */
+.filter-section {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    flex: 1 1 0;
+    /* todos com a mesma largura */
+    min-width: 80px;
+    max-width: 140px;
+    text-align: center;
+    justify-content: center;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .filter-btn {
+        min-width: 60px;
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+}
+
 /* ===== HISTÓRICO – DESTAQUE DAS ÚLTIMAS 5 ===== */
 .checkbox-item[data-recente="true"] {
     background: var(--primary-light);
@@ -268,25 +300,4 @@ body.dark-mode .task-address .address-link {
     .task-obs .obs-content {
         font-size: .74rem;
     }
-}
-
-/* ===== BOTÕES DO HEADER NO TEMA ESCURO ===== */
-body.dark-mode .menu-toggle,
-body.dark-mode .header-btn {
-    background: #44475a !important;
-    border: 1px solid #6272a4 !important;
-    border-radius: 8px;
-    color: var(--text-primary);
-    transition: all 0.2s ease;
-}
-
-body.dark-mode .menu-toggle:hover,
-body.dark-mode .header-btn:hover {
-    background: #6272a4 !important;
-    border-color: #8be9fd !important;
-}
-
-body.dark-mode .menu-toggle:active,
-body.dark-mode .header-btn:active {
-    transform: scale(0.92);
 }

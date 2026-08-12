@@ -1605,7 +1605,6 @@ class TaskManager {
         try {
             if (this.tasks.length === 0) {
                 showToast('📭 Nenhuma atividade para compartilhar');
-                console.log('📭 Nenhuma atividade');
                 return;
             }
 
@@ -1613,30 +1612,30 @@ class TaskManager {
             const completed = this.tasks.filter(t => t.completed).length;
             const pending = total - completed;
 
-            let message = '📋 *Minhas Atividades*\n';
-            message += `📊 Total: ${total} | ✅ Concluídas: ${completed} | ⏳ Pendentes: ${pending}\n\n`;
-            message += '━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━\n\n';
+            // Cabeçalho
+            let message = '📋 RELATÓRIO DE ATIVIDADES\n';
+            message += `📊 Total: ${total} | Concluídas: ${completed} | Pendentes: ${pending}\n\n`;
 
+            // Lista de atividades
             this.tasks.forEach((task, index) => {
-                const status = task.completed ? '✅' : '⏳';
                 const numero = (index + 1).toString().padStart(2, '0');
-                let titulo = `${numero}. ${status} ${task.text}`;
-                if (task.ordem) titulo = `${numero}. ${status} [#${task.ordem}] ${task.text}`;
-                message += `${titulo}\n`;
-                if (task.obs) message += `   📝 ${task.obs}\n`;
+                message += `${numero}. ${task.text}\n`;
+                if (task.ordem) message += `   Ordem: ${task.ordem}\n`;
+                if (task.data) message += `   Data: ${task.data}\n`;
+                if (task.obs) message += `   Observação: ${task.obs}\n`;
                 if (task.endereco) {
                     const enderecoStr = this.formatAddressSimple(task.endereco);
-                    if (enderecoStr) message += `   📍 ${enderecoStr}\n`;
+                    if (enderecoStr) message += `   Endereço: ${enderecoStr}\n`;
                 }
-                message += '\n';
+                // Separador após cada atividade (exceto a última)
+                if (index < this.tasks.length - 1) {
+                    message += `───────────────────\n`;
+                }
             });
 
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            console.log('📤 URL do WhatsApp:', url);
-
             const newWindow = window.open(url, '_blank');
             if (!newWindow) {
-                console.warn('⚠️ Pop-up bloqueado! Redirecionando...');
                 window.location.href = url;
             } else {
                 showToast('📤 Abrindo WhatsApp...');
@@ -1652,7 +1651,6 @@ class TaskManager {
         try {
             if (this.tasks.length === 0) {
                 showToast('📭 Nenhuma atividade para compartilhar');
-                console.log('📭 Nenhuma atividade');
                 return;
             }
 
@@ -1660,33 +1658,33 @@ class TaskManager {
             const completed = this.tasks.filter(t => t.completed).length;
             const pending = total - completed;
 
-            let subject = encodeURIComponent('Minhas Atividades - Relatório');
+            let subject = encodeURIComponent('Relatório de Atividades');
             let body = '';
 
-            body += '📋 Minhas Atividades\n';
-            body += `📊 Total: ${total} | ✅ Concluídas: ${completed} | ⏳ Pendentes: ${pending}\n\n`;
-            body += '━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━\n\n';
+            // Cabeçalho
+            body += 'RELATÓRIO DE ATIVIDADES\n';
+            body += `Total: ${total} | Concluídas: ${completed} | Pendentes: ${pending}\n\n`;
 
+            // Lista de atividades
             this.tasks.forEach((task, index) => {
-                const status = task.completed ? '✅' : '⏳';
                 const numero = (index + 1).toString().padStart(2, '0');
-                let titulo = `${numero}. ${status} ${task.text}`;
-                if (task.ordem) titulo = `${numero}. ${status} [#${task.ordem}] ${task.text}`;
-                body += `${titulo}\n`;
-                if (task.obs) body += `   📝 ${task.obs}\n`;
+                body += `${numero}. ${task.text}\n`;
+                if (task.ordem) body += `   Ordem: ${task.ordem}\n`;
+                if (task.data) body += `   Data: ${task.data}\n`;
+                if (task.obs) body += `   Observação: ${task.obs}\n`;
                 if (task.endereco) {
                     const enderecoStr = this.formatAddressSimple(task.endereco);
-                    if (enderecoStr) body += `   📍 ${enderecoStr}\n`;
+                    if (enderecoStr) body += `   Endereço: ${enderecoStr}\n`;
                 }
-                body += '\n';
+                // Separador após cada atividade (exceto a última)
+                if (index < this.tasks.length - 1) {
+                    body += '---\n';
+                }
             });
 
             const mailtoUrl = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
-            console.log('📧 URL do Email:', mailtoUrl);
-
             const newWindow = window.open(mailtoUrl, '_blank');
             if (!newWindow) {
-                console.warn('⚠️ Pop-up bloqueado! Redirecionando...');
                 window.location.href = mailtoUrl;
             } else {
                 showToast('📧 Abrindo cliente de email...');
