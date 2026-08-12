@@ -1612,14 +1612,14 @@ class TaskManager {
             const completed = this.tasks.filter(t => t.completed).length;
             const pending = total - completed;
 
-            // Cabeçalho
             let message = '📋 RELATÓRIO DE ATIVIDADES\n';
             message += `📊 Total: ${total} | Concluídas: ${completed} | Pendentes: ${pending}\n\n`;
 
-            // Lista de atividades
             this.tasks.forEach((task, index) => {
                 const numero = (index + 1).toString().padStart(2, '0');
-                message += `${numero}. ${task.text}\n`;
+                const status = task.completed ? '✅ EXECUTADO' : '⏳ PENDENTE';
+
+                message += `${numero}. *${status}* - ${task.text}\n`;
                 if (task.ordem) message += `   Ordem: ${task.ordem}\n`;
                 if (task.data) message += `   Data: ${task.data}\n`;
                 if (task.obs) message += `   Observação: ${task.obs}\n`;
@@ -1627,7 +1627,6 @@ class TaskManager {
                     const enderecoStr = this.formatAddressSimple(task.endereco);
                     if (enderecoStr) message += `   Endereço: ${enderecoStr}\n`;
                 }
-                // Separador após cada atividade (exceto a última)
                 if (index < this.tasks.length - 1) {
                     message += `───────────────────\n`;
                 }
@@ -1661,14 +1660,14 @@ class TaskManager {
             let subject = encodeURIComponent('Relatório de Atividades');
             let body = '';
 
-            // Cabeçalho
             body += 'RELATÓRIO DE ATIVIDADES\n';
             body += `Total: ${total} | Concluídas: ${completed} | Pendentes: ${pending}\n\n`;
 
-            // Lista de atividades
             this.tasks.forEach((task, index) => {
                 const numero = (index + 1).toString().padStart(2, '0');
-                body += `${numero}. ${task.text}\n`;
+                const status = task.completed ? 'EXECUTADO' : 'PENDENTE';
+
+                body += `${numero}. ${status} - ${task.text}\n`;
                 if (task.ordem) body += `   Ordem: ${task.ordem}\n`;
                 if (task.data) body += `   Data: ${task.data}\n`;
                 if (task.obs) body += `   Observação: ${task.obs}\n`;
@@ -1676,7 +1675,6 @@ class TaskManager {
                     const enderecoStr = this.formatAddressSimple(task.endereco);
                     if (enderecoStr) body += `   Endereço: ${enderecoStr}\n`;
                 }
-                // Separador após cada atividade (exceto a última)
                 if (index < this.tasks.length - 1) {
                     body += '---\n';
                 }
