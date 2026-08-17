@@ -1,8 +1,8 @@
 // =============================================
-// APP.JS - TASK MANAGER (VERSÃO FINAL COMPLETA + MELHORIAS)
+// APP.JS - TASK MANAGER (VERSÃO REFATORADA)
 // =============================================
 
-// ===== CONSTANTE DE DESVIOS (GLOBAL) =====
+// ===== CONSTANTES GLOBAIS =====
 const CODIGOS_DESVIO = [
     { codigo: "00", descricao: "Executado" },
     { codigo: "01", descricao: "Parada técnica" },
@@ -13,80 +13,49 @@ const CODIGOS_DESVIO = [
     { codigo: "13", descricao: "Almoço/Janta" }
 ];
 
-// ===== LISTA DE ATIVIDADES DE MANUTENÇÃO =====
 const ATIVIDADES_MANUTENCAO = [
-    "Abastecimento de odorante",
-    "Acompanhar obras",
-    "ADM",
-    "Apoio equipe Comgás",
-    "Apoio equipe interna",
-    "Apoio equipe terceira",
-    "AVG CRM / ECP / válvula / etc",
-    "AVG de City Gate",
-    "AVG irregularidades",
-    "AVG LKG",
-    "AVG pressão",
-    "AVG pressão interna",
-    "AVG reclamação",
-    "Bloquear ECP / VGB / CRM",
-    "Check list de start",
-    "Comissionamento",
-    "Comunicado sala de controle",
-    "Controle de estoque",
-    "Desligar gás",
-    "Entrega / retirada de equipamentos e materiais",
-    "Entrega / retirada de viatura",
-    "Fechar / abrir",
-    "Inspeção de VB",
-    "Instalar lacre",
-    "Instalar TAG",
-    "Instalar venteo",
-    "Integração",
-    "Lavagem VB / CRM / ECP / etc",
-    "Limpeza e organização de viatura",
-    "Manobrar tramos City Gate",
-    "Manobrar tramos ECP / CRM / CM / etc",
-    "Manobrar válvula",
-    "Manutenção de tampa ECP",
-    "Manutenção em bancada",
-    "Manutenção nível A",
-    "Manutenção nível B",
-    "Manutenção nível C",
-    "Manutenção de válvula",
-    "Monitorar pressão",
-    "Passagem de PIG",
-    "Projeto 4.0",
-    "Recomissionamento de rede",
-    "Relatório fotográfico",
-    "Relatório técnico / check list",
-    "Religar gás",
-    "Remanejamento de rede",
-    "Renovação de CRM / ECP / etc",
-    "Retirada CRM / CM / CR / etc",
-    "Retirar água da caixa",
-    "RVC",
-    "Start CRM / ECP / etc",
-    "Teste de CRC",
-    "Treinamento",
-    "Troca de componente",
-    "Troca de conexão",
-    "Troca de datalogger",
-    "Troca de equipamento",
-    "Troca de kit",
-    "Troca de medidor",
-    "Outro"
+    "Abastecimento de odorante", "Acompanhar obras", "ADM",
+    "Apoio equipe Comgás", "Apoio equipe interna", "Apoio equipe terceira",
+    "AVG CRM / ECP / válvula / etc", "AVG de City Gate", "AVG irregularidades",
+    "AVG LKG", "AVG pressão", "AVG pressão interna", "AVG reclamação",
+    "Bloquear ECP / VGB / CRM", "Check list de start", "Comissionamento",
+    "Comunicado sala de controle", "Controle de estoque", "Desligar gás",
+    "Entrega / retirada de equipamentos e materiais", "Entrega / retirada de viatura",
+    "Fechar / abrir", "Inspeção de VB", "Instalar lacre", "Instalar TAG",
+    "Instalar venteo", "Integração", "Lavagem VB / CRM / ECP / etc",
+    "Limpeza e organização de viatura", "Manobrar tramos City Gate",
+    "Manobrar tramos ECP / CRM / CM / etc", "Manobrar válvula",
+    "Manutenção de tampa ECP", "Manutenção em bancada", "Manutenção nível A",
+    "Manutenção nível B", "Manutenção nível C", "Manutenção de válvula",
+    "Monitorar pressão", "Passagem de PIG", "Projeto 4.0",
+    "Recomissionamento de rede", "Relatório fotográfico",
+    "Relatório técnico / check list", "Religar gás", "Remanejamento de rede",
+    "Renovação de CRM / ECP / etc", "Retirada CRM / CM / CR / etc",
+    "Retirar água da caixa", "RVC", "Start CRM / ECP / etc",
+    "Teste de CRC", "Treinamento", "Troca de componente", "Troca de conexão",
+    "Troca de datalogger", "Troca de equipamento", "Troca de kit",
+    "Troca de medidor", "Outro"
 ];
 
+// =============================================
+// CLASSE PRINCIPAL
+// =============================================
 class TaskManager {
     constructor() {
         console.log('🔧 Inicializando TaskManager...');
         this.tasks = [];
-        this.currentFilter = 'all';
+        this.currentFilter = 'pending';
         this.selectedAddress = null;
         this.editingTaskId = null;
         this.isDarkMode = false;
         this.deferredPrompt = null;
         this.editingRdoId = null;
+        this.assinaturaCanvas = null;
+        this.assinaturaCtx = null;
+        this.isDrawing = false;
+        this.lastX = 0;
+        this.lastY = 0;
+
         this.profile = {
             name: 'Usuário',
             email: 'usuario@email.com',
@@ -105,6 +74,7 @@ class TaskManager {
             jornadaFim: '17:00',
             jornadaDuracao: '09:00'
         };
+
         this.historicoAtividades = this.carregarHistorico();
         this.loadTasks();
         this.loadProfile();
@@ -143,7 +113,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE CARREGAMENTO (COM VALIDAÇÃO JSON)
+    // MÉTODOS DE CARREGAMENTO E PERSISTÊNCIA
     // =============================================
     loadTasks() {
         try {
@@ -234,11 +204,7 @@ class TaskManager {
             } else {
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 this.isDarkMode = prefersDark;
-                if (prefersDark) {
-                    this.applyDarkMode();
-                } else {
-                    this.applyLightMode();
-                }
+                prefersDark ? this.applyDarkMode() : this.applyLightMode();
             }
         } catch (e) {
             console.error('❌ Erro ao carregar tema:', e);
@@ -270,145 +236,8 @@ class TaskManager {
     }
 
     toggleTheme() {
-        if (this.isDarkMode) {
-            this.applyLightMode();
-            showToast('☀️ Modo claro ativado');
-        } else {
-            this.applyDarkMode();
-            showToast('🌙 Modo escuro ativado');
-        }
-    }
-
-    // =============================================
-    // MÉTODOS DE DOM
-    // =============================================
-    initializeDOM() {
-        console.log('🔧 Inicializando DOM...');
-
-        // Perfil
-        this.profileEquipe = document.getElementById('profileEquipe');
-        this.profileEscala = document.getElementById('profileEscala');
-        this.profileTecnico1 = document.getElementById('profileTecnico1');
-        this.profileRegistro1 = document.getElementById('profileRegistro1');
-        this.profileTecnico2 = document.getElementById('profileTecnico2');
-        this.profileRegistro2 = document.getElementById('profileRegistro2');
-        this.profilePrefixo = document.getElementById('profilePrefixo');
-        this.profileTipoVeiculo = document.getElementById('profileTipoVeiculo');
-        this.profileJornadaInicio = document.getElementById('profileJornadaInicio');
-        this.profileJornadaFim = document.getElementById('profileJornadaFim');
-        this.profileJornadaDuracao = document.getElementById('profileJornadaDuracao');
-        this.profileNomeEmpresa = document.getElementById('profileNomeEmpresa');
-        this.profileLogotipo = document.getElementById('profileLogotipo');
-        this.profileLogotipoPreview = document.getElementById('profileLogotipoPreview');
-        this.profileLogotipoImg = document.getElementById('profileLogotipoImg');
-        this.profileLogotipoRemover = document.getElementById('profileLogotipoRemover');
-
-        // Principais
-        this.taskList = document.getElementById('taskList');
-        this.filterBtns = document.querySelectorAll('.filter-btn');
-        this.sidebar = document.getElementById('sidebar');
-        this.sidebarOverlay = document.getElementById('sidebarOverlay');
-        this.menuToggle = document.getElementById('menuToggle');
-        this.profileName = document.getElementById('profileName');
-        this.profileEmail = document.getElementById('profileEmail');
-        this.profileAvatar = document.getElementById('profileAvatar');
-        this.taskCount = document.getElementById('taskCount');
-
-        // Modal de atividade
-        this.taskModal = document.getElementById('taskModal');
-        this.modalTitle = document.getElementById('modalTitle');
-        this.taskForm = document.getElementById('taskForm');
-        this.taskInput = document.getElementById('taskInput');
-        this.taskOrder = document.getElementById('taskOrder');
-        this.taskObs = document.getElementById('taskObs');
-        this.taskDate = document.getElementById('taskDate');
-        this.editTaskId = document.getElementById('editTaskId');
-        this.modalSubmitBtn = document.getElementById('modalSubmitBtn');
-        this.modalTaskClose = document.getElementById('modalTaskClose');
-        this.fabAddTask = document.getElementById('fabAddTask');
-
-        // Endereço
-        this.modalAddressSearch = document.getElementById('modalAddressSearch');
-        this.modalSearchBtn = document.getElementById('modalSearchBtn');
-        this.modalSuggestions = document.getElementById('modalSuggestions');
-        this.modalSelectedAddress = document.getElementById('modalSelectedAddress');
-        this.modalSelectedText = document.getElementById('modalSelectedText');
-        this.modalClearAddress = document.getElementById('modalClearAddress');
-
-        // Perfil modal
-        this.profileModal = document.getElementById('profileModal');
-        this.modalProfileClose = document.getElementById('modalProfileClose');
-        this.profileForm = document.getElementById('profileForm');
-        this.modalName = document.getElementById('modalName');
-        this.modalEmail = document.getElementById('modalEmail');
-        this.modalAvatar = document.getElementById('modalAvatar');
-
-        // Botões de dados
-        this.clearAllData = document.getElementById('clearAllData');
-        this.exportDataBtn = document.getElementById('exportDataBtn');
-        this.importFileInput = document.getElementById('importFileInput');
-        this.archiveTasksBtn = document.getElementById('archiveTasksBtn');
-        this.resetAppBtn = document.getElementById('resetAppBtn');
-        this.darkModeToggle = document.getElementById('darkModeToggle');
-        this.darkModeIcon = document.getElementById('darkModeIcon');
-        this.darkModeLabel = document.getElementById('darkModeLabel');
-        this.installAppMenu = document.getElementById('installAppMenu');
-        this.logoutBtn = document.getElementById('logoutBtn');
-        this.installBanner = document.getElementById('installBanner');
-        this.installBtn = document.getElementById('installBtn');
-        this.installClose = document.getElementById('installClose');
-
-        // Header
-
-        this.headerMap = document.getElementById('headerMap');
-        this.headerRDO = document.getElementById('headerRDO');
-
-        // Status
-        this.statusDot = document.getElementById('statusDot');
-        this.statusText = document.getElementById('statusText');
-        this.connectionStatus = document.getElementById('connectionStatus');
-        this.connectionText = document.getElementById('connectionText');
-
-        // Contadores
-        this.countAll = document.getElementById('countAll');
-        this.countPending = document.getElementById('countPending');
-        this.countCompleted = document.getElementById('countCompleted');
-
-        // Mapa
-        this.mapContainer = document.getElementById('mapContainer');
-
-        // Atividade
-        this.activityTypeBtns = document.querySelectorAll('.activity-type-btn');
-        this.manutencaoFields = document.getElementById('manutencaoFields');
-        this.comissionamentoFields = document.getElementById('comissionamentoFields');
-        this.rdoAtividadeSearch = document.getElementById('rdoAtividadeSearch');
-        this.rdoAtividadeContainer = document.getElementById('rdoAtividadeContainer');
-        this.rdoAtividadeEmpty = document.getElementById('rdoAtividadeEmpty');
-        this.rdoAtividadeOutro = document.getElementById('rdoAtividadeOutro');
-        this.rdoAtividadeDisplay = document.getElementById('rdoAtividadeDisplay');
-        this.rdoAtividadeHidden = document.getElementById('rdoAtividadeHidden');
-        this.rdoAtividadeComiss = document.getElementById('rdoAtividadeComiss');
-        this.rdoOrdem = document.getElementById('rdoOrdem');
-        this.rdoDataAtividade = document.getElementById('rdoDataAtividade');
-        this.rdoObs = document.getElementById('rdoObs');
-        this.rdoProjeto = document.getElementById('rdoProjeto');
-        this.rdoPep = document.getElementById('rdoPep');
-        this.rdoTu = document.getElementById('rdoTu');
-        this.rdoPocc = document.getElementById('rdoPocc');
-
-        // RDO Generator
-        this.rdoDisplayEquipe = document.getElementById('rdoDisplayEquipe');
-        this.rdoDisplayVeiculo = document.getElementById('rdoDisplayVeiculo');
-        this.rdoDisplayUsuario1 = document.getElementById('rdoDisplayUsuario1');
-        this.rdoDisplayUsuario2 = document.getElementById('rdoDisplayUsuario2');
-        this.rdoDesviosContainer = document.getElementById('rdoDesviosContainer');
-        this.rdoObservacao = document.getElementById('rdoObservacao');
-        this.rdoGeneratorModal = document.getElementById('rdoGeneratorModal');
-        this.rdoGeneratorClose = document.getElementById('rdoGeneratorClose');
-        this.rdoGeneratorForm = document.getElementById('rdoGeneratorForm');
-        this.rdoAddDesvioBtn = document.getElementById('rdoAddDesvioBtn');
-        this.rdoTaskList = document.getElementById('rdoTaskList');
-        this.rdoGeneratorSubmit = document.getElementById('rdoGeneratorSubmit');
+        this.isDarkMode ? this.applyLightMode() : this.applyDarkMode();
+        showToast(this.isDarkMode ? '🌙 Modo escuro ativado' : '☀️ Modo claro ativado');
     }
 
     // =============================================
@@ -518,14 +347,12 @@ class TaskManager {
             `;
         }).join('');
 
-        this.setupDragAndDrop();
         this.setupActionButtons();
         this.setupObsExpand();
     }
 
     renderEmpty() {
         const messages = {
-
             'pending': { icon: '🎉', text: 'Todas as atividades foram concluídas!', sub: 'Parabéns! Você está em dia' },
             'completed': { icon: '📌', text: 'Nenhuma atividade concluída', sub: 'Marque as atividades como concluídas' },
             'all': { icon: '📝', text: 'Nenhuma atividade cadastrada', sub: 'Toque no botão ✚ para adicionar' }
@@ -591,7 +418,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE ENDEREÇO (RENDER)
+    // MÉTODOS DE ENDEREÇO
     // =============================================
     renderAddress(endereco) {
         const enderecoStr = this.formatAddressSimple(endereco);
@@ -630,7 +457,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE BUSCA DE ENDEREÇO (com tratamento de erro)
+    // BUSCA DE ENDEREÇO
     // =============================================
     async buscarEndereco(query) {
         if (!query || query.trim().length < 3) {
@@ -777,7 +604,6 @@ class TaskManager {
             return;
         }
 
-        // Remove duplicatas (mesma rua + número + bairro + cidade)
         const uniqueResults = [];
         const seen = new Set();
         data.forEach(item => {
@@ -792,7 +618,6 @@ class TaskManager {
             }
         });
 
-        // Limita a 6 resultados para não sobrecarregar
         const topResults = uniqueResults.slice(0, 6);
 
         if (topResults.length === 0) {
@@ -805,7 +630,6 @@ class TaskManager {
             return;
         }
 
-        // Renderiza cada sugestão com apenas rua, bairro, município (e UF)
         this.modalSuggestions.innerHTML = topResults.map(item => {
             const road = item.address?.road || '';
             const houseNumber = item.address?.house_number || '';
@@ -813,14 +637,12 @@ class TaskManager {
             const city = item.address?.city || item.address?.town || item.address?.village || '';
             const state = item.address?.state || '';
 
-            // Monta a linha principal: Rua, Número - Bairro, Cidade - UF
             let addressLine = road;
             if (houseNumber) addressLine += `, ${houseNumber}`;
             if (suburb) addressLine += ` - ${suburb}`;
             if (city) addressLine += `, ${city}`;
             if (state) addressLine += ` - ${state}`;
 
-            // Se ainda estiver muito longo, corta (opcional)
             const shortName = addressLine.length > 60 ? addressLine.substring(0, 60) + '…' : addressLine;
 
             return `
@@ -831,13 +653,10 @@ class TaskManager {
             `;
         }).join('');
 
-        // Ativa o container e define altura com scroll
         this.modalSuggestions.classList.add('active');
-        // Altura fixa com scroll (ajuste conforme necessário)
         this.modalSuggestions.style.maxHeight = '180px';
         this.modalSuggestions.style.overflowY = 'auto';
 
-        // Evento de clique em cada item
         this.modalSuggestions.querySelectorAll('.modal-suggestion-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -851,22 +670,6 @@ class TaskManager {
                 }
             });
         });
-    }
-
-    getAddressIcon(type) {
-        const icons = {
-            'administrative': '🏛️',
-            'village': '🏘️',
-            'town': '🏙️',
-            'city': '🏙️',
-            'state': '🗺️',
-            'road': '🛤️',
-            'building': '🏢',
-            'house': '🏠',
-            'amenity': '📍',
-            'shop': '🛍️'
-        };
-        return icons[type] || '📍';
     }
 
     // =============================================
@@ -970,7 +773,44 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS CRUD
+    // MÉTODOS DE ASSINATURA
+    // =============================================
+    getSignatureFromCanvas() {
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
+        if (!canvas) return '';
+        try {
+            return canvas.toDataURL('image/png');
+        } catch (e) {
+            console.warn('Erro ao capturar assinatura:', e);
+            return '';
+        }
+    }
+
+    loadSignatureToCanvas(signatureData) {
+        if (!signatureData) return;
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.onload = () => {
+            const rect = canvas.getBoundingClientRect();
+            const ratio = 120 / 400;
+            const width = rect.width * 0.9;
+            canvas.width = width;
+            canvas.height = width * ratio;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            document.getElementById('rdoAssinaturaData').value = signatureData;
+        };
+        img.onerror = () => {
+            console.warn('Erro ao carregar assinatura para edição');
+            document.getElementById('rdoAssinaturaData').value = '';
+        };
+        img.src = signatureData;
+    }
+
+    // =============================================
+    // CRUD DE TAREFAS
     // =============================================
     getSelectedPriority() {
         const selected = document.querySelector('input[name="taskPriority"]:checked');
@@ -982,7 +822,6 @@ class TaskManager {
         return active ? active.dataset.type : 'manutencao';
     }
 
-    // ===== MÉTODOS PARA CHECKBOXES DE ATIVIDADES (COM HISTÓRICO) =====
     renderizarAtividades(filtro = '') {
         const container = this.rdoAtividadeContainer;
         const empty = this.rdoAtividadeEmpty;
@@ -995,7 +834,6 @@ class TaskManager {
             atividades = atividades.filter(atv => atv.toLowerCase().includes(termo));
         }
 
-        // Ordenação por histórico
         const historico = this.carregarHistorico();
         const ordenadas = [...atividades].sort((a, b) => {
             const idxA = historico.indexOf(a);
@@ -1177,431 +1015,10 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE GERENCIAMENTO DE DADOS
+    // COMPARTILHAMENTO UNIFICADO
     // =============================================
-    exportData() {
-        if (this.tasks.length === 0) {
-            showToast('📭 Nenhuma atividade para exportar');
-            return;
-        }
-        const data = {
-            tasks: this.tasks,
-            profile: this.profile,
-            exportedAt: new Date().toISOString(),
-            version: '3.0'
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `atividades_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast(`📤 ${this.tasks.length} atividades exportadas!`);
-        this.closeSidebar();
-    }
-
-    importData(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (!data.tasks || !Array.isArray(data.tasks)) {
-                    showToast('⚠️ Arquivo inválido!');
-                    return;
-                }
-                if (data.profile) {
-                    this.profile = data.profile;
-                    this.saveProfile();
-                }
-                const count = data.tasks.length;
-                this.tasks = data.tasks;
-                this.saveTasks();
-                this.render();
-                this.updateUI();
-                showToast(`📥 ${count} atividades importadas com sucesso!`);
-            } catch (error) {
-                showToast('⚠️ Erro ao ler o arquivo!');
-                console.error('❌ Erro na importação:', error);
-            }
-        };
-        reader.readAsText(file);
-        this.importFileInput.value = '';
-        this.closeSidebar();
-    }
-
-    archiveCompleted() {
-        const completedTasks = this.tasks.filter(t => t.completed);
-        if (completedTasks.length === 0) {
-            showToast('📭 Nenhuma atividade concluída para arquivar');
-            return;
-        }
-        if (confirm(`📦 Arquivar ${completedTasks.length} atividade(s) concluída(s)?`)) {
-            const archiveData = {
-                tasks: completedTasks,
-                archivedAt: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(archiveData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `arquivo_${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            this.tasks = this.tasks.filter(t => !t.completed);
-            this.saveTasks();
-            this.render();
-            this.updateUI();
-            showToast(`📦 ${completedTasks.length} atividades arquivadas!`);
-            this.closeSidebar();
-        }
-    }
-
-    resetApp() {
-        if (this.tasks.length === 0) {
-            showToast('📭 Nenhuma atividade para resetar');
-            return;
-        }
-        if (confirm('🔄 Resetar o app? Todas as atividades serão removidas.')) {
-            this.tasks = [];
-            this.saveTasks();
-            this.profile = { name: 'Usuário', email: 'usuario@email.com', avatar: '👤', equipe: '', escala: '', tecnico1: '', registro1: '', tecnico2: '', registro2: '', prefixo: '', tipoVeiculo: '', jornadaInicio: '08:00', jornadaFim: '17:00', jornadaDuracao: '09:00' };
-            this.saveProfile();
-            this.render();
-            this.updateUI();
-            showToast('🔄 App resetado com sucesso!');
-            this.closeSidebar();
-        }
-    }
-
-    clearAllData() {
-        const totalTasks = this.tasks.length;
-        if (totalTasks === 0) {
-            showToast('📭 Nenhuma atividade para limpar');
-            return;
-        }
-        if (confirm(`⚠️ Excluir ${totalTasks} atividade(s)?`)) {
-            this.tasks = [];
-            this.saveTasks();
-            this.render();
-            this.updateUI();
-            showToast(`🗑️ ${totalTasks} atividade(s) removida(s)`);
-            this.closeSidebar();
-        }
-    }
-
-    // =============================================
-    // MÉTODOS DE MODAL (ABRIR/FECHAR)
-    // =============================================
-    openTaskModal(taskId = null) {
-        console.log('📂 Abrindo modal...', taskId);
-        this.editingTaskId = taskId;
-        this.clearModalAddress();
-
-        if (taskId !== null) {
-            const task = this.tasks.find(t => t.id === taskId);
-            if (task) {
-                this.modalTitle.textContent = '✏️ Editar Atividade';
-                this.modalSubmitBtn.textContent = '💾 Salvar Alterações';
-
-                const tipo = task.tipoAtividade || 'manutencao';
-                this.activityTypeBtns.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.type === tipo);
-                });
-                this.atualizarCamposPorTipo(tipo);
-
-                this.rdoOrdem.value = task.ordem || '';
-                this.rdoDataAtividade.value = task.data || '';
-                this.rdoObs.value = task.obs || '';
-
-                if (tipo === 'manutencao') {
-                    const atividades = task.text ? task.text.split('; ').map(s => s.trim()) : [];
-                    // Atualiza a lista com histórico antes de marcar
-                    this.renderizarAtividades(this.rdoAtividadeSearch?.value || '');
-                    const checkboxes = this.rdoAtividadeContainer?.querySelectorAll('.atividade-checkbox');
-                    if (checkboxes) {
-                        checkboxes.forEach(cb => {
-                            cb.checked = atividades.includes(cb.value);
-                        });
-                    }
-                    const noCheckbox = atividades.filter(item => !ATIVIDADES_MANUTENCAO.includes(item));
-                    if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = noCheckbox.join('; ');
-                    this.atualizarAtividade();
-                } else {
-                    if (this.rdoAtividadeComiss) this.rdoAtividadeComiss.value = 'Comissionamento';
-                    this.rdoProjeto.value = task.projeto || '';
-                    this.rdoPep.value = task.pep || '';
-                    this.rdoTu.value = task.tu || '';
-                    this.rdoPocc.value = task.pocc || '';
-                }
-
-                const radios = document.querySelectorAll('input[name="taskPriority"]');
-                radios.forEach(radio => {
-                    radio.checked = (radio.value === (task.priority || 'planned'));
-                });
-                this.editTaskId.value = taskId;
-
-                if (task.endereco) {
-                    this.selectedAddress = { ...task.endereco };
-                    this.modalSelectedText.innerHTML = `
-                        <strong>📍 Endereço:</strong><br>
-                        ${this.formatAddressSimple(task.endereco)}
-                    `;
-                    this.modalSelectedAddress.classList.add('active');
-                    this.modalAddressSearch.value = task.endereco.display_name || '';
-                }
-            }
-        } else {
-            this.modalTitle.textContent = '✚ Nova Atividade';
-            this.modalSubmitBtn.textContent = '✅ Adicionar Atividade';
-            this.activityTypeBtns.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.type === 'manutencao');
-            });
-            this.atualizarCamposPorTipo('manutencao');
-
-            this.rdoOrdem.value = '';
-            this.rdoDataAtividade.value = '';
-            this.rdoObs.value = '';
-            if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = '';
-            if (this.rdoAtividadeDisplay) this.rdoAtividadeDisplay.value = '';
-            if (this.rdoAtividadeHidden) this.rdoAtividadeHidden.value = '';
-            if (this.rdoAtividadeComiss) this.rdoAtividadeComiss.value = 'Comissionamento';
-            this.rdoProjeto.value = '';
-            this.rdoPep.value = '';
-            this.rdoTu.value = '';
-            this.rdoPocc.value = '';
-
-            const radios = document.querySelectorAll('input[name="taskPriority"]');
-            radios.forEach(radio => {
-                radio.checked = (radio.value === 'planned');
-            });
-            this.editTaskId.value = '';
-            this.selectedAddress = null;
-            // Renderiza a lista com histórico
-            this.renderizarAtividades('');
-        }
-
-        this.taskModal.classList.add('active');
-        setTimeout(() => {
-            if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.focus();
-        }, 400);
-        this.closeSidebar();
-    }
-
-    closeTaskModal() {
-        this.taskModal.classList.remove('active');
-        this.clearModalAddress();
-        this.modalSuggestions.classList.remove('active');
-        this.editingTaskId = null;
-        if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.value = '';
-        this.renderizarAtividades();
-    }
-
-    openProfileModal() {
-        this.modalName.value = this.profile.name || '';
-        this.modalEmail.value = this.profile.email || '';
-        this.modalAvatar.textContent = this.profile.avatar || '👤';
-        document.getElementById('profileEquipe').value = this.profile.equipe || '';
-        document.getElementById('profileEscala').value = this.profile.escala || '';
-        document.getElementById('profileTecnico1').value = this.profile.tecnico1 || '';
-        document.getElementById('profileRegistro1').value = this.profile.registro1 || '';
-        document.getElementById('profileTecnico2').value = this.profile.tecnico2 || '';
-        document.getElementById('profileRegistro2').value = this.profile.registro2 || '';
-        document.getElementById('profilePrefixo').value = this.profile.prefixo || '';
-        document.getElementById('profileTipoVeiculo').value = this.profile.tipoVeiculo || '';
-        document.getElementById('profileNomeEmpresa').value = this.profile.nomeEmpresa || '';
-        document.getElementById('profileJornadaInicio').value = this.profile.jornadaInicio || '08:00';
-        document.getElementById('profileJornadaFim').value = this.profile.jornadaFim || '17:00';
-        const logotipo = this.profile.logotipo || '';
-        if (logotipo) {
-            document.getElementById('profileLogotipoImg').src = logotipo;
-            document.getElementById('profileLogotipoPreview').style.display = 'block';
-            document.getElementById('profileLogotipoRemover').style.display = 'inline';
-        } else {
-            document.getElementById('profileLogotipoPreview').style.display = 'none';
-            document.getElementById('profileLogotipoRemover').style.display = 'none';
-        }
-        this.calcularDuracaoJornada();
-        this.profileModal.classList.add('active');
-        this.closeSidebar();
-    }
-
-    closeProfileModal() {
-        this.profileModal.classList.remove('active');
-    }
-
-    // =============================================
-    // MÉTODOS DE PWA
-    // =============================================
-    setupPWA() {
-        if (localStorage.getItem('installBannerClosed')) {
-            this.installBanner.classList.remove('show');
-        }
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            this.deferredPrompt = e;
-            if (!localStorage.getItem('installBannerClosed')) {
-                this.installBanner.classList.add('show');
-            }
-        });
-
-        window.addEventListener('appinstalled', () => {
-            this.installBanner.classList.remove('show');
-            localStorage.setItem('installBannerClosed', 'true');
-            showToast('✅ App instalado com sucesso!');
-        });
-
-        this.installBtn.addEventListener('click', async () => {
-            if (this.deferredPrompt) {
-                this.deferredPrompt.prompt();
-                const result = await this.deferredPrompt.userChoice;
-                if (result.outcome === 'accepted') {
-                    this.installBanner.classList.remove('show');
-                    localStorage.setItem('installBannerClosed', 'true');
-                    showToast('✅ App instalado!');
-                }
-                this.deferredPrompt = null;
-            } else {
-                showToast('📱 Use o menu do navegador para instalar');
-            }
-        });
-
-        this.installClose.addEventListener('click', () => {
-            this.installBanner.classList.remove('show');
-            localStorage.setItem('installBannerClosed', 'true');
-        });
-
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            this.installBanner.classList.remove('show');
-            if (this.installAppMenu) {
-                this.installAppMenu.style.display = 'none';
-            }
-        }
-    }
-
-    // =============================================
-    // MÉTODOS DE CONEXÃO
-    // =============================================
-    setupConnectionListeners() {
-        window.addEventListener('online', () => {
-            this.updateConnectionUI(true);
-            showToast('🌐 Conexão restaurada!');
-        });
-
-        window.addEventListener('offline', () => {
-            this.updateConnectionUI(false);
-            showToast('📶 Modo offline ativado');
-        });
-    }
-
-    updateConnectionUI(isOnline) {
-        if (isOnline) {
-            this.connectionStatus.className = 'connection-status online';
-            this.connectionText.textContent = '🟢 Conectado';
-            this.statusDot.className = 'dot online';
-            this.statusText.textContent = 'Online';
-        } else {
-            this.connectionStatus.className = 'connection-status offline';
-            this.connectionText.textContent = '🔴 Modo Offline';
-            this.statusDot.className = 'dot offline';
-            this.statusText.textContent = 'Offline';
-        }
-        this.connectionStatus.style.transform = 'translateY(0)';
-        clearTimeout(this.statusTimeout);
-        this.statusTimeout = setTimeout(() => {
-            this.connectionStatus.style.transform = 'translateY(-100%)';
-        }, 3000);
-    }
-
-    // =============================================
-    // MÉTODOS DE SIDEBAR
-    // =============================================
-    toggleSidebar() {
-        this.sidebar.classList.toggle('open');
-        this.sidebarOverlay.classList.toggle('active');
-    }
-
-    closeSidebar() {
-        this.sidebar.classList.remove('open');
-        this.sidebarOverlay.classList.remove('active');
-    }
-
-    // =============================================
-    // MÉTODOS DE DRAG & DROP E AÇÕES
-    // =============================================
-    setupDragAndDrop() { }
-
-    setupActionButtons() {
-        this.taskList.querySelectorAll('[data-action="edit"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const taskItem = btn.closest('.task-item');
-                if (taskItem) {
-                    this.openTaskModal(parseInt(taskItem.dataset.id));
-                }
-            });
-        });
-
-        this.taskList.querySelectorAll('[data-action="delete"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const taskItem = btn.closest('.task-item');
-                if (taskItem) {
-                    this.deleteTask(parseInt(taskItem.dataset.id));
-                }
-            });
-        });
-
-        document.querySelectorAll('.share-location').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const coords = btn.dataset.coords;
-                if (coords) {
-                    this.copyToClipboard(coords);
-                    btn.classList.add('copied');
-                    setTimeout(() => {
-                        btn.classList.remove('copied');
-                    }, 2000);
-                }
-            });
-        });
-    }
-
-    setupObsExpand() {
-        document.querySelectorAll('.task-obs').forEach(el => {
-            el.addEventListener('click', function (e) {
-                e.stopPropagation();
-                const isExpanded = this.dataset.expanded === 'true';
-                const toggle = this.querySelector('.obs-toggle');
-
-                if (isExpanded) {
-                    this.classList.remove('expanded');
-                    this.dataset.expanded = 'false';
-                    toggle.textContent = '▼';
-                    toggle.setAttribute('aria-label', 'Expandir observação');
-                    toggle.setAttribute('aria-expanded', 'false');
-                } else {
-                    this.classList.add('expanded');
-                    this.dataset.expanded = 'true';
-                    toggle.textContent = '▲';
-                    toggle.setAttribute('aria-label', 'Recolher observação');
-                    toggle.setAttribute('aria-expanded', 'true');
-                }
-            });
-        });
-    }
-
-    // =============================================
-    // MÉTODOS DE COMPARTILHAMENTO E ESTATÍSTICAS
-    // =============================================
-    shareWhatsApp() {
-        console.log('📤 Executando shareWhatsApp...');
+    shareTasks(method) {
+        console.log(`📤 Executando share${method.charAt(0).toUpperCase() + method.slice(1)}...`);
         try {
             if (this.tasks.length === 0) {
                 showToast('📭 Nenhuma atividade para compartilhar');
@@ -1612,14 +1029,24 @@ class TaskManager {
             const completed = this.tasks.filter(t => t.completed).length;
             const pending = total - completed;
 
+            const isWhatsApp = method === 'whatsapp';
+            const separator = isWhatsApp ? '───────────────────' : '---';
+            const statusFormat = (task) => {
+                if (isWhatsApp) {
+                    return task.completed ? '✅ EXECUTADO' : '⏳ PENDENTE';
+                }
+                return task.completed ? 'EXECUTADO' : 'PENDENTE';
+            };
+
             let message = '📋 RELATÓRIO DE ATIVIDADES\n';
             message += `📊 Total: ${total} | Concluídas: ${completed} | Pendentes: ${pending}\n\n`;
 
             this.tasks.forEach((task, index) => {
                 const numero = (index + 1).toString().padStart(2, '0');
-                const status = task.completed ? '✅ EXECUTADO' : '⏳ PENDENTE';
+                const status = statusFormat(task);
+                const statusDisplay = isWhatsApp ? `*${status}*` : status;
 
-                message += `${numero}. *${status}* - ${task.text}\n`;
+                message += `${numero}. ${statusDisplay} - ${task.text}\n`;
                 if (task.ordem) message += `   Ordem: ${task.ordem}\n`;
                 if (task.data) message += `   Data: ${task.data}\n`;
                 if (task.obs) message += `   Observação: ${task.obs}\n`;
@@ -1628,69 +1055,36 @@ class TaskManager {
                     if (enderecoStr) message += `   Endereço: ${enderecoStr}\n`;
                 }
                 if (index < this.tasks.length - 1) {
-                    message += `───────────────────\n`;
+                    message += `${separator}\n`;
                 }
             });
 
-            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            let url;
+            if (isWhatsApp) {
+                url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            } else {
+                const subject = encodeURIComponent('Relatório de Atividades');
+                url = `mailto:?subject=${subject}&body=${encodeURIComponent(message)}`;
+            }
+
             const newWindow = window.open(url, '_blank');
             if (!newWindow) {
                 window.location.href = url;
             } else {
-                showToast('📤 Abrindo WhatsApp...');
+                showToast(isWhatsApp ? '📤 Abrindo WhatsApp...' : '📧 Abrindo cliente de email...');
             }
         } catch (error) {
-            console.error('❌ Erro no shareWhatsApp:', error);
-            showToast('⚠️ Erro ao compartilhar no WhatsApp');
+            console.error(`❌ Erro no share${method}:`, error);
+            showToast(`⚠️ Erro ao compartilhar por ${method === 'whatsapp' ? 'WhatsApp' : 'Email'}`);
         }
     }
 
+    shareWhatsApp() {
+        this.shareTasks('whatsapp');
+    }
+
     shareEmail() {
-        console.log('📤 Executando shareEmail...');
-        try {
-            if (this.tasks.length === 0) {
-                showToast('📭 Nenhuma atividade para compartilhar');
-                return;
-            }
-
-            const total = this.tasks.length;
-            const completed = this.tasks.filter(t => t.completed).length;
-            const pending = total - completed;
-
-            let subject = encodeURIComponent('Relatório de Atividades');
-            let body = '';
-
-            body += 'RELATÓRIO DE ATIVIDADES\n';
-            body += `Total: ${total} | Concluídas: ${completed} | Pendentes: ${pending}\n\n`;
-
-            this.tasks.forEach((task, index) => {
-                const numero = (index + 1).toString().padStart(2, '0');
-                const status = task.completed ? 'EXECUTADO' : 'PENDENTE';
-
-                body += `${numero}. ${status} - ${task.text}\n`;
-                if (task.ordem) body += `   Ordem: ${task.ordem}\n`;
-                if (task.data) body += `   Data: ${task.data}\n`;
-                if (task.obs) body += `   Observação: ${task.obs}\n`;
-                if (task.endereco) {
-                    const enderecoStr = this.formatAddressSimple(task.endereco);
-                    if (enderecoStr) body += `   Endereço: ${enderecoStr}\n`;
-                }
-                if (index < this.tasks.length - 1) {
-                    body += '---\n';
-                }
-            });
-
-            const mailtoUrl = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
-            const newWindow = window.open(mailtoUrl, '_blank');
-            if (!newWindow) {
-                window.location.href = mailtoUrl;
-            } else {
-                showToast('📧 Abrindo cliente de email...');
-            }
-        } catch (error) {
-            console.error('❌ Erro no shareEmail:', error);
-            showToast('⚠️ Erro ao compartilhar por email');
-        }
+        this.shareTasks('email');
     }
 
     showStats() {
@@ -1703,7 +1097,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODO PARA EXIBIR DETALHES DA ATIVIDADE
+    // DETALHES DA ATIVIDADE
     // =============================================
     showTaskDetails(taskId) {
         const task = this.tasks.find(t => t.id === taskId);
@@ -1717,7 +1111,6 @@ class TaskManager {
 
         if (!panel || !content) return;
 
-        // Abrir no mobile
         if (window.innerWidth < 1024) {
             panel.classList.add('open');
         }
@@ -1847,7 +1240,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS DE MAPA E ROTA
+    // MAPA E ROTA
     // =============================================
     async showMap() {
         console.log('🗺️ Executando showMap...');
@@ -1857,17 +1250,14 @@ class TaskManager {
                 const lon = parseFloat(t.endereco?.lon);
                 return Number.isFinite(lat) && Number.isFinite(lon);
             });
-            console.log(`📍 ${tasksWithAddress.length} tarefas com endereço`);
 
             if (tasksWithAddress.length === 0) {
                 showToast('📍 Nenhuma atividade com endereço para mostrar no mapa');
-                console.log('📍 Nenhuma atividade com endereço');
                 return;
             }
 
             const container = this.mapContainer;
             if (!container) {
-                console.error('❌ Map container not found');
                 showToast('⚠️ Container do mapa não encontrado');
                 return;
             }
@@ -1884,7 +1274,6 @@ class TaskManager {
 
             container.innerHTML = '';
             container.style.display = 'block';
-            container.setAttribute('aria-hidden', 'false');
 
             let overlay = document.getElementById('mapOverlay');
             if (!overlay) {
@@ -1912,16 +1301,14 @@ class TaskManager {
                 right: 12px;
                 width: auto;
                 z-index: 10000;
-                background: rgba(0, 0, 0, 0.7);
+                background: rgba(0,0,0,0.7);
                 backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
                 padding: 10px 16px;
                 border-radius: 12px;
                 box-shadow: 0 4px 16px rgba(0,0,0,0.3);
                 font-weight: 600;
                 font-size: 13px;
                 color: #fff;
-                pointer-events: none;
                 text-align: center;
                 display: flex;
                 align-items: center;
@@ -1942,7 +1329,6 @@ class TaskManager {
                 z-index: 10001;
                 background: rgba(0,0,0,0.5);
                 backdrop-filter: blur(4px);
-                -webkit-backdrop-filter: blur(4px);
                 border: none;
                 border-radius: 50%;
                 width: 40px;
@@ -1960,7 +1346,6 @@ class TaskManager {
             closeBtn.onmouseout = () => { closeBtn.style.background = 'rgba(0,0,0,0.5)'; };
             closeBtn.onclick = () => {
                 container.style.display = 'none';
-                container.setAttribute('aria-hidden', 'true');
                 overlay.style.display = 'none';
                 if (window.map) {
                     window.map.remove();
@@ -2013,20 +1398,7 @@ class TaskManager {
                 const icon = L.divIcon({
                     className: 'custom-marker',
                     html: `
-                        <div style="
-                            background: ${color};
-                            color: white;
-                            border-radius: 50%;
-                            width: 32px;
-                            height: 32px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 14px;
-                            font-weight: bold;
-                            border: 2px solid white;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                        ">
+                        <div style="background:${color};color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
                             ${index + 1}
                         </div>
                     `,
@@ -2046,22 +1418,13 @@ class TaskManager {
                 }[status] || '📌 Planejada';
 
                 const popupContent = `
-                    <div style="max-width: 250px; padding: 4px;">
+                    <div style="max-width:250px;padding:4px;">
                         <strong>${index + 1}. ${escapeHtml(task.text)}</strong><br>
                         ${task.ordem ? `<small>Ordem: ${escapeHtml(task.ordem)}</small><br>` : ''}
                         ${task.data ? `<small>📅 Data: ${escapeHtml(task.data)}</small><br>` : ''}
                         <small>${escapeHtml(task.endereco.logradouro || task.endereco.display_name || '')}</small><br>
                         ${task.obs ? `<small>📝 ${escapeHtml(task.obs)}</small><br>` : ''}
-                        <span style="
-                            display: inline-block;
-                            padding: 2px 8px;
-                            border-radius: 12px;
-                            font-size: 11px;
-                            margin-top: 4px;
-                            background: ${status === 'completed' ? '#E8F5E9' : status === 'critical' ? '#FDECEA' : status === 'attention' ? '#FFF8E1' : '#E6F0FF'};
-                            color: ${color};
-                            border: 1px solid ${color};
-                        ">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;margin-top:4px;background:${status === 'completed' ? '#E8F5E9' : status === 'critical' ? '#FDECEA' : status === 'attention' ? '#FFF8E1' : '#E6F0FF'};color:${color};border:1px solid ${color};">
                             ${statusLabel}
                         </span>
                     </div>
@@ -2133,52 +1496,22 @@ class TaskManager {
                         L.marker([first.lat, first.lon], {
                             icon: L.divIcon({
                                 className: 'start-marker',
-                                html: `<div style="
-                                    background: #00C853;
-                                    color: white;
-                                    border-radius: 50%;
-                                    width: 24px;
-                                    height: 24px;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    font-size: 12px;
-                                    border: 2px solid white;
-                                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                                ">🏁</div>`,
+                                html: `<div style="background:#00C853;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏁</div>`,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12]
                             })
-                        }).addTo(map).bindPopup(`
-                            <strong>🏁 Início</strong><br>
-                            ${escapeHtml(first.task.text)}
-                        `);
+                        }).addTo(map).bindPopup(`<strong>🏁 Início</strong><br>${escapeHtml(first.task.text)}`);
 
                         if (optimizedRoute.length > 1) {
                             const last = optimizedRoute[optimizedRoute.length - 1];
                             L.marker([last.lat, last.lon], {
                                 icon: L.divIcon({
                                     className: 'end-marker',
-                                    html: `<div style="
-                                        background: #D32F2F;
-                                        color: white;
-                                        border-radius: 50%;
-                                        width: 24px;
-                                        height: 24px;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        font-size: 12px;
-                                        border: 2px solid white;
-                                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                                    ">🏁</div>`,
+                                    html: `<div style="background:#D32F2F;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏁</div>`,
                                     iconSize: [24, 24],
                                     iconAnchor: [12, 12]
                                 })
-                            }).addTo(map).bindPopup(`
-                                <strong>🏁 Fim</strong><br>
-                                ${escapeHtml(last.task.text)}
-                            `);
+                            }).addTo(map).bindPopup(`<strong>🏁 Fim</strong><br>${escapeHtml(last.task.text)}`);
                         }
 
                     } else {
@@ -2208,7 +1541,6 @@ class TaskManager {
 
             this.closeSidebar();
             showToast(`🗺️ Mostrando ${tasksWithAddress.length} atividades no mapa`);
-            console.log('🗺️ Mapa exibido com sucesso!');
         } catch (error) {
             console.error('❌ Erro no showMap:', error);
             showToast('⚠️ Erro ao carregar o mapa');
@@ -2242,7 +1574,436 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODOS RDO
+    // PWA E CONEXÃO
+    // =============================================
+    setupPWA() {
+        if (localStorage.getItem('installBannerClosed')) {
+            this.installBanner.classList.remove('show');
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            if (!localStorage.getItem('installBannerClosed')) {
+                this.installBanner.classList.add('show');
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            this.installBanner.classList.remove('show');
+            localStorage.setItem('installBannerClosed', 'true');
+            showToast('✅ App instalado com sucesso!');
+        });
+
+        this.installBtn.addEventListener('click', async () => {
+            if (this.deferredPrompt) {
+                this.deferredPrompt.prompt();
+                const result = await this.deferredPrompt.userChoice;
+                if (result.outcome === 'accepted') {
+                    this.installBanner.classList.remove('show');
+                    localStorage.setItem('installBannerClosed', 'true');
+                    showToast('✅ App instalado!');
+                }
+                this.deferredPrompt = null;
+            } else {
+                showToast('📱 Use o menu do navegador para instalar');
+            }
+        });
+
+        this.installClose.addEventListener('click', () => {
+            this.installBanner.classList.remove('show');
+            localStorage.setItem('installBannerClosed', 'true');
+        });
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            this.installBanner.classList.remove('show');
+            if (this.installAppMenu) {
+                this.installAppMenu.style.display = 'none';
+            }
+        }
+    }
+
+    setupConnectionListeners() {
+        window.addEventListener('online', () => {
+            this.updateConnectionUI(true);
+            showToast('🌐 Conexão restaurada!');
+        });
+
+        window.addEventListener('offline', () => {
+            this.updateConnectionUI(false);
+            showToast('📶 Modo offline ativado');
+        });
+    }
+
+    updateConnectionUI(isOnline) {
+        if (isOnline) {
+            this.connectionStatus.className = 'connection-status online';
+            this.connectionText.textContent = '🟢 Conectado';
+            this.statusDot.className = 'dot online';
+            this.statusText.textContent = 'Online';
+        } else {
+            this.connectionStatus.className = 'connection-status offline';
+            this.connectionText.textContent = '🔴 Modo Offline';
+            this.statusDot.className = 'dot offline';
+            this.statusText.textContent = 'Offline';
+        }
+        this.connectionStatus.style.transform = 'translateY(0)';
+        clearTimeout(this.statusTimeout);
+        this.statusTimeout = setTimeout(() => {
+            this.connectionStatus.style.transform = 'translateY(-100%)';
+        }, 3000);
+    }
+
+    // =============================================
+    // SIDEBAR
+    // =============================================
+    toggleSidebar() {
+        this.sidebar.classList.toggle('open');
+        this.sidebarOverlay.classList.toggle('active');
+    }
+
+    closeSidebar() {
+        this.sidebar.classList.remove('open');
+        this.sidebarOverlay.classList.remove('active');
+    }
+
+    // =============================================
+    // AÇÕES DOS BOTÕES
+    // =============================================
+    setupActionButtons() {
+        this.taskList.querySelectorAll('[data-action="edit"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const taskItem = btn.closest('.task-item');
+                if (taskItem) {
+                    this.openTaskModal(parseInt(taskItem.dataset.id));
+                }
+            });
+        });
+
+        this.taskList.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const taskItem = btn.closest('.task-item');
+                if (taskItem) {
+                    this.deleteTask(parseInt(taskItem.dataset.id));
+                }
+            });
+        });
+
+        document.querySelectorAll('.share-location').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const coords = btn.dataset.coords;
+                if (coords) {
+                    this.copyToClipboard(coords);
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }
+            });
+        });
+    }
+
+    setupObsExpand() {
+        document.querySelectorAll('.task-obs').forEach(el => {
+            el.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isExpanded = this.dataset.expanded === 'true';
+                const toggle = this.querySelector('.obs-toggle');
+
+                if (isExpanded) {
+                    this.classList.remove('expanded');
+                    this.dataset.expanded = 'false';
+                    toggle.textContent = '▼';
+                    toggle.setAttribute('aria-label', 'Expandir observação');
+                    toggle.setAttribute('aria-expanded', 'false');
+                } else {
+                    this.classList.add('expanded');
+                    this.dataset.expanded = 'true';
+                    toggle.textContent = '▲';
+                    toggle.setAttribute('aria-label', 'Recolher observação');
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            });
+        });
+    }
+
+    // =============================================
+    // MODAIS (ABRIR/FECHAR)
+    // =============================================
+    openTaskModal(taskId = null) {
+        console.log('📂 Abrindo modal...', taskId);
+        this.editingTaskId = taskId;
+        this.clearModalAddress();
+
+        if (taskId !== null) {
+            const task = this.tasks.find(t => t.id === taskId);
+            if (task) {
+                this.modalTitle.textContent = '✏️ Editar Atividade';
+                this.modalSubmitBtn.textContent = '💾 Salvar Alterações';
+
+                const tipo = task.tipoAtividade || 'manutencao';
+                this.activityTypeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.type === tipo);
+                });
+                this.atualizarCamposPorTipo(tipo);
+
+                this.rdoOrdem.value = task.ordem || '';
+                this.rdoDataAtividade.value = task.data || '';
+                this.rdoObs.value = task.obs || '';
+
+                if (tipo === 'manutencao') {
+                    const atividades = task.text ? task.text.split('; ').map(s => s.trim()) : [];
+                    this.renderizarAtividades(this.rdoAtividadeSearch?.value || '');
+                    const checkboxes = this.rdoAtividadeContainer?.querySelectorAll('.atividade-checkbox');
+                    if (checkboxes) {
+                        checkboxes.forEach(cb => {
+                            cb.checked = atividades.includes(cb.value);
+                        });
+                    }
+                    const noCheckbox = atividades.filter(item => !ATIVIDADES_MANUTENCAO.includes(item));
+                    if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = noCheckbox.join('; ');
+                    this.atualizarAtividade();
+                } else {
+                    if (this.rdoAtividadeComiss) this.rdoAtividadeComiss.value = 'Comissionamento';
+                    this.rdoProjeto.value = task.projeto || '';
+                    this.rdoPep.value = task.pep || '';
+                    this.rdoTu.value = task.tu || '';
+                    this.rdoPocc.value = task.pocc || '';
+                }
+
+                const radios = document.querySelectorAll('input[name="taskPriority"]');
+                radios.forEach(radio => {
+                    radio.checked = (radio.value === (task.priority || 'planned'));
+                });
+                this.editTaskId.value = taskId;
+
+                if (task.endereco) {
+                    this.selectedAddress = { ...task.endereco };
+                    this.modalSelectedText.innerHTML = `
+                        <strong>📍 Endereço:</strong><br>
+                        ${this.formatAddressSimple(task.endereco)}
+                    `;
+                    this.modalSelectedAddress.classList.add('active');
+                    this.modalAddressSearch.value = task.endereco.display_name || '';
+                }
+            }
+        } else {
+            this.modalTitle.textContent = '✚ Nova Atividade';
+            this.modalSubmitBtn.textContent = '✅ Adicionar Atividade';
+            this.activityTypeBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === 'manutencao');
+            });
+            this.atualizarCamposPorTipo('manutencao');
+
+            this.rdoOrdem.value = '';
+            this.rdoDataAtividade.value = '';
+            this.rdoObs.value = '';
+            if (this.rdoAtividadeOutro) this.rdoAtividadeOutro.value = '';
+            if (this.rdoAtividadeDisplay) this.rdoAtividadeDisplay.value = '';
+            if (this.rdoAtividadeHidden) this.rdoAtividadeHidden.value = '';
+            if (this.rdoAtividadeComiss) this.rdoAtividadeComiss.value = 'Comissionamento';
+            this.rdoProjeto.value = '';
+            this.rdoPep.value = '';
+            this.rdoTu.value = '';
+            this.rdoPocc.value = '';
+
+            const radios = document.querySelectorAll('input[name="taskPriority"]');
+            radios.forEach(radio => {
+                radio.checked = (radio.value === 'planned');
+            });
+            this.editTaskId.value = '';
+            this.selectedAddress = null;
+            this.renderizarAtividades('');
+        }
+
+        this.taskModal.classList.add('active');
+        setTimeout(() => {
+            if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.focus();
+        }, 400);
+        this.closeSidebar();
+    }
+
+    closeTaskModal() {
+        this.taskModal.classList.remove('active');
+        this.clearModalAddress();
+        this.modalSuggestions.classList.remove('active');
+        this.editingTaskId = null;
+        if (this.rdoAtividadeSearch) this.rdoAtividadeSearch.value = '';
+        this.renderizarAtividades();
+    }
+
+    renderRDOProfileHeader() {
+        const profile = JSON.parse(localStorage.getItem('user_profile')) || {};
+
+        document.getElementById('rdo-summary-equipe').textContent = profile.equipe || 'N/A';
+        document.getElementById('rdo-summary-escala').textContent = profile.escala || 'N/A';
+        document.getElementById('rdo-summary-gasista1').textContent = `${profile.gasista1_nome || ''} - ${profile.gasista1_tr || ''}`;
+        document.getElementById('rdo-summary-gasista2').textContent = `${profile.gasista2_nome || ''} - ${profile.gasista2_tr || ''}`;
+        document.getElementById('rdo-summary-placa').textContent = profile.placa_veiculo || 'N/A';
+        
+        // Atualiza horários do turno e cálculo de Horas Extras
+        document.getElementById('rdo-summary-datas').textContent = `${profile.data_inicio} à ${profile.data_fim}`;
+        document.getElementById('rdo-summary-horario').textContent = `${profile.hora_inicio} - ${profile.hora_fim}`;
+        document.getElementById('rdo-summary-he').textContent = `+${profile.horas_extras || '00:00'} H`;
+    }
+
+    openProfileModal() {
+        this.modalName.value = this.profile.name || '';
+        this.modalEmail.value = this.profile.email || '';
+        this.modalAvatar.textContent = this.profile.avatar || '👤';
+        document.getElementById('profileEquipe').value = this.profile.equipe || '';
+        document.getElementById('profileEscala').value = this.profile.escala || '';
+        document.getElementById('profileTecnico1').value = this.profile.tecnico1 || '';
+        document.getElementById('profileRegistro1').value = this.profile.registro1 || '';
+        document.getElementById('profileTecnico2').value = this.profile.tecnico2 || '';
+        document.getElementById('profileRegistro2').value = this.profile.registro2 || '';
+        document.getElementById('profilePrefixo').value = this.profile.prefixo || '';
+        document.getElementById('profileTipoVeiculo').value = this.profile.tipoVeiculo || '';
+        document.getElementById('profileNomeEmpresa').value = this.profile.nomeEmpresa || '';
+        document.getElementById('profileJornadaInicio').value = this.profile.jornadaInicio || '08:00';
+        document.getElementById('profileJornadaFim').value = this.profile.jornadaFim || '17:00';
+        const logotipo = this.profile.logotipo || '';
+        if (logotipo) {
+            document.getElementById('profileLogotipoImg').src = logotipo;
+            document.getElementById('profileLogotipoPreview').style.display = 'block';
+            document.getElementById('profileLogotipoRemover').style.display = 'inline';
+        } else {
+            document.getElementById('profileLogotipoPreview').style.display = 'none';
+            document.getElementById('profileLogotipoRemover').style.display = 'none';
+        }
+        this.calcularDuracaoJornada();
+        this.profileModal.classList.add('active');
+        this.closeSidebar();
+    }
+
+    closeProfileModal() {
+        this.profileModal.classList.remove('active');
+    }
+
+    // =============================================
+    // GESTÃO DE DADOS
+    // =============================================
+    exportData() {
+        if (this.tasks.length === 0) {
+            showToast('📭 Nenhuma atividade para exportar');
+            return;
+        }
+        const data = {
+            tasks: this.tasks,
+            profile: this.profile,
+            exportedAt: new Date().toISOString(),
+            version: '3.0'
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `atividades_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`📤 ${this.tasks.length} atividades exportadas!`);
+        this.closeSidebar();
+    }
+
+    importData(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.tasks || !Array.isArray(data.tasks)) {
+                    showToast('⚠️ Arquivo inválido!');
+                    return;
+                }
+                if (data.profile) {
+                    this.profile = data.profile;
+                    this.saveProfile();
+                }
+                const count = data.tasks.length;
+                this.tasks = data.tasks;
+                this.saveTasks();
+                this.render();
+                this.updateUI();
+                showToast(`📥 ${count} atividades importadas com sucesso!`);
+            } catch (error) {
+                showToast('⚠️ Erro ao ler o arquivo!');
+                console.error('❌ Erro na importação:', error);
+            }
+        };
+        reader.readAsText(file);
+        this.importFileInput.value = '';
+        this.closeSidebar();
+    }
+
+    archiveCompleted() {
+        const completedTasks = this.tasks.filter(t => t.completed);
+        if (completedTasks.length === 0) {
+            showToast('📭 Nenhuma atividade concluída para arquivar');
+            return;
+        }
+        if (confirm(`📦 Arquivar ${completedTasks.length} atividade(s) concluída(s)?`)) {
+            const archiveData = {
+                tasks: completedTasks,
+                archivedAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(archiveData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `arquivo_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.tasks = this.tasks.filter(t => !t.completed);
+            this.saveTasks();
+            this.render();
+            this.updateUI();
+            showToast(`📦 ${completedTasks.length} atividades arquivadas!`);
+            this.closeSidebar();
+        }
+    }
+
+    resetApp() {
+        if (this.tasks.length === 0) {
+            showToast('📭 Nenhuma atividade para resetar');
+            return;
+        }
+        if (confirm('🔄 Resetar o app? Todas as atividades serão removidas.')) {
+            this.tasks = [];
+            this.saveTasks();
+            this.profile = { name: 'Usuário', email: 'usuario@email.com', avatar: '👤', equipe: '', escala: '', tecnico1: '', registro1: '', tecnico2: '', registro2: '', prefixo: '', tipoVeiculo: '', jornadaInicio: '08:00', jornadaFim: '17:00', jornadaDuracao: '09:00' };
+            this.saveProfile();
+            this.render();
+            this.updateUI();
+            showToast('🔄 App resetado com sucesso!');
+            this.closeSidebar();
+        }
+    }
+
+    clearAllData() {
+        const totalTasks = this.tasks.length;
+        if (totalTasks === 0) {
+            showToast('📭 Nenhuma atividade para limpar');
+            return;
+        }
+        if (confirm(`⚠️ Excluir ${totalTasks} atividade(s)?`)) {
+            this.tasks = [];
+            this.saveTasks();
+            this.render();
+            this.updateUI();
+            showToast(`🗑️ ${totalTasks} atividade(s) removida(s)`);
+            this.closeSidebar();
+        }
+    }
+
+    // =============================================
+    // RDO
     // =============================================
     openRDOGenerator() {
         console.log('📂 Abrindo gerador de RDO...');
@@ -2253,7 +2014,6 @@ class TaskManager {
             const equipe = profile.equipe || 'Não definido';
             const escala = profile.escala ? ` - Escala ${profile.escala}` : '';
             equipeField.value = equipe + escala;
-            console.log('✅ Equipe:', equipeField.value);
         }
 
         const veiculoField = document.getElementById('rdoDisplayVeiculo');
@@ -2262,7 +2022,6 @@ class TaskManager {
             const prefixo = profile.prefixo || '';
             const veiculo = (tipo && prefixo) ? `${tipo} - ${prefixo} (Ativo)` : (tipo || prefixo || 'Não definido');
             veiculoField.value = veiculo;
-            console.log('✅ Veículo:', veiculoField.value);
         }
 
         const usuario1Field = document.getElementById('rdoDisplayUsuario1');
@@ -2270,7 +2029,6 @@ class TaskManager {
             const nome1 = profile.tecnico1 || profile.name || 'Não definido';
             const reg1 = profile.registro1 ? ` (Registro: ${profile.registro1})` : '';
             usuario1Field.value = nome1 + reg1;
-            console.log('✅ Técnico 1:', usuario1Field.value);
         }
 
         const usuario2Field = document.getElementById('rdoDisplayUsuario2');
@@ -2278,7 +2036,6 @@ class TaskManager {
             const nome2 = profile.tecnico2 || 'Não definido';
             const reg2 = profile.registro2 ? ` (Registro: ${profile.registro2})` : '';
             usuario2Field.value = nome2 + reg2;
-            console.log('✅ Técnico 2:', usuario2Field.value);
         }
 
         this.loadTasksForRDO();
@@ -2288,9 +2045,16 @@ class TaskManager {
         const obs = document.getElementById('rdoObservacao');
         if (obs) obs.value = '';
 
+        // Limpa a assinatura
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('rdoAssinaturaData').value = '';
+        }
+
         const modal = document.getElementById('rdoGeneratorModal');
         if (modal) modal.classList.add('active');
-        console.log('📂 Modal RDO aberto.');
     }
 
     loadTasksForRDO() {
@@ -2357,7 +2121,6 @@ class TaskManager {
         `;
         container.appendChild(row);
 
-        // Evento para mostrar descrição do código
         const select = row.querySelector('.rdoDesvioCodigo');
         if (select) {
             select.addEventListener('change', function () {
@@ -2371,24 +2134,13 @@ class TaskManager {
             });
         }
 
-        // Remover desvio
         row.querySelector('.rdo-btn-remove-desvio').addEventListener('click', () => {
             if (container.children.length > 1) {
                 row.remove();
-                // Atualiza os horários dos desvios restantes (opcional, mas pode ser útil)
                 this.renumerarDesvios();
             } else {
                 showToast('⚠️ Mantenha pelo menos um desvio.');
             }
-        });
-
-        // Disparar evento para atualizar os horários quando algum campo for alterado
-        const inputs = row.querySelectorAll('input[type="time"]');
-        inputs.forEach(input => {
-            input.addEventListener('change', () => {
-                // Após alteração manual, não reajustamos automaticamente, mas podemos
-                // chamar uma função para reorganizar se desejar.
-            });
         });
     }
 
@@ -2398,11 +2150,9 @@ class TaskManager {
         const rows = container.querySelectorAll('.rdo-desvio-row');
         if (rows.length === 0) return;
 
-        // Define o primeiro início como 08:00
         const firstInicio = rows[0].querySelector('.rdoDesvioInicio');
         if (firstInicio) firstInicio.value = '08:00';
 
-        // Para cada par, ajusta o fim do anterior para o início do próximo
         for (let i = 0; i < rows.length - 1; i++) {
             const currentFim = rows[i].querySelector('.rdoDesvioFim');
             const nextInicio = rows[i + 1].querySelector('.rdoDesvioInicio');
@@ -2411,12 +2161,10 @@ class TaskManager {
             }
         }
 
-        // Define o fim do último como +1 hora do seu início (ou mantém)
         const lastRow = rows[rows.length - 1];
         const lastInicio = lastRow.querySelector('.rdoDesvioInicio');
         const lastFim = lastRow.querySelector('.rdoDesvioFim');
         if (lastInicio && lastFim) {
-            // Se o fim estiver vazio ou igual ao início, adiciona 1 hora
             if (!lastFim.value || lastFim.value === lastInicio.value) {
                 const [h, m] = lastInicio.value.split(':').map(Number);
                 let newH = h + 1;
@@ -2444,17 +2192,8 @@ class TaskManager {
         const observacao = this.rdoObservacao ? this.rdoObservacao.value.trim() : '';
         const profile = this.profile;
 
-        // ===== CAPTURA A ASSINATURA =====
-        const canvas = document.getElementById('rdoAssinaturaCanvas');
-        let assinatura = '';
-        if (canvas) {
-            try {
-                assinatura = canvas.toDataURL('image/png');
-                console.log('Assinatura capturada, tamanho:', assinatura.length);
-            } catch (e) {
-                console.warn('Erro ao capturar assinatura:', e);
-            }
-        }
+        // CAPTURA A ASSINATURA
+        const assinatura = this.getSignatureFromCanvas();
 
         if (tarefasIds.length === 0) {
             showToast('⚠️ Selecione pelo menos uma atividade.');
@@ -2483,7 +2222,7 @@ class TaskManager {
                     tarefas: tarefasIds,
                     desvios,
                     observacao,
-                    assinatura: assinatura // <--- ADICIONADO
+                    assinatura: assinatura
                 };
                 showToast('✅ RDO atualizado!');
             } else {
@@ -2505,7 +2244,7 @@ class TaskManager {
                 tarefas: tarefasIds,
                 desvios,
                 observacao,
-                assinatura: assinatura // <--- ADICIONADO
+                assinatura: assinatura
             };
             rdos.push(rdo);
             showToast('✅ RDO salvo com sucesso!');
@@ -2513,7 +2252,6 @@ class TaskManager {
 
         localStorage.setItem('rdos', JSON.stringify(rdos));
 
-        // Limpeza do formulário
         document.querySelectorAll('.rdo-task-checkbox').forEach(cb => cb.checked = false);
         this.clearDesvios();
         this.addDesvioRow();
@@ -2522,7 +2260,7 @@ class TaskManager {
         const submitBtn = document.getElementById('rdoGeneratorSubmit');
         if (submitBtn) submitBtn.textContent = '💾 Salvar RDO';
 
-        // Limpa o canvas
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
         if (canvas) {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2553,9 +2291,9 @@ class TaskManager {
                                 <strong>${dataHora}</strong> - ${r.equipe} - ${(r.tarefas || []).length} atividades
                                 <br><small>${r.observacao || 'Sem observação'}</small>
                                 <div style="margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap;">
-                                    <button class="rdo-btn secondary btn-editar-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">✏️ Editar</button>
-                                    <button class="rdo-btn secondary btn-pdf-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px;">📄 Gerar PDF</button>
-                                    <button class="rdo-btn secondary btn-excluir-rdo" data-id="${r.id}" style="font-size:0.8rem; padding:4px 12px; color: var(--danger, red);">🗑️ Excluir</button>
+                                    <button class="btn btn-secondary btn-sm btn-editar-rdo" data-id="${r.id}">✏️ Editar</button>
+                                    <button class="btn btn-secondary btn-sm btn-pdf-rdo" data-id="${r.id}">📄 Gerar PDF</button>
+                                    <button class="btn btn-danger btn-sm btn-excluir-rdo" data-id="${r.id}">🗑️ Excluir</button>
                                 </div>
                             </div>
                         `;
@@ -2623,84 +2361,9 @@ class TaskManager {
             console.log('✅ RDO carregado para edição:', rdo);
             showToast('✏️ Editando RDO...');
         }, 200);
-        // ===== CARREGA A ASSINATURA =====
-        if (rdo.assinatura) {
-            const canvas = document.getElementById('rdoAssinaturaCanvas');
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                img.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    document.getElementById('rdoAssinaturaData').value = rdo.assinatura;
-                };
-                img.onerror = () => {
-                    console.warn('Erro ao carregar assinatura para edição');
-                    document.getElementById('rdoAssinaturaData').value = '';
-                };
-                img.src = rdo.assinatura;
-            }
-        }
-    }
 
-    // =============================================
-    // MÉTODOS DE COMPARTILHAMENTO
-    // =============================================
-    exibirOpcoesCompartilhamento(id) {
-        const rdo = this.buscarRDO(id);
-        if (!rdo) return;
-
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay active';
-        modal.innerHTML = `
-            <div class="modal modal-rdo" style="max-width: 420px; border-radius: 16px;">
-                <div class="modal-header">
-                    <h3>📤 Compartilhar RDO</h3>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-                </div>
-                <div style="text-align: center; padding: 16px 0;">
-                    <p style="margin-bottom: 16px;">Deseja compartilhar este RDO via WhatsApp ou Email?</p>
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button class="rdo-btn secondary" onclick="window.app.compartilharRDOWhatsApp(${id}); this.closest('.modal-overlay').remove();" style="padding: 10px 24px; font-size: 1rem; background: #25D366; color: white; border: none; border-radius: 30px;">
-                            📱 WhatsApp
-                        </button>
-                        <button class="rdo-btn secondary" onclick="window.app.compartilharRDOEmail(${id}); this.closest('.modal-overlay').remove();" style="padding: 10px 24px; font-size: 1rem; background: #0052CC; color: white; border: none; border-radius: 30px;">
-                            📧 Email
-                        </button>
-                        <button class="rdo-btn secondary" onclick="this.closest('.modal-overlay').remove();" style="padding: 10px 24px; font-size: 1rem; background: var(--bg-hover, #ccc); color: var(--text-primary, #000); border: none; border-radius: 30px;">
-                            ✖ Fechar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-    }
-
-    compartilharRDOWhatsApp(id) {
-        const rdo = this.buscarRDO(id);
-        if (!rdo) return;
-        const msg = `📋 *RDO - ${rdo.data}*\n` +
-            `👥 Equipe: ${rdo.equipe}\n` +
-            `🚛 Veículo: ${rdo.veiculo}\n` +
-            `📌 Atividades: ${(rdo.tarefas || []).length}\n` +
-            `📝 Obs: ${rdo.observacao || 'Sem observação'}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    compartilharRDOEmail(id) {
-        const rdo = this.buscarRDO(id);
-        if (!rdo) return;
-        const subject = `RDO - ${rdo.data}`;
-        const body = `RDO - ${rdo.data}\n\n` +
-            `Equipe: ${rdo.equipe}\n` +
-            `Veículo: ${rdo.veiculo}\n` +
-            `Atividades: ${(rdo.tarefas || []).length}\n` +
-            `Obs: ${rdo.observacao || 'Sem observação'}`;
-        window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+        // CARREGA A ASSINATURA
+        this.loadSignatureToCanvas(rdo.assinatura);
     }
 
     buscarRDO(id) {
@@ -2736,7 +2399,7 @@ class TaskManager {
     }
 
     // =============================================
-    // MÉTODO DE GERAÇÃO DE PDF (Otimizado e Corrigido)
+    // GERAÇÃO DE PDF
     // =============================================
     gerarPDFRDO(id) {
         const profile = this.profile || {};
@@ -2750,7 +2413,6 @@ class TaskManager {
             return;
         }
 
-        // Buscar tarefas com todos os campos (incluindo comissionamento)
         const tarefasCompletas = (rdo.tarefas || []).map(taskId => {
             const task = this.tasks ? this.tasks.find(t => t.id === taskId) : null;
             if (!task) return null;
@@ -2807,15 +2469,12 @@ class TaskManager {
             doc.setFontSize(9.5);
             doc.setTextColor(...primaryColor);
             doc.text(title.toUpperCase(), marginLeft, currentY);
-
             doc.setDrawColor(...primaryColor);
             doc.setLineWidth(0.8);
             doc.line(marginLeft, currentY + 2, marginLeft + 22, currentY + 2);
-
             doc.setDrawColor(...borderBg);
             doc.setLineWidth(0.3);
             doc.line(marginLeft + 22, currentY + 2, pageWidth - marginRight, currentY + 2);
-
             return currentY + 7;
         };
 
@@ -2849,7 +2508,6 @@ class TaskManager {
         doc.setFontSize(11);
         doc.setTextColor(...darkNeutral);
         doc.text(nomeEmpresa.toUpperCase(), textStartX, y + 11);
-
         doc.setFont(fontFamily, 'bold');
         doc.setFontSize(13);
         doc.setTextColor(...primaryColor);
@@ -2861,12 +2519,10 @@ class TaskManager {
 
         doc.setFillColor(241, 245, 249);
         doc.roundedRect(dataBoxX, y + 5, dataBoxWidth, 18, 2, 2, 'F');
-
         doc.setFont(fontFamily, 'bold');
         doc.setFontSize(7);
         doc.setTextColor(...secondaryText);
         doc.text('DATA DE EMISSÃO', dataBoxX + dataBoxWidth / 2, y + 10, { align: 'center' });
-
         doc.setFontSize(9.5);
         doc.setTextColor(...darkNeutral);
         doc.text(dataVal, dataBoxX + dataBoxWidth / 2, y + 17, { align: 'center' });
@@ -3121,10 +2777,8 @@ class TaskManager {
             y = addSectionHeader('Assinatura do Responsável', y);
             drawCard(marginLeft, y, contentWidth, assinaturaAltura);
 
-            // Verifica se a assinatura existe e tem tamanho razoável
             if (rdo.assinatura && rdo.assinatura.length > 100) {
                 try {
-                    // Se a string já começa com 'data:image', usamos direto, senão adicionamos o prefixo
                     let imgData = rdo.assinatura;
                     if (!imgData.startsWith('data:image/png;base64,')) {
                         imgData = 'data:image/png;base64,' + imgData;
@@ -3163,27 +2817,18 @@ class TaskManager {
         }
 
         // ===== RODAPÉ =====
-        const pageCount = doc.internal.getNumberOfPages(); // Declarado APENAS UMA VEZ
+        const pageCount = doc.internal.getNumberOfPages();
         const dataGeracao = new Date().toLocaleString('pt-BR');
         const footerY = pageHeight - marginBottom + 7;
 
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
-
             doc.setFont(fontFamily, 'italic');
             doc.setFontSize(7.5);
             doc.setTextColor(...secondaryText);
-
             doc.setDrawColor(...borderBg);
             doc.setLineWidth(0.3);
-
-            doc.line(
-                marginLeft,
-                pageHeight - marginBottom + 2,
-                pageWidth - marginRight,
-                pageHeight - marginBottom + 2
-            );
-
+            doc.line(marginLeft, pageHeight - marginBottom + 2, pageWidth - marginRight, pageHeight - marginBottom + 2);
             doc.text(`Gerado em: ${dataGeracao}`, marginLeft, footerY);
             doc.text(`Página ${i} de ${pageCount}`, pageWidth - marginRight, footerY, { align: 'right' });
         }
@@ -3202,17 +2847,149 @@ class TaskManager {
 
         doc.save(nomeArquivo);
 
-        // ===== FEEDBACK =====
         if (typeof showToast === 'function') {
             showToast(`📄 PDF gerado: ${nomeArquivo}`);
         }
-
-        // Compartilhamento removido (conforme solicitado)
-        // this.exibirOpcoesCompartilhamento(id);
     }
 
     // =============================================
-    // MÉTODOS DE EVENTOS
+    // INICIALIZAÇÃO DO DOM
+    // =============================================
+    initializeDOM() {
+        console.log('🔧 Inicializando DOM...');
+
+        // Perfil
+        this.profileEquipe = document.getElementById('profileEquipe');
+        this.profileEscala = document.getElementById('profileEscala');
+        this.profileTecnico1 = document.getElementById('profileTecnico1');
+        this.profileRegistro1 = document.getElementById('profileRegistro1');
+        this.profileTecnico2 = document.getElementById('profileTecnico2');
+        this.profileRegistro2 = document.getElementById('profileRegistro2');
+        this.profilePrefixo = document.getElementById('profilePrefixo');
+        this.profileTipoVeiculo = document.getElementById('profileTipoVeiculo');
+        this.profileJornadaInicio = document.getElementById('profileJornadaInicio');
+        this.profileJornadaFim = document.getElementById('profileJornadaFim');
+        this.profileJornadaDuracao = document.getElementById('profileJornadaDuracao');
+        this.profileNomeEmpresa = document.getElementById('profileNomeEmpresa');
+        this.profileLogotipo = document.getElementById('profileLogotipo');
+        this.profileLogotipoPreview = document.getElementById('profileLogotipoPreview');
+        this.profileLogotipoImg = document.getElementById('profileLogotipoImg');
+        this.profileLogotipoRemover = document.getElementById('profileLogotipoRemover');
+
+        // Principais
+        this.taskList = document.getElementById('taskList');
+        this.filterBtns = document.querySelectorAll('.filter-btn');
+        this.sidebar = document.getElementById('sidebar');
+        this.sidebarOverlay = document.getElementById('sidebarOverlay');
+        this.menuToggle = document.getElementById('menuToggle');
+        this.profileName = document.getElementById('profileName');
+        this.profileEmail = document.getElementById('profileEmail');
+        this.profileAvatar = document.getElementById('profileAvatar');
+        this.taskCount = document.getElementById('taskCount');
+
+        // Modal de atividade
+        this.taskModal = document.getElementById('taskModal');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.taskForm = document.getElementById('taskForm');
+        this.editTaskId = document.getElementById('editTaskId');
+        this.modalSubmitBtn = document.getElementById('modalSubmitBtn');
+        this.modalTaskClose = document.getElementById('modalTaskClose');
+        this.fabAddTask = document.getElementById('fabAddTask');
+
+        // Endereço
+        this.modalAddressSearch = document.getElementById('modalAddressSearch');
+        this.modalSearchBtn = document.getElementById('modalSearchBtn');
+        this.modalSuggestions = document.getElementById('modalSuggestions');
+        this.modalSelectedAddress = document.getElementById('modalSelectedAddress');
+        this.modalSelectedText = document.getElementById('modalSelectedText');
+        this.modalClearAddress = document.getElementById('modalClearAddress');
+
+        // Perfil modal
+        this.profileModal = document.getElementById('profileModal');
+        this.modalProfileClose = document.getElementById('modalProfileClose');
+        this.profileForm = document.getElementById('profileForm');
+        this.modalName = document.getElementById('modalName');
+        this.modalEmail = document.getElementById('modalEmail');
+        this.modalAvatar = document.getElementById('modalAvatar');
+
+        // Botões de dados
+        this.clearAllData = document.getElementById('clearAllData');
+        this.exportDataBtn = document.getElementById('exportDataBtn');
+        this.importFileInput = document.getElementById('importFileInput');
+        this.archiveTasksBtn = document.getElementById('archiveTasksBtn');
+        this.resetAppBtn = document.getElementById('resetAppBtn');
+        this.darkModeToggle = document.getElementById('darkModeToggle');
+        this.darkModeIcon = document.getElementById('darkModeIcon');
+        this.darkModeLabel = document.getElementById('darkModeLabel');
+        this.installAppMenu = document.getElementById('installAppMenu');
+        this.logoutBtn = document.getElementById('logoutBtn');
+        this.installBanner = document.getElementById('installBanner');
+        this.installBtn = document.getElementById('installBtn');
+        this.installClose = document.getElementById('installClose');
+
+        // Header
+        this.headerMap = document.getElementById('headerMap');
+        this.headerRDO = document.getElementById('headerRDO');
+
+        // Status
+        this.connectionStatus = document.getElementById('connectionStatus');
+        this.connectionText = document.getElementById('connectionText');
+
+        // Contadores
+        this.countAll = document.getElementById('countAll');
+        this.countPending = document.getElementById('countPending');
+        this.countCompleted = document.getElementById('countCompleted');
+
+        // Mapa
+        this.mapContainer = document.getElementById('mapContainer');
+
+        // Atividade
+        this.activityTypeBtns = document.querySelectorAll('.activity-type-btn');
+        this.manutencaoFields = document.getElementById('manutencaoFields');
+        this.comissionamentoFields = document.getElementById('comissionamentoFields');
+        this.rdoAtividadeSearch = document.getElementById('rdoAtividadeSearch');
+        this.rdoAtividadeContainer = document.getElementById('rdoAtividadeContainer');
+        this.rdoAtividadeEmpty = document.getElementById('rdoAtividadeEmpty');
+        this.rdoAtividadeOutro = document.getElementById('rdoAtividadeOutro');
+        this.rdoAtividadeDisplay = document.getElementById('rdoAtividadeDisplay');
+        this.rdoAtividadeHidden = document.getElementById('rdoAtividadeHidden');
+        this.rdoAtividadeComiss = document.getElementById('rdoAtividadeComiss');
+        this.rdoOrdem = document.getElementById('rdoOrdem');
+        this.rdoDataAtividade = document.getElementById('rdoDataAtividade');
+        this.rdoObs = document.getElementById('rdoObs');
+        this.rdoProjeto = document.getElementById('rdoProjeto');
+        this.rdoPep = document.getElementById('rdoPep');
+        this.rdoTu = document.getElementById('rdoTu');
+        this.rdoPocc = document.getElementById('rdoPocc');
+
+        // RDO Generator
+        this.rdoDisplayEquipe = document.getElementById('rdoDisplayEquipe');
+        this.rdoDisplayVeiculo = document.getElementById('rdoDisplayVeiculo');
+        this.rdoDisplayUsuario1 = document.getElementById('rdoDisplayUsuario1');
+        this.rdoDisplayUsuario2 = document.getElementById('rdoDisplayUsuario2');
+        this.rdoDesviosContainer = document.getElementById('rdoDesviosContainer');
+        this.rdoObservacao = document.getElementById('rdoObservacao');
+        this.rdoGeneratorModal = document.getElementById('rdoGeneratorModal');
+        this.rdoGeneratorClose = document.getElementById('rdoGeneratorClose');
+        this.rdoGeneratorForm = document.getElementById('rdoGeneratorForm');
+        this.rdoAddDesvioBtn = document.getElementById('rdoAddDesvioBtn');
+        this.rdoTaskList = document.getElementById('rdoTaskList');
+        this.rdoGeneratorSubmit = document.getElementById('rdoGeneratorSubmit');
+
+        // Assinatura
+        this.rdoAssinaturaCanvas = document.getElementById('rdoAssinaturaCanvas');
+        this.rdoAssinaturaData = document.getElementById('rdoAssinaturaData');
+        this.rdoAssinaturaLimpar = document.getElementById('rdoAssinaturaLimpar');
+        this.rdoAssinaturaSalvar = document.getElementById('rdoAssinaturaSalvar');
+
+        // Painel de detalhes
+        this.taskDetailPanel = document.getElementById('taskDetailPanel');
+        this.detailContent = document.getElementById('detailContent');
+        this.detailClose = document.getElementById('detailClose');
+    }
+
+    // =============================================
+    // EVENTOS (BIND)
     // =============================================
     bindEvents() {
         console.log('🔧 Vinculando eventos...');
@@ -3222,7 +2999,6 @@ class TaskManager {
             this.profileLogotipo.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 if (!file.type.startsWith('image/')) {
                     showToast('⚠️ Selecione uma imagem válida.');
                     this.profileLogotipo.value = '';
@@ -3233,7 +3009,6 @@ class TaskManager {
                     this.profileLogotipo.value = '';
                     return;
                 }
-
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     const base64 = ev.target.result;
@@ -3273,6 +3048,14 @@ class TaskManager {
             });
         }
 
+        // ----- Header Mapa -----
+        if (this.headerMap) {
+            this.headerMap.addEventListener('click', () => {
+                console.log('🗺️ Mapa clicado!');
+                this.showMap();
+            });
+        }
+
         // ----- Tipo de atividade -----
         if (this.activityTypeBtns) {
             this.activityTypeBtns.forEach(btn => {
@@ -3296,18 +3079,6 @@ class TaskManager {
         if (jornadaInicio && jornadaFim) {
             jornadaInicio.addEventListener('change', () => this.calcularDuracaoJornada());
             jornadaFim.addEventListener('change', () => this.calcularDuracaoJornada());
-        }
-
-
-
-        // ----- Header: Mapa -----
-        if (this.headerMap) {
-            this.headerMap.addEventListener('click', () => {
-                console.log('🗺️ Mapa clicado!');
-                this.showMap();
-            });
-        } else {
-            console.warn('⚠️ Elemento headerMap não encontrado!');
         }
 
         // ----- Sidebar -----
@@ -3385,131 +3156,6 @@ class TaskManager {
             this.clearAllData.addEventListener('click', () => this.clearAllData());
         }
 
-        // No construtor ou como propriedades da classe
-        this.assinaturaCanvas = null;
-        this.assinaturaCtx = null;
-        this.isDrawing = false;
-        this.lastX = 0;
-        this.lastY = 0;
-
-
-        // === ASSINATURA MANUAL ===
-        const canvas = document.getElementById('rdoAssinaturaCanvas');
-        const container = document.getElementById('rdoAssinaturaContainer');
-        const limparBtn = document.getElementById('rdoAssinaturaLimpar');
-        const salvarBtn = document.getElementById('rdoAssinaturaSalvar');
-        const hiddenInput = document.getElementById('rdoAssinaturaData');
-
-        if (canvas && container) {
-            const ctx = canvas.getContext('2d');
-            this.assinaturaCanvas = canvas;
-            this.assinaturaCtx = ctx;
-
-            // Configuração inicial
-            ctx.lineWidth = 2.5;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = '#000000';
-
-            // Função para redimensionar o canvas (mantém proporção)
-            function resizeCanvas() {
-                const rect = canvas.getBoundingClientRect();
-                // O canvas já tem 400x120, mas o CSS pode esticar, ajustamos o tamanho real
-                // Para evitar distorção, usamos a largura real e mantemos proporção
-                const ratio = 120 / 400;
-                const width = rect.width;
-                const height = width * ratio;
-                canvas.width = width * 0.9; // pequena margem
-                canvas.height = canvas.width * ratio;
-                // Restaurar contexto
-                ctx.lineWidth = 2.5;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = '#000000';
-                // Se já houver uma assinatura salva, redesenhar
-                const saved = hiddenInput.value;
-                if (saved) {
-                    const img = new Image();
-                    img.onload = () => {
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    };
-                    img.src = saved;
-                }
-            }
-
-            // Desenho
-            function getPosition(e) {
-                const rect = canvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                return {
-                    x: (clientX - rect.left) * scaleX,
-                    y: (clientY - rect.top) * scaleY
-                };
-            }
-
-            function startDrawing(e) {
-                e.preventDefault();
-                this.isDrawing = true;
-                const pos = getPosition(e);
-                this.lastX = pos.x;
-                this.lastY = pos.y;
-            }
-
-            function draw(e) {
-                e.preventDefault();
-                if (!this.isDrawing) return;
-                const pos = getPosition(e);
-                ctx.beginPath();
-                ctx.moveTo(this.lastX, this.lastY);
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
-                this.lastX = pos.x;
-                this.lastY = pos.y;
-            }
-
-            function stopDrawing(e) {
-                e.preventDefault();
-                if (this.isDrawing) {
-                    this.isDrawing = false;
-                    // Atualiza o hidden com a imagem
-                    const dataUrl = canvas.toDataURL('image/png');
-                    hiddenInput.value = dataUrl;
-                }
-            }
-
-            // Eventos para mouse e toque
-            canvas.addEventListener('mousedown', startDrawing.bind(this));
-            canvas.addEventListener('mousemove', draw.bind(this));
-            canvas.addEventListener('mouseup', stopDrawing.bind(this));
-            canvas.addEventListener('mouseleave', stopDrawing.bind(this));
-
-            canvas.addEventListener('touchstart', startDrawing.bind(this), { passive: false });
-            canvas.addEventListener('touchmove', draw.bind(this), { passive: false });
-            canvas.addEventListener('touchend', stopDrawing.bind(this), { passive: false });
-
-            // Limpar
-            limparBtn.addEventListener('click', () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                hiddenInput.value = '';
-            });
-
-            // Salvar (já é salvo automaticamente ao soltar, mas mantemos o botão)
-            salvarBtn.addEventListener('click', () => {
-                const dataUrl = canvas.toDataURL('image/png');
-                hiddenInput.value = dataUrl;
-                showToast('✅ Assinatura salva!');
-            });
-
-            // Redimensionar
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
-
-            // Quando abrir o modal, carregar assinatura salva (se houver)
-            // Será chamado no openRDOGenerator
-        }
-
-
         // ----- FAB -----
         if (this.fabAddTask) {
             this.fabAddTask.addEventListener('click', () => {
@@ -3570,30 +3216,49 @@ class TaskManager {
             });
         }
 
-        // ----- Concluir Tarefa -----
+        // ----- CLIQUE NA TAREFA (UNIFICADO) -----
         if (this.taskList) {
             this.taskList.addEventListener('click', (e) => {
+                const taskItem = e.target.closest('.task-item');
+                if (!taskItem) return;
+
+                // Caso 1: Checkbox - alterna status
                 if (e.target.classList.contains('task-checkbox')) {
-                    const taskItem = e.target.closest('.task-item');
-                    if (taskItem) {
-                        this.toggleTask(parseInt(taskItem.dataset.id));
+                    const taskId = parseInt(taskItem.dataset.id);
+                    if (!isNaN(taskId)) {
+                        this.toggleTask(taskId);
                     }
+                    return;
+                }
+
+                // Caso 2: Botões de ação (editar/excluir) - já tratados pelo setupActionButtons
+                if (e.target.closest('.action-btn')) {
+                    return;
+                }
+
+                // Caso 3: Clique na tarefa (exceto checkbox e botões) - exibe detalhes
+                const taskId = parseInt(taskItem.dataset.id);
+                if (!isNaN(taskId)) {
+                    this.showTaskDetails(taskId);
                 }
             });
         }
 
-        // Clique na tarefa
-        this.taskList.addEventListener('click', (e) => {
-            const taskItem = e.target.closest('.task-item');
-            if (taskItem && !e.target.closest('.action-btn') && !e.target.closest('.task-checkbox')) {
-                const taskId = parseInt(taskItem.dataset.id);
-                if (!isNaN(taskId)) this.showTaskDetails(taskId);
-            }
-        });
+        // ----- Fechar detalhes (mobile) -----
+        if (this.detailClose) {
+            this.detailClose.addEventListener('click', () => {
+                this.clearTaskDetails();
+            });
+        }
 
-        // Fechar detalhes
-        document.getElementById('detailClose')?.addEventListener('click', () => {
-            this.clearTaskDetails();
+        // ----- Fechar detalhes ao clicar fora (mobile) -----
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('taskDetailPanel');
+            if (panel && panel.classList.contains('open')) {
+                if (!e.target.closest('.task-detail-panel') && !e.target.closest('.task-item')) {
+                    this.clearTaskDetails();
+                }
+            }
         });
 
         // ----- Menu Gerar RDO -----
@@ -3604,8 +3269,6 @@ class TaskManager {
                 this.closeSidebar();
             });
         }
-
-
 
         // ----- Menu WhatsApp -----
         const menuWhatsApp = document.getElementById('menuWhatsApp');
@@ -3624,8 +3287,6 @@ class TaskManager {
                 this.closeSidebar();
             });
         }
-
-
 
         // ----- Menu Meus RDOs -----
         const menuMeusRDOs = document.getElementById('menuMeusRDOs');
@@ -3659,18 +3320,15 @@ class TaskManager {
                 let codigo = '00';
 
                 if (rows.length > 0) {
-                    // Pega o último desvio
                     const lastRow = rows[rows.length - 1];
                     const lastFim = lastRow.querySelector('.rdoDesvioFim');
                     if (lastFim && lastFim.value) {
                         novoInicio = lastFim.value;
-                        // Define o fim como +1 hora
                         const [h, m] = novoInicio.split(':').map(Number);
                         let newH = h + 1;
                         if (newH >= 24) newH = 0;
                         novoFim = `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                     }
-                    // Pega o código do último (opcional)
                     const lastCodigo = lastRow.querySelector('.rdoDesvioCodigo');
                     if (lastCodigo) codigo = lastCodigo.value;
                 }
@@ -3689,24 +3347,108 @@ class TaskManager {
             });
         });
 
-        // ----- Instalação (PWA) -----
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const menuInstall = document.getElementById('installMenuItem');
-            if (menuInstall) menuInstall.style.display = 'flex';
-        });
+        // =============================================
+        // ASSINATURA MANUAL (Canvas)
+        // =============================================
+        const canvas = document.getElementById('rdoAssinaturaCanvas');
+        const container = document.getElementById('rdoAssinaturaContainer');
+        const limparBtn = document.getElementById('rdoAssinaturaLimpar');
+        const salvarBtn = document.getElementById('rdoAssinaturaSalvar');
+        const hiddenInput = document.getElementById('rdoAssinaturaData');
 
-        document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                document.getElementById('installMenuItem').style.display = 'none';
+        if (canvas && container) {
+            const ctx = canvas.getContext('2d');
+            this.assinaturaCanvas = canvas;
+            this.assinaturaCtx = ctx;
+
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000000';
+
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                const ratio = 120 / 400;
+                const width = rect.width;
+                const height = width * ratio;
+                canvas.width = width * 0.9;
+                canvas.height = canvas.width * ratio;
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000000';
+                const saved = hiddenInput.value;
+                if (saved) {
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                    img.src = saved;
+                }
             }
-            deferredPrompt = null;
-        });
+
+            function getPosition(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            }
+
+            const startDrawing = (e) => {
+                e.preventDefault();
+                this.isDrawing = true;
+                const pos = getPosition(e);
+                this.lastX = pos.x;
+                this.lastY = pos.y;
+            };
+
+            const draw = (e) => {
+                e.preventDefault();
+                if (!this.isDrawing) return;
+                const pos = getPosition(e);
+                ctx.beginPath();
+                ctx.moveTo(this.lastX, this.lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                this.lastX = pos.x;
+                this.lastY = pos.y;
+            };
+
+            const stopDrawing = (e) => {
+                e.preventDefault();
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    const dataUrl = canvas.toDataURL('image/png');
+                    hiddenInput.value = dataUrl;
+                }
+            };
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing, { passive: false });
+
+            limparBtn.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                hiddenInput.value = '';
+            });
+
+            salvarBtn.addEventListener('click', () => {
+                const dataUrl = canvas.toDataURL('image/png');
+                hiddenInput.value = dataUrl;
+                showToast('✅ Assinatura salva!');
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        }
 
         // ----- Gestão para fechar sidebar -----
         let touchStartX = 0;
@@ -3718,39 +3460,6 @@ class TaskManager {
                 this.closeSidebar();
             }
         }, { passive: true });
-
-        // ----- Clique na tarefa para exibir detalhes -----
-        if (this.taskList) {
-            this.taskList.addEventListener('click', (e) => {
-                const taskItem = e.target.closest('.task-item');
-                // Ignora se clicou em botão de ação (editar/excluir) ou checkbox
-                if (taskItem && !e.target.closest('.action-btn') && !e.target.closest('.task-checkbox')) {
-                    const taskId = parseInt(taskItem.dataset.id);
-                    if (!isNaN(taskId)) {
-                        this.showTaskDetails(taskId);
-                    }
-                }
-            });
-        }
-
-        // ----- Fechar detalhes (mobile) -----
-        const detailClose = document.getElementById('detailClose');
-        if (detailClose) {
-            detailClose.addEventListener('click', () => {
-                this.clearTaskDetails();
-            });
-        }
-
-        // ----- Fechar detalhes ao clicar fora (mobile) -----
-        document.addEventListener('click', (e) => {
-            const panel = document.getElementById('taskDetailPanel');
-            if (panel && panel.classList.contains('open')) {
-                // Se o clique não foi dentro do painel e não foi em uma tarefa
-                if (!e.target.closest('.task-detail-panel') && !e.target.closest('.task-item')) {
-                    this.clearTaskDetails();
-                }
-            }
-        });
 
         console.log('✅ Eventos vinculados');
     }
