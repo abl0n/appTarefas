@@ -437,6 +437,35 @@
     <!-- ===== MAPA ===== -->
     <div id="mapContainer" style="display:none;"></div>
 
+    <!-- ===== MODAL SELEÇÃO DE ATIVIDADES PARA ROTAGRAMA ===== -->
+    <div class="modal-overlay" id="routeSelectionModal" role="dialog" aria-modal="true">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <div class="modal-header">
+                <h2>🗺️ Selecionar Atividades para Rotograma</h2>
+                <button class="modal-close" id="routeSelectionClose">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="route-selection-controls">
+                    <div class="route-selection-stats">
+                        <span id="routeSelectedCount">0</span> de <span id="routeTotalCount">0</span> selecionadas
+                    </div>
+                    <div class="route-selection-buttons">
+                        <button class="btn btn-sm btn-secondary" id="routeSelectAll">✅ Selecionar Todas</button>
+                        <button class="btn btn-sm btn-secondary" id="routeSelectNone">⬜ Desmarcar Todas</button>
+                        <button class="btn btn-sm btn-secondary" id="routeSelectWithAddress">📍 Com Endereço</button>
+                    </div>
+                </div>
+                <div id="routeTaskList" class="route-task-list"></div>
+                <div class="route-selection-actions">
+                    <button class="btn btn-primary btn-block" id="routeGenerateRoute">
+                        🚗 Gerar Rotograma
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== INSTALL BANNER ===== -->
     <div class="install-banner" id="installBanner">
         <div class="install-info">

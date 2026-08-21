@@ -1,5 +1,5 @@
 // =============================================
-// APP.JS - TASK MANAGER (VERSÃO REFATORADA)
+// APP.JS - TASK MANAGER (VERSÃO CORRIGIDA)
 // =============================================
 
 // ===== CONSTANTES GLOBAIS =====
@@ -1472,7 +1472,7 @@ class TaskManager {
 
                     if (loadingMsg.parentNode) loadingMsg.remove();
 
-                    if (data.code === 'Ok' && data.routes.length > 0) {
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
                         const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
                         const totalDistance = data.routes[0].distance / 1000;
                         const totalDuration = Math.round(data.routes[0].duration / 60);
@@ -1571,6 +1571,569 @@ class TaskManager {
 
     toRad(degrees) {
         return degrees * (Math.PI / 180);
+    }
+
+    // =============================================
+    // ROTAGRAMA - SELEÇÃO DE ATIVIDADES
+    // =============================================
+
+    /**
+     * Abre o modal de seleção de atividades para o rotograma
+     */
+    openRouteSelection() {
+        try {
+            // Filtra apenas atividades com endereço válido
+            const tasksWithAddress = this.tasks.filter(t => {
+                const lat = parseFloat(t.endereco?.lat);
+                const lon = parseFloat(t.endereco?.lon);
+                return Number.isFinite(lat) && Number.isFinite(lon);
+            });
+
+            if (tasksWithAddress.length === 0) {
+                showToast('📍 Nenhuma atividade com endereço para criar rotograma');
+                return;
+            }
+
+            // Atualiza contadores
+            const totalSpan = document.getElementById('routeTotalCount');
+            if (totalSpan) totalSpan.textContent = tasksWithAddress.length;
+
+            const selectedSpan = document.getElementById('routeSelectedCount');
+            if (selectedSpan) selectedSpan.textContent = tasksWithAddress.length;
+
+            // Renderiza a lista
+            this._renderRouteTaskList(tasksWithAddress);
+
+            // Abre o modal
+            const modal = document.getElementById('routeSelectionModal');
+            if (modal) modal.classList.add('active');
+
+            this.closeSidebar();
+
+        } catch (error) {
+            console.error('❌ Erro ao abrir seleção de rota:', error);
+            showToast('⚠️ Erro ao abrir seleção de atividades');
+        }
+    }
+
+    /**
+     * Renderiza a lista de atividades para seleção
+     * @param {Array} tasks - Lista de tarefas com endereço
+     */
+    _renderRouteTaskList(tasks) {
+        const container = document.getElementById('routeTaskList');
+        if (!container) return;
+
+        container.innerHTML = tasks.map(task => {
+            const hasAddress = task.endereco && 
+                Number.isFinite(parseFloat(task.endereco?.lat)) && 
+                Number.isFinite(parseFloat(task.endereco?.lon));
+            
+            const statusClass = task.completed ? 'completed' : 'pending';
+            const statusLabel = task.completed ? '✅ Concluída' : '⏳ Pendente';
+            const addressLabel = hasAddress ? '📍 Com endereço' : '❌ Sem endereço';
+            const addressBadge = hasAddress ? 'has-address' : 'no-address';
+
+            return `
+                <label class="route-task-item selected" data-id="${task.id}">
+                    <input type="checkbox" class="route-task-checkbox" value="${task.id}" checked>
+                    <div class="route-task-info">
+                        <div class="route-task-title">${escapeHtml(task.text || 'Atividade sem título')}</div>
+                        <div class="route-task-meta">
+                            ${task.ordem ? `<span>🔢 ${escapeHtml(task.ordem)}</span>` : ''}
+                            ${task.data ? `<span>📅 ${escapeHtml(task.data)}</span>` : ''}
+                            <span class="badge ${statusClass}">${statusLabel}</span>
+                            <span class="badge ${addressBadge}">${addressLabel}</span>
+                        </div>
+                    </div>
+                </label>
+            `;
+        }).join('');
+
+        // Eventos dos checkboxes
+        container.querySelectorAll('.route-task-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const item = cb.closest('.route-task-item');
+                if (item) {
+                    item.classList.toggle('selected', cb.checked);
+                    this._updateRouteSelectionStats();
+                }
+            });
+        });
+
+        // Clique no item (toggle checkbox)
+        container.querySelectorAll('.route-task-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Ignora se clicou no checkbox diretamente
+                if (e.target.closest('.route-task-checkbox')) return;
+                const cb = item.querySelector('.route-task-checkbox');
+                if (cb) {
+                    cb.checked = !cb.checked;
+                    item.classList.toggle('selected', cb.checked);
+                    this._updateRouteSelectionStats();
+                }
+            });
+        });
+
+        this._updateRouteSelectionStats();
+    }
+
+    /**
+     * Atualiza as estatísticas de seleção
+     */
+    _updateRouteSelectionStats() {
+        const container = document.getElementById('routeTaskList');
+        if (!container) return;
+
+        const checkboxes = container.querySelectorAll('.route-task-checkbox');
+        const total = checkboxes.length;
+        const selected = container.querySelectorAll('.route-task-checkbox:checked').length;
+
+        const totalSpan = document.getElementById('routeTotalCount');
+        const selectedSpan = document.getElementById('routeSelectedCount');
+        if (totalSpan) totalSpan.textContent = total;
+        if (selectedSpan) selectedSpan.textContent = selected;
+    }
+
+    /**
+     * Gera o rotograma com as atividades selecionadas
+     */
+    async generateRoute() {
+        try {
+            const container = document.getElementById('routeTaskList');
+            if (!container) return;
+
+            const selectedCheckboxes = container.querySelectorAll('.route-task-checkbox:checked');
+            const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+
+            if (selectedIds.length === 0) {
+                showToast('⚠️ Selecione pelo menos uma atividade para gerar a rota');
+                return;
+            }
+
+            // Filtra as tarefas selecionadas
+            const selectedTasks = this.tasks.filter(t => selectedIds.includes(t.id));
+
+            // Verifica se todas têm endereço válido
+            const validTasks = selectedTasks.filter(t => {
+                const lat = parseFloat(t.endereco?.lat);
+                const lon = parseFloat(t.endereco?.lon);
+                return Number.isFinite(lat) && Number.isFinite(lon);
+            });
+
+            if (validTasks.length === 0) {
+                showToast('⚠️ Nenhuma atividade selecionada tem endereço válido');
+                return;
+            }
+
+            // Fecha o modal
+            const modal = document.getElementById('routeSelectionModal');
+            if (modal) modal.classList.remove('active');
+
+            // Mostra o mapa com apenas as atividades selecionadas
+            await this._showMapWithTasks(validTasks);
+
+            showToast(`🗺️ Rotograma gerado com ${validTasks.length} atividades`);
+
+        } catch (error) {
+            console.error('❌ Erro ao gerar rotograma:', error);
+            showToast('⚠️ Erro ao gerar rotograma');
+        }
+    }
+
+    /**
+     * Mostra o mapa com um conjunto específico de tarefas
+     * @param {Array} tasks - Lista de tarefas para exibir no mapa
+     */
+    async _showMapWithTasks(tasks) {
+        console.log('🗺️ Executando showMap com tarefas selecionadas...');
+        
+        try {
+            if (tasks.length === 0) {
+                showToast('📍 Nenhuma atividade para mostrar no mapa');
+                return;
+            }
+
+            const container = this.mapContainer;
+            if (!container) {
+                showToast('⚠️ Container do mapa não encontrado');
+                return;
+            }
+
+            if (!window.L) {
+                showToast('⚠️ Não foi possível carregar o mapa. Verifique sua conexão.');
+                return;
+            }
+
+            if (window.map) {
+                window.map.remove();
+                window.map = null;
+            }
+
+            container.innerHTML = '';
+            container.style.display = 'block';
+
+            // Overlay de fechamento
+            let overlay = document.getElementById('mapOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'mapOverlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 9998;
+                    background: rgba(0,0,0,0.5);
+                    display: none;
+                `;
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'block';
+
+            // Header do mapa com informações
+            const headerMap = document.createElement('div');
+            headerMap.style.cssText = `
+                position: absolute;
+                top: 12px;
+                left: 12px;
+                right: 12px;
+                width: auto;
+                z-index: 10000;
+                background: rgba(0,0,0,0.85);
+                backdrop-filter: blur(8px);
+                padding: 10px 16px;
+                border-radius: 12px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+                font-weight: 600;
+                font-size: 13px;
+                color: #fff;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                flex-wrap: wrap;
+                border: 1px solid rgba(255,255,255,0.15);
+            `;
+            headerMap.innerHTML = `
+                <span>📍 ${tasks.length} atividades selecionadas</span>
+                <span style="font-size:11px; opacity:0.7;">🔄 Rotograma otimizado</span>
+            `;
+            container.appendChild(headerMap);
+
+            // Botão de fechar
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                z-index: 10001;
+                background: rgba(0,0,0,0.5);
+                backdrop-filter: blur(4px);
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+                cursor: pointer;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                transition: background 0.2s;
+            `;
+            closeBtn.onmouseover = () => { closeBtn.style.background = 'rgba(255,255,255,0.2)'; };
+            closeBtn.onmouseout = () => { closeBtn.style.background = 'rgba(0,0,0,0.5)'; };
+            closeBtn.onclick = () => {
+                container.style.display = 'none';
+                overlay.style.display = 'none';
+                if (window.map) {
+                    window.map.remove();
+                    window.map = null;
+                }
+            };
+            container.appendChild(closeBtn);
+
+            // Botão de reabrir seleção
+            const reselectBtn = document.createElement('button');
+            reselectBtn.innerHTML = '📋 Re-Selecionar';
+            reselectBtn.style.cssText = `
+                position: absolute;
+                bottom: 130px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 10001;
+                background: rgba(0,0,0,0.7);
+                backdrop-filter: blur(4px);
+                border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 20px;
+                padding: 8px 16px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                transition: background 0.2s;
+            `;
+            reselectBtn.onmouseover = () => { reselectBtn.style.background = 'rgba(255,255,255,0.15)'; };
+            reselectBtn.onmouseout = () => { reselectBtn.style.background = 'rgba(0,0,0,0.7)'; };
+            reselectBtn.onclick = () => {
+                container.style.display = 'none';
+                overlay.style.display = 'none';
+                if (window.map) {
+                    window.map.remove();
+                    window.map = null;
+                }
+                this.openRouteSelection();
+            };
+            container.appendChild(reselectBtn);
+
+            // Calcula centro
+            const centerLat = tasks.reduce((sum, t) => sum + parseFloat(t.endereco.lat), 0) / tasks.length;
+            const centerLon = tasks.reduce((sum, t) => sum + parseFloat(t.endereco.lon), 0) / tasks.length;
+
+            const map = L.map(container, {
+                zoomControl: false,
+                attributionControl: false,
+                center: [centerLat, centerLon],
+                zoom: 12
+            });
+            window.map = map;
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            requestAnimationFrame(() => map.invalidateSize());
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            // Cores por status
+            const statusColors = {
+                'completed': '#00C853',
+                'planned': '#0052CC',
+                'attention': '#F9A825',
+                'critical': '#D32F2F'
+            };
+
+            const getTaskStatus = (task) => {
+                if (task.completed) return 'completed';
+                return task.priority || 'planned';
+            };
+
+            const markers = [];
+            const waypoints = [];
+
+            tasks.forEach((task, index) => {
+                const lat = parseFloat(task.endereco.lat);
+                const lon = parseFloat(task.endereco.lon);
+                const status = getTaskStatus(task);
+                const color = statusColors[status] || statusColors.planned;
+
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `
+                        <div style="background:${color};color:white;border-radius:50%;
+                            width:34px;height:34px;display:flex;align-items:center;
+                            justify-content:center;font-size:14px;font-weight:bold;
+                            border:3px solid white;box-shadow:0 2px 12px rgba(0,0,0,0.4);
+                            transition: all 0.2s;">
+                            ${index + 1}
+                        </div>
+                    `,
+                    iconSize: [34, 34],
+                    iconAnchor: [17, 17],
+                    popupAnchor: [0, -20]
+                });
+
+                const marker = L.marker([lat, lon], { icon }).addTo(map);
+                markers.push(marker);
+
+                const statusLabel = {
+                    'completed': '✅ Concluída',
+                    'planned': '📌 Planejada',
+                    'attention': '⚠️ Atenção',
+                    'critical': '🚨 Crítica'
+                }[status] || '📌 Planejada';
+
+                const popupContent = `
+                    <div style="max-width:250px;padding:6px;">
+                        <strong>${index + 1}. ${escapeHtml(task.text)}</strong><br>
+                        ${task.ordem ? `<small>🔢 Ordem: ${escapeHtml(task.ordem)}</small><br>` : ''}
+                        ${task.data ? `<small>📅 Data: ${escapeHtml(task.data)}</small><br>` : ''}
+                        <small>📍 ${escapeHtml(task.endereco.logradouro || task.endereco.display_name || '')}</small><br>
+                        ${task.obs ? `<small>📝 ${escapeHtml(task.obs)}</small><br>` : ''}
+                        <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;margin-top:4px;background:${status === 'completed' ? '#E8F5E9' : status === 'critical' ? '#FDECEA' : status === 'attention' ? '#FFF8E1' : '#E6F0FF'};color:${color};border:1px solid ${color};">
+                            ${statusLabel}
+                        </span>
+                    </div>
+                `;
+                marker.bindPopup(popupContent, { maxWidth: 280 });
+
+                waypoints.push({
+                    lat: lat,
+                    lon: lon,
+                    task: task,
+                    index: index
+                });
+            });
+
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+
+            // Calcula e desenha rota otimizada
+            if (waypoints.length > 1) {
+                const optimizedRoute = this.calculateOptimalRoute(waypoints);
+                const coordinates = optimizedRoute.map(w => `${w.lon},${w.lat}`).join(';');
+
+                const loadingMsg = document.createElement('div');
+                loadingMsg.style.cssText = `
+                    position: absolute;
+                    bottom: 180px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 10000;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    pointer-events: none;
+                `;
+                loadingMsg.textContent = '⏳ Calculando rota otimizada...';
+                container.appendChild(loadingMsg);
+
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+                    const response = await fetch(osrmUrl, { 
+                        signal: controller.signal,
+                        headers: { 'User-Agent': 'TaskApp/1.0' }
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (loadingMsg.parentNode) loadingMsg.remove();
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                        const totalDistance = data.routes[0].distance / 1000;
+                        const totalDuration = Math.round(data.routes[0].duration / 60);
+
+                        // Desenha a rota
+                        const polyline = L.polyline(routeCoords, {
+                            color: '#0052CC',
+                            weight: 6,
+                            opacity: 0.9,
+                            smoothFactor: 1
+                        }).addTo(map);
+
+                        // Atualiza header com informações da rota
+                        headerMap.innerHTML = `
+                            <span>📍 ${tasks.length} atividades</span>
+                            <span>🚗 ${totalDistance.toFixed(1)} km</span>
+                            <span>⏱️ ~${totalDuration} min</span>
+                            <span style="font-size:11px; opacity:0.7;">🔄 Rota otimizada</span>
+                        `;
+
+                        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+
+                        // Marcadores de início e fim
+                        const first = optimizedRoute[0];
+                        const last = optimizedRoute[optimizedRoute.length - 1];
+
+                        L.marker([first.lat, first.lon], {
+                            icon: L.divIcon({
+                                className: 'start-marker',
+                                html: `<div style="background:#00C853;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏁</div>`,
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
+                            })
+                        }).addTo(map).bindPopup(`<strong>🏁 Início</strong><br>${escapeHtml(first.task.text)}`);
+
+                        if (last && last !== first) {
+                            L.marker([last.lat, last.lon], {
+                                icon: L.divIcon({
+                                    className: 'end-marker',
+                                    html: `<div style="background:#D32F2F;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🏁</div>`,
+                                    iconSize: [28, 28],
+                                    iconAnchor: [14, 14]
+                                })
+                            }).addTo(map).bindPopup(`<strong>🏁 Fim</strong><br>${escapeHtml(last.task.text)}`);
+                        }
+
+                        // Adiciona numeração da ordem na rota
+                        optimizedRoute.forEach((wp, idx) => {
+                            if (idx > 0 && idx < optimizedRoute.length - 1) {
+                                L.marker([wp.lat, wp.lon], {
+                                    icon: L.divIcon({
+                                        className: 'waypoint-marker',
+                                        html: `<div style="background:#FF6B00;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${idx + 1}</div>`,
+                                        iconSize: [22, 22],
+                                        iconAnchor: [11, 11]
+                                    })
+                                }).addTo(map);
+                            }
+                        });
+
+                        showToast(`✅ Rotograma gerado: ${totalDistance.toFixed(1)} km, ~${totalDuration} min`);
+
+                    } else {
+                        // Fallback para linha reta
+                        this.drawStraightRoute(map, optimizedRoute);
+                        const totalDist = this.calculateTotalDistance(optimizedRoute);
+                        headerMap.innerHTML = `
+                            <span>📍 ${tasks.length} atividades</span>
+                            <span>🚗 ${totalDist.toFixed(1)} km (reta)</span>
+                            <span style="font-size:11px; opacity:0.7;">⚠️ Rota por ruas indisponível</span>
+                        `;
+                        showToast('⚠️ Rota por ruas indisponível, usando linha reta');
+                    }
+
+                } catch (error) {
+                    if (loadingMsg.parentNode) loadingMsg.remove();
+                    
+                    if (error.name === 'AbortError') {
+                        console.warn('⏱️ Timeout na requisição OSRM');
+                        showToast('⏱️ Tempo limite excedido. Usando linha reta.');
+                    } else {
+                        console.warn('⚠️ Erro ao buscar rota OSRM:', error);
+                        showToast('⚠️ Erro ao calcular rota, usando linha reta');
+                    }
+
+                    this.drawStraightRoute(map, optimizedRoute);
+                    const totalDist = this.calculateTotalDistance(optimizedRoute);
+                    headerMap.innerHTML = `
+                        <span>📍 ${tasks.length} atividades</span>
+                        <span>🚗 ${totalDist.toFixed(1)} km (reta)</span>
+                        <span style="font-size:11px; opacity:0.7;">⚠️ Fallback</span>
+                    `;
+                }
+            } else {
+                headerMap.innerHTML = `<span>📍 ${tasks.length} atividade</span>`;
+                map.setView([waypoints[0].lat, waypoints[0].lon], 14);
+            }
+
+            this.closeSidebar();
+
+        } catch (error) {
+            console.error('❌ Erro no showMap com seleção:', error);
+            showToast('⚠️ Erro ao carregar o mapa');
+        }
     }
 
     // =============================================
@@ -3048,11 +3611,11 @@ class TaskManager {
             });
         }
 
-        // ----- Header Mapa -----
+        // ----- Header Mapa - ABRE SELEÇÃO DE ROTAGRAMA -----
         if (this.headerMap) {
             this.headerMap.addEventListener('click', () => {
-                console.log('🗺️ Mapa clicado!');
-                this.showMap();
+                console.log('🗺️ Abrindo seleção de rotograma...');
+                this.openRouteSelection();
             });
         }
 
@@ -3336,6 +3899,87 @@ class TaskManager {
                 this.addDesvioRow(novoInicio, novoFim, codigo);
             });
         }
+
+        // =============================================
+        // MODAL SELEÇÃO DE ROTAGRAMA
+        // =============================================
+
+        // ----- Modal Seleção de Rotograma -----
+        const routeModal = document.getElementById('routeSelectionModal');
+        const routeModalClose = document.getElementById('routeSelectionClose');
+
+        if (routeModalClose) {
+            routeModalClose.addEventListener('click', () => {
+                if (routeModal) routeModal.classList.remove('active');
+            });
+        }
+
+        if (routeModal) {
+            routeModal.addEventListener('click', (e) => {
+                if (e.target === routeModal) routeModal.classList.remove('active');
+            });
+        }
+
+        // Botões de seleção em massa
+        const selectAllBtn = document.getElementById('routeSelectAll');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', () => {
+                const container = document.getElementById('routeTaskList');
+                if (container) {
+                    container.querySelectorAll('.route-task-checkbox').forEach(cb => {
+                        cb.checked = true;
+                        const item = cb.closest('.route-task-item');
+                        if (item) item.classList.add('selected');
+                    });
+                    this._updateRouteSelectionStats();
+                }
+            });
+        }
+
+        const selectNoneBtn = document.getElementById('routeSelectNone');
+        if (selectNoneBtn) {
+            selectNoneBtn.addEventListener('click', () => {
+                const container = document.getElementById('routeTaskList');
+                if (container) {
+                    container.querySelectorAll('.route-task-checkbox').forEach(cb => {
+                        cb.checked = false;
+                        const item = cb.closest('.route-task-item');
+                        if (item) item.classList.remove('selected');
+                    });
+                    this._updateRouteSelectionStats();
+                }
+            });
+        }
+
+        const selectWithAddressBtn = document.getElementById('routeSelectWithAddress');
+        if (selectWithAddressBtn) {
+            selectWithAddressBtn.addEventListener('click', () => {
+                const container = document.getElementById('routeTaskList');
+                if (container) {
+                    container.querySelectorAll('.route-task-item').forEach(item => {
+                        const hasAddressBadge = item.querySelector('.badge.has-address');
+                        const cb = item.querySelector('.route-task-checkbox');
+                        if (hasAddressBadge && cb) {
+                            cb.checked = true;
+                            item.classList.add('selected');
+                        } else if (cb) {
+                            cb.checked = false;
+                            item.classList.remove('selected');
+                        }
+                    });
+                    this._updateRouteSelectionStats();
+                }
+            });
+        }
+
+        // Botão Gerar Rotograma
+        const generateRouteBtn = document.getElementById('routeGenerateRoute');
+        if (generateRouteBtn) {
+            generateRouteBtn.addEventListener('click', () => {
+                this.generateRoute();
+            });
+        }
+
 
         // ----- Filtros -----
         this.filterBtns.forEach(btn => {
