@@ -5,12 +5,21 @@
 // ===== CONSTANTES GLOBAIS =====
 const CODIGOS_DESVIO = [
     { codigo: "00", descricao: "Executado" },
-    { codigo: "01", descricao: "Parada técnica" },
-    { codigo: "02", descricao: "Falta de material" },
-    { codigo: "03", descricao: "Falta de pessoal" },
+    { codigo: "01", descricao: "Condições Climáticas Desfavoráveis" },
+    { codigo: "05", descricao: "Espera de equipe contratada" },
+    { codigo: "06", descricao: "Espera de Técnico/Supervisor" },
     { codigo: "04", descricao: "Condições climáticas" },
     { codigo: "08", descricao: "Deslocamento" },
-    { codigo: "13", descricao: "Almoço/Janta" }
+    { codigo: "10", descricao: "Abastecimento Combustível" },
+    { codigo: "11", descricao: "Auditoria" },
+    { codigo: "12", descricao: "CDI" },
+    { codigo: "13", descricao: "Almoço/Janta" },
+    { codigo: "14", descricao: "Viatura: Carregar, Descarregar, Limpeza" },
+    { codigo: "15", descricao: "ADM/Treinamento" },
+    { codigo: "16", descricao: "Monitoramento" },
+    { codigo: "21", descricao: "Espera de equipe Comgas" },
+    { codigo: "22", descricao: "Espera entrada em empresa" },
+
 ];
 
 const ATIVIDADES_MANUTENCAO = [
